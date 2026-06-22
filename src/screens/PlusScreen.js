@@ -77,7 +77,7 @@ export default function PlusScreen() {
   ];
 
   const analyticsItems = [
-    { label: 'Mes Commandes',         icon: 'cart-outline',         color: '#10B981', disabled: false,                      onPress: () => navigation.navigate('Commandes') },
+    // { label: 'Mes Commandes',         icon: 'cart-outline',         color: '#10B981', disabled: false,                      onPress: () => navigation.navigate('Commandes') },
     { label: 'Bilan des ventes',      icon: 'bar-chart-outline',    color: '#30A08B', disabled: !has('bilanJournalier'),    onPress: () => navigation.navigate('BilanVentes') },
     { label: 'Performance produits',  icon: 'trending-up-outline',  color: '#6366F1', disabled: !has('performanceProduits'), onPress: () => {} },
     { label: 'Rapport mensuel',       icon: 'document-text-outline',color: '#F59E0B', disabled: !has('rapportPeriodique'),  onPress: () => {} },

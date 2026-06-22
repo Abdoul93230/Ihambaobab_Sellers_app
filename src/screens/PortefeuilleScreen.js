@@ -11,6 +11,7 @@ import * as Sharing from 'expo-sharing';
 import { useAuthStore } from '../stores/authStore';
 import { useSync } from '../hooks/useSync';
 import { useTheme } from '../context/ThemeContext';
+import { getMeta, setMeta } from '../db/database';
 import apiClient from '../config/api';
 import Toast from 'react-native-toast-message';
 
@@ -1363,8 +1364,11 @@ export default function PortefeuilleScreen() {
   // Cache périodes en mémoire — même pattern que DashboardScreen
   const periodeCache       = useRef({});
   // Ref isOffline — accessible dans les callbacks sans les re-créer
-  const isOfflineRef       = useRef(isOffline);
+  const isOfflineRef  = useRef(isOffline);
   useEffect(() => { isOfflineRef.current = isOffline; }, [isOffline]);
+  // Ref portfolio — pour lire la valeur courante dans fetchDashboard sans dépendance
+  const portfolioRef  = useRef(null);
+  useEffect(() => { portfolioRef.current = portfolio; }, [portfolio]);
 
   // Floutement lors du rechargement POS (filtre période/statut)
   useEffect(() => {
@@ -1379,13 +1383,25 @@ export default function PortefeuilleScreen() {
   const fetchDashboard = useCallback(async (silent = false, forPeriode = null) => {
     const p = forPeriode ?? periode;
     if (!sellerId) return;
-    if (isOfflineRef.current) { setLoading(false); setRefreshing(false); return; }
+
+    if (isOfflineRef.current) {
+      // Mode offline — charger depuis SQLite si dispo
+      if (!portfolioRef.current) {
+        const cached = await getMeta(`portfolio_${sellerId}_${p}`).catch(() => null);
+        if (cached) setPortfolio(cached);
+      }
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
 
     // Prefetch background d'une autre période — aucun effet sur l'UI
     if (forPeriode !== null) {
       try {
         const res = await apiClient.get(`/api/financial/seller/${sellerId}/dashboard?periode=${p}`);
-        periodeCache.current[p] = res.data?.data || res.data;
+        const data = res.data?.data || res.data;
+        periodeCache.current[p] = data;
+        setMeta(`portfolio_${sellerId}_${p}`, data).catch(() => {});
       } catch (_) {}
       return;
     }
@@ -1404,6 +1420,7 @@ export default function PortefeuilleScreen() {
       const data = res.data?.data || res.data;
       periodeCache.current[p] = data;
       setPortfolio(data);
+      setMeta(`portfolio_${sellerId}_${p}`, data).catch(() => {});
     } catch (e) {
       if (!silent) Toast.show({ type: 'error', text1: 'Erreur', text2: 'Impossible de charger le portefeuille' });
     } finally {
@@ -1414,7 +1431,19 @@ export default function PortefeuilleScreen() {
   }, [sellerId, periode]);
 
   const fetchTransactions = useCallback(async (page = 1) => {
-    if (!sellerId || isOfflineRef.current) return;
+    if (!sellerId) return;
+
+    // Mode offline — charger la dernière page 1 mise en cache
+    if (isOfflineRef.current) {
+      const cached = await getMeta(`txs_${sellerId}_${periode}`).catch(() => null);
+      if (cached) {
+        setTransactions(cached.transactions || []);
+        setTxPage(1);
+        setTxTotalPages(cached.totalPages || 1);
+      }
+      return;
+    }
+
     setTxLoading(true);
     try {
       const end   = new Date();
@@ -1429,13 +1458,32 @@ export default function PortefeuilleScreen() {
       setTransactions(d?.transactions || []);
       setTxPage(page);
       setTxTotalPages(d?.pagination?.pages ?? 1);
+      // Persister page 1 sans filtre pour le cache offline
+      if (page === 1 && !txType && !txStatut) {
+        setMeta(`txs_${sellerId}_${periode}`, {
+          transactions: d?.transactions || [],
+          totalPages:   d?.pagination?.pages ?? 1,
+        }).catch(() => {});
+      }
     } catch (_) {
       Toast.show({ type: 'error', text1: 'Erreur transactions' });
     } finally { setTxLoading(false); }
   }, [sellerId, txType, txStatut, periode]);
 
   const fetchOrders = useCallback(async (page = 1) => {
-    if (!sellerId || isOfflineRef.current) return;
+    if (!sellerId) return;
+
+    // Mode offline — charger la dernière page 1 mise en cache
+    if (isOfflineRef.current) {
+      const cached = await getMeta(`orders_fin_${sellerId}_${periode}`).catch(() => null);
+      if (cached) {
+        setOrders(cached.orders || []);
+        setOrdPage(1);
+        setOrdTotalPages(cached.totalPages || 1);
+      }
+      return;
+    }
+
     setOrdersLoading(true);
     try {
       const end   = new Date();
@@ -1447,13 +1495,33 @@ export default function PortefeuilleScreen() {
       setOrders(d?.orders || []);
       setOrdPage(page);
       setOrdTotalPages(d?.pagination?.totalPages ?? 1);
+      // Persister page 1 pour le cache offline
+      if (page === 1) {
+        setMeta(`orders_fin_${sellerId}_${periode}`, {
+          orders:     d?.orders || [],
+          totalPages: d?.pagination?.totalPages ?? 1,
+        }).catch(() => {});
+      }
     } catch (_) {
       Toast.show({ type: 'error', text1: 'Erreur commandes' });
     } finally { setOrdersLoading(false); }
   }, [sellerId, periode]);
 
   const fetchPos = useCallback(async (page = 1) => {
-    if (!sellerId || isOfflineRef.current) return;
+    if (!sellerId) return;
+
+    // Mode offline — charger la dernière page 1 mise en cache
+    if (isOfflineRef.current) {
+      const cached = await getMeta(`pos_hist_${sellerId}_${posPeriode}`).catch(() => null);
+      if (cached) {
+        setPosVentes(cached.ventes || []);
+        setPosPage(1);
+        setPosTotalPages(cached.totalPages || 1);
+        if (cached.stats) setPosStatsLive(cached.stats);
+      }
+      return;
+    }
+
     setPosLoading(true);
     try {
       const params = new URLSearchParams({ page, limit: 5 });
@@ -1472,6 +1540,14 @@ export default function PortefeuilleScreen() {
       setPosPage(page);
       setPosTotalPages(Math.ceil((pag.total ?? 0) / 5) || 1);
       if (page === 1 && d?.stats) setPosStatsLive(d.stats);
+      // Persister page 1 sans filtre pour le cache offline
+      if (page === 1 && !posStatut && !posMode) {
+        setMeta(`pos_hist_${sellerId}_${posPeriode}`, {
+          ventes:     d?.ventes || [],
+          totalPages: Math.ceil((pag.total ?? 0) / 5) || 1,
+          stats:      d?.stats || null,
+        }).catch(() => {});
+      }
     } catch (_) {
       Toast.show({ type: 'error', text1: 'Erreur historique POS' });
     } finally { setPosLoading(false); }
@@ -1507,7 +1583,19 @@ export default function PortefeuilleScreen() {
   };
 
   const fetchRetraits = useCallback(async (page = 1) => {
-    if (!sellerId || isOfflineRef.current) return;
+    if (!sellerId) return;
+
+    // Mode offline — charger la dernière page 1 mise en cache
+    if (isOfflineRef.current) {
+      const cached = await getMeta(`retraits_${sellerId}_${periode}`).catch(() => null);
+      if (cached) {
+        setRetraits(cached.retraits || []);
+        setRetraitsPage(1);
+        setRetraitsTotalPages(cached.totalPages || 1);
+      }
+      return;
+    }
+
     setRetraitsLoading(true);
     try {
       const end   = new Date();
@@ -1519,6 +1607,13 @@ export default function PortefeuilleScreen() {
       setRetraits(d?.data || []);
       setRetraitsPage(page);
       setRetraitsTotalPages(d?.pagination?.pages ?? 1);
+      // Persister page 1 pour le cache offline
+      if (page === 1) {
+        setMeta(`retraits_${sellerId}_${periode}`, {
+          retraits:   d?.data || [],
+          totalPages: d?.pagination?.pages ?? 1,
+        }).catch(() => {});
+      }
     } catch (_) {
       Toast.show({ type: 'error', text1: 'Erreur retraits' });
     } finally { setRetraitsLoading(false); }
@@ -1569,13 +1664,15 @@ export default function PortefeuilleScreen() {
       clearInterval(pollingRef.current);
       return;
     }
-    // Connexion rétablie — charger si pas encore de données
+    // Connexion rétablie — toujours recharger transactions/commandes/retraits/POS
+    // (données en cache affichées offline mais doivent être fraîches dès la reconnexion)
+    fetchTransactions(1);
+    fetchOrders(1);
+    fetchRetraits(1);
+    fetchPos(1);
+    // Portfolio : uniquement si pas encore en cache pour éviter un double appel
     if (!periodeCache.current[periode]) {
       fetchDashboard(false);
-      fetchTransactions(1);
-      fetchOrders(1);
-      fetchRetraits(1);
-      fetchPos(1);
     }
     pollingRef.current = setInterval(() => fetchDashboard(true), 30_000);
     return () => clearInterval(pollingRef.current);
@@ -1609,7 +1706,9 @@ export default function PortefeuilleScreen() {
   const soldeReserve    = portefeuille.soldeReserveRetrait       ?? 0;
   const canWithdraw     = soldeDisponible >= 5000 && !isOffline;
 
-  const liveStats       = posStatsLive || {};
+  // En offline, utiliser les stats POS du cache portfolio si aucune stats live
+  const effectivePosStats = posStatsLive || (isOffline ? posStats : null);
+  const liveStats       = effectivePosStats || {};
   const posCACompletees = liveStats.totalCA            ?? 0;
   const posCAEspeces    = liveStats.totalEspeces        ?? 0;
   const posCAMobile     = liveStats.totalMobile         ?? 0;
@@ -1854,6 +1953,12 @@ export default function PortefeuilleScreen() {
               <View style={[styles.cardHead, { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 4 }]}>
                 <Ionicons name="receipt-outline" size={14} color={colors.primary} />
                 <Text style={[styles.cardTitle, { color: colors.text }]}>Historique des ventes</Text>
+                {isOffline && posVentes.length > 0 && (
+                  <View style={styles.offlineCacheBadge}>
+                    <Ionicons name="cloud-offline-outline" size={9} color="#F59E0B" />
+                    <Text style={styles.offlineCacheText}>cache</Text>
+                  </View>
+                )}
                 {posTotalPages > 1 && (
                   <Text style={[styles.cardSub, { color: colors.textMuted }]}>p.{posPage}/{posTotalPages}</Text>
                 )}
@@ -2045,6 +2150,12 @@ export default function PortefeuilleScreen() {
                   <Text style={[styles.cardTitle, { color: colors.text }]}>
                     {mkTab === 'commandes' ? 'Commandes' : 'Transactions'}
                   </Text>
+                  {isOffline && (mkTab === 'commandes' ? orders.length > 0 : transactions.length > 0) && (
+                    <View style={styles.offlineCacheBadge}>
+                      <Ionicons name="cloud-offline-outline" size={9} color="#F59E0B" />
+                      <Text style={styles.offlineCacheText}>cache</Text>
+                    </View>
+                  )}
                   {mkTab === 'commandes' && ordTotalPages > 1 && (
                     <Text style={[styles.cardSub, { color: colors.textMuted }]}>p.{ordPage}/{ordTotalPages}</Text>
                   )}
@@ -2212,6 +2323,12 @@ export default function PortefeuilleScreen() {
                 <View style={[styles.cardHead, { paddingHorizontal: 14, paddingTop: 14, paddingBottom: 4 }]}>
                   <Ionicons name="arrow-up-circle-outline" size={14} color="#8B5CF6" />
                   <Text style={[styles.cardTitle, { color: colors.text }]}>Retraits</Text>
+                  {isOffline && retraits.length > 0 && (
+                    <View style={styles.offlineCacheBadge}>
+                      <Ionicons name="cloud-offline-outline" size={9} color="#F59E0B" />
+                      <Text style={styles.offlineCacheText}>cache</Text>
+                    </View>
+                  )}
                   {retraitsTotalPages > 1 && (
                     <Text style={[styles.cardSub, { color: colors.textMuted }]}>p.{retraitsPage}/{retraitsTotalPages}</Text>
                   )}
@@ -2340,6 +2457,9 @@ const styles = StyleSheet.create({
 
   // Hero Marketplace
   offlinePill: { flexDirection: 'row', alignItems: 'center', gap: 4, marginHorizontal: 16, marginBottom: 8, backgroundColor: 'rgba(0,0,0,0.25)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, alignSelf: 'flex-start' },
+  // Badge "cache" affiché dans les en-têtes de cartes quand offline
+  offlineCacheBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 8, backgroundColor: '#FFFBEB', borderWidth: 1, borderColor: '#FDE68A' },
+  offlineCacheText:  { fontSize: 9, fontWeight: '700', color: '#F59E0B' },
 
   // SoldeCard
   soldeCard:    { width: 130, borderRadius: 12, padding: 12, gap: 4, backgroundColor: '#fff' },

@@ -13,6 +13,7 @@ import { useSync } from '../hooks/useSync';
 import { useModules } from '../hooks/useModules';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../stores/authStore';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width: W } = Dimensions.get('window');
 const ITEM_H = 44;
@@ -30,6 +31,31 @@ function toAxisLabel(isoStr) {
   if (!isoStr) return '';
   const [, m, d] = (isoStr || '').split('-');
   return `${d}/${m}`;
+}
+
+// ─── Agrégation locale depuis l'historique journalier (7j / 30j / custom) ─────
+// Utilisé quand l'API ne retourne que le tableau de données par jour
+function deriveAggregate(history) {
+  if (!Array.isArray(history) || history.length === 0) return null;
+  const posTotal   = history.reduce((s, d) => s + (d.posTotal   ?? 0), 0);
+  const posVentes  = history.reduce((s, d) => s + (d.posVentes  ?? 0), 0);
+  const mkTotal    = history.reduce((s, d) => s + (d.commandeTotal ?? 0), 0);
+  const mkCount    = history.reduce((s, d) => s + (d.commandeCount ?? 0), 0);
+  const articles   = history.reduce((s, d) => s + (d.articlesVendus ?? 0), 0);
+  return {
+    totalGeneral: posTotal + mkTotal,
+    pos: {
+      total:         posTotal,
+      ventes:        posVentes,
+      modePaiement:  {},   // non disponible en agrégation locale
+    },
+    marketplace: {
+      total:          mkTotal,
+      commandes:      mkCount,
+      articlesVendus: articles,
+    },
+    topProduits: [],  // non disponible en agrégation locale
+  };
 }
 
 // ─── Périodes ─────────────────────────────────────────────────────────────────
@@ -138,6 +164,7 @@ function DateWheelPicker({ label, value, onChange, colors, maxDate }) {
 
 // ─── Modal période ────────────────────────────────────────────────────────────
 function PeriodModal({ visible, current, customFrom, customTo, onSelect, onClose, colors }) {
+  const insets = useSafeAreaInsets();
   const [tab,   setTab]   = useState(current);
   const [from,  setFrom]  = useState(customFrom || dateStr(new Date()));
   const [to,    setTo]    = useState(customTo   || dateStr(new Date()));
@@ -179,7 +206,7 @@ function PeriodModal({ visible, current, customFrom, customTo, onSelect, onClose
         <Animated.View style={[styles.backdrop, { opacity: backdropAnim }]} />
       </TouchableWithoutFeedback>
 
-      <Animated.View style={[styles.sheet, { backgroundColor: colors.bgCard, transform: [{ translateY: slideAnim }] }]}>
+      <Animated.View style={[styles.sheet, { backgroundColor: colors.bgCard, paddingBottom: insets.bottom + 20, transform: [{ translateY: slideAnim }] }]}>
         <View style={styles.handleArea}>
           <View style={[styles.handle, { backgroundColor: colors.border }]} />
         </View>
@@ -943,9 +970,12 @@ export default function DashboardScreen() {
 
   // Quand une vente POS est faite offline, VenteScreen met à jour bilanToday
   // dans le store → on reflète immédiatement sur le dashboard sans recharger
+  // Toujours mettre à jour prefetchCache['today'] pour éviter des données périmées
+  // lors d'un retour sur la période "aujourd'hui" depuis une autre période
   useEffect(() => {
-    if (period === 'today' && bilanToday) {
-      setBilanData(bilanToday);
+    if (bilanToday) {
+      prefetchCache.current['today'] = { bilan: bilanToday, history: null };
+      if (period === 'today') setBilanData(bilanToday);
     }
   }, [bilanToday, period]);
 
@@ -954,7 +984,10 @@ export default function DashboardScreen() {
 
     // Cache hit — affiche instantanément sans spinner
     if (prefetchCache.current[p] && !force) {
-      const { bilan, history } = prefetchCache.current[p];
+      let { bilan, history } = prefetchCache.current[p];
+      // Sécurité : si le cache contient un tableau brut, dériver les agrégats
+      if (Array.isArray(bilan)) bilan = deriveAggregate(bilan);
+      if (!bilan && history)    bilan = deriveAggregate(history);
       if (bilan) setBilanData(bilan);
       setHistoryData(history ?? null);
       setDataLoading(false);
@@ -974,7 +1007,7 @@ export default function DashboardScreen() {
         return;
       }
 
-      if (bilanRes?.data) setBilanData(bilanRes.data);
+      let bilanToSet = bilanRes?.data ?? null;
 
       let hist = null;
       if (p === '7d' || p === '30d') {
@@ -987,9 +1020,20 @@ export default function DashboardScreen() {
       }
       if (hist !== null) setHistoryData(hist);
 
+      // Si bilanWidget a retourné un tableau journalier (cas offline ou endpoint identique),
+      // dériver les totaux agrégés depuis l'historique pour éviter un hero "0 F"
+      if (Array.isArray(bilanToSet)) {
+        bilanToSet = deriveAggregate(bilanToSet);
+      }
+      // Si bilanWidget null mais historique disponible, dériver depuis l'historique
+      if (!bilanToSet && hist) {
+        bilanToSet = deriveAggregate(hist);
+      }
+      if (bilanToSet) setBilanData(bilanToSet);
+
       // Mettre en cache pour accès instantané au prochain switch
       if (p !== 'custom') {
-        prefetchCache.current[p] = { bilan: bilanRes?.data ?? null, history: hist };
+        prefetchCache.current[p] = { bilan: bilanToSet ?? null, history: hist };
       }
     } catch (_) {}
     setDataLoading(false);
@@ -1002,13 +1046,14 @@ export default function DashboardScreen() {
       await Promise.all(['7d', '30d'].map(async (p) => {
         try {
           const bilanRes = await syncService.pullBilanWidget(p, '', '', false);
-          if (!bilanRes?.data) return;
           const days = p === '30d' ? 30 : 7;
           const histRes = await syncService.pullBilanHistory(days, false);
-          prefetchCache.current[p] = {
-            bilan: bilanRes.data,
-            history: histRes?.data ?? null,
-          };
+          const hist = histRes?.data ?? null;
+          let bilan = bilanRes?.data ?? null;
+          if (Array.isArray(bilan)) bilan = deriveAggregate(bilan);
+          if (!bilan && hist)        bilan = deriveAggregate(hist);
+          if (!bilan && !hist) return;
+          prefetchCache.current[p] = { bilan, history: hist };
         } catch (_) {}
       }));
     };
@@ -1018,6 +1063,17 @@ export default function DashboardScreen() {
   useEffect(() => {
     loadData(period, customFrom, customTo, false);
   }, [period, customFrom, customTo]);
+
+  // Reconnexion — recharger si le cache n'a pas de données pour la période courante
+  const isOfflineRef = useRef(isOffline);
+  useEffect(() => {
+    const wasOffline = isOfflineRef.current;
+    isOfflineRef.current = isOffline;
+    if (wasOffline && !isOffline) {
+      // On vient de se reconnecter
+      loadData(period, customFrom, customTo, true);
+    }
+  }, [isOffline]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handlePeriod = (p, from, to) => {
     setShowPeriod(false);
@@ -1226,7 +1282,7 @@ const styles = StyleSheet.create({
 
   // Sheet modal
   backdrop:    { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
-  sheet:       { position: 'absolute', bottom: 0, left: 0, right: 0, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingBottom: 36, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.12, shadowRadius: 20, elevation: 24 },
+  sheet:       { position: 'absolute', bottom: 0, left: 0, right: 0, borderTopLeftRadius: 28, borderTopRightRadius: 28, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.12, shadowRadius: 20, elevation: 24 },
   handleArea:  { alignItems: 'center', paddingTop: 14, paddingBottom: 8 },
   handle:      { width: 40, height: 4, borderRadius: 2 },
   sheetTitle:  { fontSize: 16, fontWeight: '800', paddingHorizontal: 24, marginBottom: 16 },

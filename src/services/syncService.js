@@ -158,6 +158,8 @@ const fetchers = {
     const res = await apiClient.get('/api/modules/acces');
     const modules = res.data?.data?.modules || null;
     useSyncStore.getState().setStoreData('modules', modules);
+    // Persisté dans SQLite pour survie offline — rechargé dans loadFromDB
+    if (modules) await setMeta('cached_modules', JSON.stringify(modules));
     await markFetched('modules');
   },
 
@@ -195,6 +197,8 @@ export const syncService = {
 
     const totalPublished = await count('produits', 'isPublished = ?', ['Published']).catch(() => 0);
     const bilanToday = await getBilanCacheOffline('today').catch(() => null);
+    const modulesRaw = await getMeta('cached_modules').catch(() => null);
+    const modules = modulesRaw ? JSON.parse(modulesRaw) : null;
 
     const store = useSyncStore.getState();
     store.setStoreData('produits', produits);
@@ -204,6 +208,7 @@ export const syncService = {
     store.setStoreData('produitsStats', { totalPublished });
     store.setStoreData('types', types);
     store.setStoreData('categories', categories);
+    if (modules) store.setStoreData('modules', modules);
   },
 
   // Pull complet (login, pull-to-refresh forcé)

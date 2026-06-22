@@ -12,7 +12,7 @@ import { syncService } from '../services/syncService';
 import { useSync } from '../hooks/useSync';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../stores/authStore';
-import { updateBilanCache } from '../db/database';
+import { updateBilanCache, upsertMany } from '../db/database';
 import CachedImage from '../components/CachedImage';
 import Toast from 'react-native-toast-message';
 
@@ -1076,6 +1076,7 @@ export default function VenteScreen() {
         produitId: l.produitId, nom: l.nom, image: l.image,
         prixUnitaire: l.prixUnitaire, quantite: l.quantite,
         varianteLabel: l.varianteLabel,
+        variantId: l.variantId || null,
         couleurs: l.couleurs || [], tailles: l.tailles || [],
         sousTotal: l.sousTotal,
       }));
@@ -1151,13 +1152,26 @@ export default function VenteScreen() {
       const updatedProduits = currentProduits.map(p => {
         const lignesP = lignesPayload.filter(l => String(l.produitId) === String(p._id));
         if (!lignesP.length) return p;
+
+        // Produit avec variantes — décrémente le stock de chaque variante individuellement
+        if (p.variants?.length > 0) {
+          const updatedVariants = p.variants.map(v => {
+            const ligneV = lignesP.find(l => l.variantId && String(l.variantId) === String(v._id));
+            if (!ligneV) return v;
+            return { ...v, stock: Math.max(0, (v.stock ?? 0) - ligneV.quantite) };
+          });
+          return { ...p, variants: updatedVariants };
+        }
+
+        // Produit sans variante — décrémente quantite
         const qteVendue = lignesP.reduce((s, l) => s + l.quantite, 0);
-        return {
-          ...p,
-          quantite: Math.max(0, (p.quantite ?? 0) - qteVendue),
-        };
+        return { ...p, quantite: Math.max(0, (p.quantite ?? 0) - qteVendue) };
       });
       store.setStoreData('produits', updatedProduits);
+      // Persiste le stock décrémenté dans SQLite — survit au redémarrage offline
+      upsertMany('produits', updatedProduits.filter(p =>
+        lignesPayload.some(l => String(l.produitId) === String(p._id))
+      ), p => String(p._id)).catch(() => {});
       // Invalide pour refetch serveur en arrière-plan
       store.invalidate('produits').catch(() => {});
     } catch (e) {

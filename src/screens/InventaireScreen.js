@@ -4,6 +4,7 @@ import {
   StyleSheet, ActivityIndicator, RefreshControl,
   Animated, Dimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Print from 'expo-print';
@@ -14,6 +15,7 @@ import { useSync } from '../hooks/useSync';
 import { useAuthStore } from '../stores/authStore';
 import { useTheme } from '../context/ThemeContext';
 import { syncService } from '../services/syncService';
+import { upsertMany } from '../db/database';
 
 const W          = Dimensions.get('window').width;
 const PRIMARY    = '#30A08B';
@@ -234,6 +236,7 @@ export default function InventaireScreen() {
   const { seller } = useAuthStore();
   const produits = useSyncStore((s) => s.produits) ?? [];
   const { triggerSync, isSyncing, isOffline } = useSync();
+  const insets = useSafeAreaInsets();
 
   const [search, setSearch]         = useState('');
   const [filter, setFilter]         = useState('all');
@@ -325,7 +328,7 @@ export default function InventaireScreen() {
 
     // 2. Mise à jour optimiste dans le syncStore (produits en mémoire)
     const store = useSyncStore.getState();
-    store.setStoreData('produits', (store.produits ?? []).map(p => {
+    const updatedProduits = (store.produits ?? []).map(p => {
       if (String(p._id) !== String(produitId)) return p;
       if (variantId) {
         return {
@@ -338,7 +341,14 @@ export default function InventaireScreen() {
         };
       }
       return { ...p, stockPrincipal: newStock, quantite: newStock };
-    }));
+    });
+    store.setStoreData('produits', updatedProduits);
+
+    // Persiste le produit modifié dans SQLite — survit au redémarrage offline
+    const produitModifie = updatedProduits.find(p => String(p._id) === String(produitId));
+    if (produitModifie) {
+      upsertMany('produits', [produitModifie], p => String(p._id)).catch(() => {});
+    }
 
     // 3. Queue la mutation
     setSaving(true);
@@ -482,16 +492,6 @@ export default function InventaireScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: colors.bg }]}>
 
-      {/* Bannière offline */}
-      {isOffline && (
-        <View style={[styles.offlineBanner, { backgroundColor: colors.bgWarning }]}>
-          <Ionicons name="cloud-offline-outline" size={13} color={colors.warningText} />
-          <Text style={[styles.offlineText, { color: colors.warningText }]}>
-            Hors ligne — les modifications seront synchronisées automatiquement
-          </Text>
-        </View>
-      )}
-
       {/* Bannière "enregistrement en cours" */}
       {saving && !isOffline && (
         <View style={[styles.savingBanner, { backgroundColor: `${PRIMARY}18` }]}>
@@ -503,7 +503,7 @@ export default function InventaireScreen() {
       <FlatList
         data={displayData}
         keyExtractor={p => String(p._id)}
-        contentContainerStyle={[styles.listContent, filtered.length === 0 && styles.listEmpty]}
+        contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 80 }, filtered.length === 0 && styles.listEmpty]}
         showsVerticalScrollIndicator={false}
         onEndReached={loadMore}
         onEndReachedThreshold={0.3}
@@ -672,7 +672,7 @@ export default function InventaireScreen() {
 
       {/* FAB Export PDF */}
       <TouchableOpacity
-        style={[styles.exportFab, { opacity: exporting || isSyncing ? 0.65 : 1 }]}
+        style={[styles.exportFab, { bottom: insets.bottom + 16, opacity: exporting || isSyncing ? 0.65 : 1 }]}
         onPress={exportPDF}
         disabled={exporting || isSyncing}
         activeOpacity={0.85}
@@ -702,11 +702,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
 
   // Bannières
-  offlineBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 7,
-    paddingHorizontal: 14, paddingVertical: 8,
-  },
-  offlineText: { fontSize: 12, fontWeight: '600', flex: 1 },
   savingBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingHorizontal: 14, paddingVertical: 6,
@@ -714,7 +709,7 @@ const styles = StyleSheet.create({
   savingText: { fontSize: 12, fontWeight: '600' },
 
   // Liste
-  listContent: { padding: 12, paddingBottom: 90 },
+  listContent: { padding: 12 },
   listEmpty: { flex: 1 },
 
   // Stats 2×2
@@ -837,7 +832,7 @@ const styles = StyleSheet.create({
 
   // FAB export
   exportFab: {
-    position: 'absolute', bottom: 20, right: 16,
+    position: 'absolute', right: 16,
     borderRadius: 26,
     shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2, elevation: 8,

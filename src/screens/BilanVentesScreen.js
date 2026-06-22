@@ -341,9 +341,14 @@ export default function BilanVentesScreen() {
 
   // ── bilanToday réactif : une vente POS en caisse met à jour immédiatement ──
   useEffect(() => {
-    if (period === 'today' && bilanToday) {
-      setBilanData(bilanToday);
-      setDataLoading(false);
+    if (bilanToday) {
+      // Toujours mettre à jour le cache mémoire 'today' — même si la période active n'est pas today
+      // Sinon l'utilisateur change de période et revient sur Aujourd'hui → vieux cache affiché
+      prefetchCache.current['today'] = { bilan: bilanToday, history: null };
+      if (period === 'today') {
+        setBilanData(bilanToday);
+        setDataLoading(false);
+      }
     }
   }, [bilanToday, period]);
 

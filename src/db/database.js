@@ -200,13 +200,21 @@ export async function setBilanCache(periodKey, data) {
 }
 
 // Retourne le cache même expiré (pour mode offline)
+// Exception : si periodKey === 'today', vérifie que fetched_at est bien d'aujourd'hui —
+// sinon retourne null pour éviter d'afficher les ventes d'hier comme "aujourd'hui"
 export async function getBilanCacheOffline(periodKey) {
   const db = getDB();
   const row = await db.getFirstAsync(
-    'SELECT data FROM bilan_cache WHERE period_key = ?',
+    'SELECT data, fetched_at FROM bilan_cache WHERE period_key = ?',
     [periodKey]
   );
-  return row ? JSON.parse(row.data) : null;
+  if (!row) return null;
+  if (periodKey === 'today') {
+    const cachedDate = new Date(row.fetched_at).toDateString();
+    const todayDate  = new Date().toDateString();
+    if (cachedDate !== todayDate) return null;
+  }
+  return JSON.parse(row.data);
 }
 
 // ─── Meta (timestamps de dernière fetch) ─────────────────────────────────────

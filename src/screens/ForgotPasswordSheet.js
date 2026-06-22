@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   Modal, Animated, Dimensions, TouchableWithoutFeedback,
-  ActivityIndicator, Image, Keyboard,
+  ActivityIndicator, Image, Keyboard, KeyboardAvoidingView,
+  ScrollView, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -345,7 +346,12 @@ export default function ForgotPasswordSheet({ visible, onClose }) {
       </TouchableWithoutFeedback>
 
       {/* Sheet */}
-      <View style={{ flex: 1, justifyContent: 'flex-end', pointerEvents: 'box-none' }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1, justifyContent: 'flex-end' }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+        pointerEvents="box-none"
+      >
         <Animated.View style={[fp.sheet, { transform: [{ translateY: slideAnim }] }]}>
 
           {/* Poignée */}
@@ -394,6 +400,13 @@ export default function ForgotPasswordSheet({ visible, onClose }) {
             ))}
           </View>
 
+          {/* Corps scrollable — évite que le clavier couvre les champs */}
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ flexGrow: 1 }}
+          >
+
           {/* ── ÉTAPE 1 : Identifiant ── */}
           {step === 1 && !success && (
             <View style={fp.body}>
@@ -401,7 +414,7 @@ export default function ForgotPasswordSheet({ visible, onClose }) {
               <View style={fp.methodRow}>
                 <TouchableOpacity
                   style={[fp.methodBtn, method === 'email' && fp.methodBtnActive]}
-                  onPress={() => { setMethod('email'); setError(''); }}
+                  onPress={() => { setMethod('email'); setIdentifier(''); setError(''); }}
                   activeOpacity={0.8}
                 >
                   {method === 'email' && <LinearGradient colors={[PRIMARY + '18', PRIMARY + '06']} style={StyleSheet.absoluteFillObject} borderRadius={12} />}
@@ -411,7 +424,7 @@ export default function ForgotPasswordSheet({ visible, onClose }) {
 
                 <TouchableOpacity
                   style={[fp.methodBtn, method === 'sms' && fp.methodBtnActive]}
-                  onPress={() => { setMethod('sms'); setError(''); }}
+                  onPress={() => { setMethod('sms'); setIdentifier(''); setError(''); }}
                   activeOpacity={0.8}
                 >
                   {method === 'sms' && <LinearGradient colors={[SECONDARY + '18', SECONDARY + '06']} style={StyleSheet.absoluteFillObject} borderRadius={12} />}
@@ -720,8 +733,10 @@ export default function ForgotPasswordSheet({ visible, onClose }) {
             </View>
           )}
 
+          </ScrollView>
+
         </Animated.View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
