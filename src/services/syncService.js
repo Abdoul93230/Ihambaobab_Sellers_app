@@ -7,6 +7,7 @@ import {
   getDB, upsertMany, readAll, readWhere, count, getMeta, setMeta,
   getBilanCache, setBilanCache, getBilanCacheOffline, clearDB,
 } from '../db/database';
+import { prefetchProductImages } from '../utils/imagePrefetch';
 
 // ─── Délais de fraîcheur (filet de sécurité uniquement) ──────────────────────
 const STALE_AFTER = {
@@ -87,6 +88,8 @@ const fetchers = {
       // 3. Recharge depuis SQLite — inclut les produits offline (_pendingSync)
       const allLocal = await readAll('produits').catch(() => prods);
       useSyncStore.getState().setStoreData('produits', allLocal);
+      // Préchargement background des images pour disponibilité offline
+      prefetchProductImages(allLocal);
     }
 
     if (pubRes.status === 'fulfilled') {
@@ -209,6 +212,8 @@ export const syncService = {
     store.setStoreData('types', types);
     store.setStoreData('categories', categories);
     if (modules) store.setStoreData('modules', modules);
+    // Préchargement background des images manquantes (fire-and-forget)
+    prefetchProductImages(produits);
   },
 
   // Pull complet (login, pull-to-refresh forcé)

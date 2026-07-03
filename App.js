@@ -6,9 +6,11 @@ import * as SplashScreen from 'expo-splash-screen';
 import Toast from 'react-native-toast-message';
 import AppNavigator from './src/navigation/AppNavigator';
 import AppSplash from './src/components/AppSplash';
+import PushNotificationsBridge from './src/components/PushNotificationsBridge';
 import { ThemeProvider } from './src/context/ThemeContext';
 import { useAuthStore } from './src/stores/authStore';
 import { useSyncStore } from './src/stores/syncStore';
+import { useNotificationStore } from './src/stores/notificationStore';
 import { socketService } from './src/services/socketService';
 import { registerBackgroundSync } from './src/services/backgroundSync';
 import { initDB } from './src/db/database';
@@ -35,13 +37,11 @@ export default function App() {
   // ── Démarrage ──────────────────────────────────────────────────────────────
   useEffect(() => {
     async function boot() {
-      // 1. Initialise SQLite
       await initDB();
-      // 2. Purge les vieux brouillons AVANT de lire la DB (pas de race condition)
       await purgeOldDrafts().catch(() => {});
-      // 3. Charge les données depuis SQLite → affichage offline immédiat
       await syncService.loadFromDB();
-      // 3. Vérifie l'auth
+      // Charge les notifications persistées localement
+      useNotificationStore.getState().load().catch(() => {});
       await verifyAuth();
       try { await SplashScreen.hideAsync(); } catch (_) {}
       registerBackgroundSync();
@@ -59,6 +59,9 @@ export default function App() {
 
     // Pull complet au login
     triggerFullSync();
+
+    // Fetch notifications depuis l'API (merge avec SQLite)
+    useNotificationStore.getState().fetchFromAPI(sellerId);
 
     // Events socket → invalidation ciblée immédiate
     const offNewOrder = socketService.on('new_order', () => {
@@ -102,6 +105,10 @@ export default function App() {
         if (now - lastForegroundSync.current > 30_000) {
           lastForegroundSync.current = now;
           triggerSync();
+          // Refresh notifications aussi
+          const { seller: s } = useAuthStore.getState();
+          const sid = s?._id || s?.id;
+          if (sid) useNotificationStore.getState().fetchFromAPI(sid);
         }
       }
       appState.current = nextState;
@@ -115,6 +122,7 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemeProvider>
+          <PushNotificationsBridge />
           <AppNavigator />
           <Toast />
         </ThemeProvider>

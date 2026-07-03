@@ -68,10 +68,21 @@ const SCHEMA = `
     value TEXT NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS notifications (
+    id          TEXT PRIMARY KEY,
+    type        TEXT NOT NULL DEFAULT 'generic',
+    title       TEXT NOT NULL DEFAULT '',
+    body        TEXT NOT NULL DEFAULT '',
+    data        TEXT NOT NULL DEFAULT '{}',
+    read_at     INTEGER DEFAULT NULL,
+    received_at INTEGER NOT NULL
+  );
+
   CREATE INDEX IF NOT EXISTS idx_produits_published ON produits(isPublished);
   CREATE INDEX IF NOT EXISTS idx_commandes_date ON commandes(date DESC);
   CREATE INDEX IF NOT EXISTS idx_commandes_status ON commandes(status);
   CREATE INDEX IF NOT EXISTS idx_mutations_status ON mutations(status);
+  CREATE INDEX IF NOT EXISTS idx_notifications_received ON notifications(received_at DESC);
 `;
 
 // ─── Initialisation (appelé une seule fois au démarrage) ─────────────────────
@@ -408,6 +419,70 @@ export async function updateBilanCache(delta) {
   return updated;
 }
 
+// ─── Notifications (SQLite) ───────────────────────────────────────────────────
+
+export async function upsertNotifications(notifs) {
+  if (!notifs?.length) return;
+  const db = getDB();
+  await db.withTransactionAsync(async () => {
+    for (const n of notifs) {
+      await db.runAsync(
+        `INSERT INTO notifications(id, type, title, body, data, read_at, received_at)
+         VALUES(?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET
+           read_at = CASE WHEN excluded.read_at IS NOT NULL THEN excluded.read_at ELSE notifications.read_at END`,
+        [
+          n.id,
+          n.type || 'generic',
+          n.title || '',
+          n.body || '',
+          JSON.stringify(n.data || {}),
+          n.readAt ? new Date(n.readAt).getTime() : null,
+          n.receivedAt ? new Date(n.receivedAt).getTime() : Date.now(),
+        ]
+      );
+    }
+  });
+}
+
+export async function readNotifications(limit = 100) {
+  const db = getDB();
+  const rows = await db.getAllAsync(
+    `SELECT * FROM notifications ORDER BY received_at DESC LIMIT ?`,
+    [limit]
+  );
+  return rows.map(r => ({
+    id: r.id,
+    type: r.type,
+    title: r.title,
+    body: r.body,
+    data: JSON.parse(r.data || '{}'),
+    readAt: r.read_at ? new Date(r.read_at).toISOString() : null,
+    receivedAt: new Date(r.received_at).toISOString(),
+  }));
+}
+
+export async function markNotificationReadDB(id) {
+  const db = getDB();
+  await db.runAsync(
+    `UPDATE notifications SET read_at = ? WHERE id = ? AND read_at IS NULL`,
+    [Date.now(), id]
+  );
+}
+
+export async function markAllNotificationsReadDB() {
+  const db = getDB();
+  await db.runAsync(
+    `UPDATE notifications SET read_at = ? WHERE read_at IS NULL`,
+    [Date.now()]
+  );
+}
+
+export async function deleteNotificationsDB() {
+  const db = getDB();
+  await db.runAsync(`DELETE FROM notifications`);
+}
+
 // ─── Reset complet (logout) ───────────────────────────────────────────────────
 export async function clearDB() {
   const db = getDB();
@@ -422,6 +497,7 @@ export async function clearDB() {
       DELETE FROM types;
       DELETE FROM categories;
       DELETE FROM meta;
+      DELETE FROM notifications;
     `);
   });
 }

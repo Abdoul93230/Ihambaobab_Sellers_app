@@ -2,10 +2,12 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl,
   Modal, TextInput, Alert, ActivityIndicator, Dimensions, Linking, Platform, Image, Animated,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRoute } from '@react-navigation/native';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { useAuthStore } from '../stores/authStore';
@@ -649,6 +651,31 @@ function TxRow({ tx, colors, onPress }) {
   );
 }
 
+// ─── CustomBottomSheet (même pattern que VenteScreen) ────────────────────────
+function CustomBottomSheet({ visible, onClose, children, maxHeight = '90%', bgColor }) {
+  const insets = useSafeAreaInsets();
+  return (
+    <Modal visible={visible} transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={0}>
+        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.55)' }}>
+          <TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={onClose} activeOpacity={1} />
+          <View style={[bsStyles.sheet, { backgroundColor: bgColor, maxHeight, paddingBottom: insets.bottom + 16 }]}>
+            <TouchableOpacity activeOpacity={1} style={bsStyles.handleArea} onPress={onClose}>
+              <View style={bsStyles.handle} />
+            </TouchableOpacity>
+            {children}
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+const bsStyles = StyleSheet.create({
+  sheet:      { borderTopLeftRadius: 28, borderTopRightRadius: 28, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.15, elevation: 24 },
+  handleArea: { alignItems: 'center', paddingTop: 12, paddingBottom: 8 },
+  handle:     { width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(0,0,0,0.15)' },
+});
+
 // ─── TxDetailModal ────────────────────────────────────────────────────────────
 function TxDetailModal({ tx, onClose, colors }) {
   if (!tx) return null;
@@ -672,43 +699,35 @@ function TxDetailModal({ tx, onClose, colors }) {
   ].filter(Boolean);
 
   return (
-    <Modal visible={!!tx} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.txModalOverlay} activeOpacity={1} onPress={onClose} />
-      <View style={[styles.txModalSheet, { backgroundColor: colors.bgCard }]}>
-        {/* Handle */}
-        <View style={{ alignItems: 'center', paddingTop: 10, paddingBottom: 4 }}>
-          <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
+    <CustomBottomSheet visible={!!tx} onClose={onClose} bgColor={colors.bgCard} maxHeight="85%">
+      {/* En-tête */}
+      <View style={{ alignItems: 'center', paddingTop: 4, paddingBottom: 20, gap: 8 }}>
+        <View style={[styles.txModalIcon, { backgroundColor: `${cfg.color}18` }]}>
+          <Ionicons name={cfg.icon} size={26} color={cfg.color} />
         </View>
-
-        {/* En-tête */}
-        <View style={{ alignItems: 'center', paddingVertical: 20, gap: 8 }}>
-          <View style={[styles.txModalIcon, { backgroundColor: `${cfg.color}18` }]}>
-            <Ionicons name={cfg.icon} size={26} color={cfg.color} />
-          </View>
-          <Text style={{ fontSize: 22, fontWeight: '800', color: isDebit ? '#EF4444' : '#10B981' }}>
-            {isDebit ? '−' : '+'}{fmtShort(Math.abs(tx.montantNet ?? tx.montant))} ₣
-          </Text>
-          <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text }}>{cfg.label}</Text>
-          <View style={[styles.badge, { backgroundColor: sCfg.bg, paddingHorizontal: 12, paddingVertical: 5 }]}>
-            <Text style={[styles.badgeText, { color: sCfg.color, fontSize: 12 }]}>{sCfg.label}</Text>
-          </View>
-        </View>
-
-        <View style={{ height: 1, backgroundColor: colors.border, marginHorizontal: 20 }} />
-
-        {/* Détails */}
-        <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 32, gap: 0 }}>
-          {rows.map((r, i) => (
-            <View key={i} style={[styles.txModalRow, i < rows.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border }]}>
-              <Text style={{ fontSize: 13, color: colors.textMuted, flex: 1 }}>{r.label}</Text>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: r.color || colors.text, fontFamily: r.mono ? Platform.OS === 'ios' ? 'Courier' : 'monospace' : undefined, flexShrink: 1, textAlign: 'right' }}>
-                {r.val}
-              </Text>
-            </View>
-          ))}
+        <Text style={{ fontSize: 22, fontWeight: '800', color: isDebit ? '#EF4444' : '#10B981' }}>
+          {isDebit ? '−' : '+'}{fmtShort(Math.abs(tx.montantNet ?? tx.montant))} ₣
+        </Text>
+        <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text }}>{cfg.label}</Text>
+        <View style={[styles.badge, { backgroundColor: sCfg.bg, paddingHorizontal: 12, paddingVertical: 5 }]}>
+          <Text style={[styles.badgeText, { color: sCfg.color, fontSize: 12 }]}>{sCfg.label}</Text>
         </View>
       </View>
-    </Modal>
+
+      <View style={{ height: 1, backgroundColor: colors.border, marginHorizontal: 20 }} />
+
+      {/* Détails */}
+      <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 }}>
+        {rows.map((r, i) => (
+          <View key={i} style={[styles.txModalRow, i < rows.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border }]}>
+            <Text style={{ fontSize: 13, color: colors.textMuted, flex: 1 }}>{r.label}</Text>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: r.color || colors.text, fontFamily: r.mono ? Platform.OS === 'ios' ? 'Courier' : 'monospace' : undefined, flexShrink: 1, textAlign: 'right' }}>
+              {r.val}
+            </Text>
+          </View>
+        ))}
+      </View>
+    </CustomBottomSheet>
   );
 }
 
@@ -762,28 +781,46 @@ function OrderFinRow({ order, colors, onPress }) {
 
 // ─── OrderDetailModal ─────────────────────────────────────────────────────────
 function OrderDetailModal({ order, sellerId, isOffline, onClose, colors }) {
-  const insets = useSafeAreaInsets();
   const [localOrder, setLocalOrder] = useState(null);
-  const [validating, setValidating] = useState(null); // productId or 'all'
+  const [validating, setValidating] = useState(null);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => { if (order) setLocalOrder(order); }, [order]);
 
+  // Pulsation sur le bouton "Tout valider" pour attirer l'attention
+  useEffect(() => {
+    if (!localOrder) return;
+    const allVal = localOrder.sellerProducts?.every(p => p.isValideSeller);
+    if (allVal) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.04, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [localOrder?.sellerProducts]);
+
   if (!order || !localOrder) return null;
 
-  const isAnnule    = (localOrder.statusLivraison === 'annulé') || (localOrder.etatTraitement || '').toLowerCase().includes('annul');
-  const isLivre     = localOrder.statusLivraison === 'livré' || localOrder.statusLivraison === 'recu';
-  const isEnCours   = (localOrder.etatTraitement || '').toLowerCase().includes('livraison');
-  const isPrepare   = (localOrder.etatTraitement || '').toLowerCase().includes('préparer') || (localOrder.etatTraitement || '').toLowerCase().includes('preparer');
+  const isAnnule  = (localOrder.statusLivraison === 'annulé') || (localOrder.etatTraitement || '').toLowerCase().includes('annul');
+  const isLivre   = localOrder.statusLivraison === 'livré' || localOrder.statusLivraison === 'recu';
+  const isEnCours = (localOrder.etatTraitement || '').toLowerCase().includes('livraison');
+  const isPrepare = (localOrder.etatTraitement || '').toLowerCase().includes('préparer') || (localOrder.etatTraitement || '').toLowerCase().includes('preparer');
 
-  const statusInfo = isAnnule  ? { label: 'Annulée',      color: '#EF4444', bg: '#FEF2F2', icon: 'close-circle-outline' }
-                   : isLivre   ? { label: 'Livrée',        color: '#10B981', bg: '#ECFDF5', icon: 'checkmark-circle-outline' }
-                   : isEnCours ? { label: 'En livraison',  color: '#0EA5E9', bg: '#E0F2FE', icon: 'car-outline' }
-                   : isPrepare ? { label: 'Préparée',       color: '#8B5CF6', bg: '#F5F3FF', icon: 'cube-outline' }
-                   :             { label: 'En attente',     color: '#F59E0B', bg: '#FFFBEB', icon: 'time-outline' };
+  const statusInfo = isAnnule  ? { label: 'Annulée',      color: '#EF4444', bg: '#FEF2F2', grad: ['#FEF2F2', '#FEE2E2'], icon: 'close-circle' }
+                   : isLivre   ? { label: 'Livrée',        color: '#10B981', bg: '#ECFDF5', grad: ['#ECFDF5', '#D1FAE5'], icon: 'checkmark-circle' }
+                   : isEnCours ? { label: 'En livraison',  color: '#0EA5E9', bg: '#E0F2FE', grad: ['#E0F2FE', '#BAE6FD'], icon: 'car' }
+                   : isPrepare ? { label: 'Préparée',       color: '#8B5CF6', bg: '#F5F3FF', grad: ['#F5F3FF', '#EDE9FE'], icon: 'cube' }
+                   :             { label: 'En attente',     color: '#F59E0B', bg: '#FFFBEB', grad: ['#FFFBEB', '#FEF3C7'], icon: 'time' };
 
-  const paymentOk = isLivre || localOrder.statusPayment === 'payé' || localOrder.statusPayment === 'reçu';
-  const allValidated = localOrder.sellerProducts?.every(p => p.isValideSeller);
+  const paymentOk     = isLivre || localOrder.statusPayment === 'payé' || localOrder.statusPayment === 'reçu';
+  const allValidated  = localOrder.sellerProducts?.every(p => p.isValideSeller);
   const noneValidated = localOrder.sellerProducts?.every(p => !p.isValideSeller);
+  const validatedCount = localOrder.sellerProducts?.filter(p => p.isValideSeller).length ?? 0;
+  const totalCount     = localOrder.sellerProducts?.length ?? 0;
+  const needsAction    = !isLivre && !isAnnule && !allValidated;
 
   const toggleProduct = async (produitId, idx) => {
     if (isOffline) { Toast.show({ type: 'error', text1: 'Hors ligne', text2: 'Validation impossible sans connexion' }); return; }
@@ -809,27 +846,17 @@ function OrderDetailModal({ order, sellerId, isOffline, onClose, colors }) {
     if (isOffline) { Toast.show({ type: 'error', text1: 'Hors ligne', text2: 'Validation impossible sans connexion' }); return; }
     setValidating('all');
     try {
-      const endpoint = isValid
-        ? `/seller-orders/${localOrder._id}/validate/${sellerId}`
-        : `/seller-orders/${localOrder._id}/validate/${sellerId}`;
-      // For invalidate-all we toggle each — use the validate endpoint with isValid param per product
       if (!isValid) {
-        // invalidate all: call validate-product with isValid=false for each
         await Promise.all(
-          localOrder.sellerProducts.map((p, i) =>
+          localOrder.sellerProducts.map((p) =>
             apiClient.put(`/seller-orders/${localOrder._id}/validate-product/${sellerId}/${p.produitId}`, { isValid: false })
           )
         );
-        setLocalOrder(prev => ({
-          ...prev,
-          sellerProducts: prev.sellerProducts.map(p => ({ ...p, isValideSeller: false })),
-        }));
+        setLocalOrder(prev => ({ ...prev, sellerProducts: prev.sellerProducts.map(p => ({ ...p, isValideSeller: false })) }));
       } else {
-        await apiClient.put(endpoint);
-        setLocalOrder(prev => ({
-          ...prev,
-          sellerProducts: prev.sellerProducts.map(p => ({ ...p, isValideSeller: true })),
-        }));
+        await apiClient.put(`/seller-orders/${localOrder._id}/validate/${sellerId}`);
+        setLocalOrder(prev => ({ ...prev, sellerProducts: prev.sellerProducts.map(p => ({ ...p, isValideSeller: true })) }));
+        Toast.show({ type: 'success', text1: '✅ Articles validés !', text2: 'Le client sera notifié.' });
       }
     } catch (e) {
       Toast.show({ type: 'error', text1: 'Erreur', text2: e.message });
@@ -839,174 +866,207 @@ function OrderDetailModal({ order, sellerId, isOffline, onClose, colors }) {
   };
 
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.txModalOverlay}>
-        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
-        <View style={[styles.txModalSheet, { backgroundColor: colors.bgCard, paddingBottom: insets.bottom + 8 }]}>
-          {/* Handle */}
-          <View style={{ alignItems: 'center', paddingTop: 10, paddingBottom: 6 }}>
-            <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
+    <CustomBottomSheet visible={!!order} onClose={onClose} bgColor={colors.bgCard} maxHeight="94%">
+      {/* ── Header gradient ── */}
+      <LinearGradient colors={statusInfo.grad} style={{ paddingHorizontal: 18, paddingBottom: 16, borderRadius: 0 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+          <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: statusInfo.color + '20', justifyContent: 'center', alignItems: 'center' }}>
+            <Ionicons name={statusInfo.icon} size={24} color={statusInfo.color} />
           </View>
-
-          {/* Header */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingBottom: 14, gap: 12 }}>
-            <View style={[styles.txModalIcon, { backgroundColor: statusInfo.bg }]}>
-              <Ionicons name={statusInfo.icon} size={22} color={statusInfo.color} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 15, fontWeight: '800', color: colors.text }}>
-                {localOrder.reference || `#${String(localOrder._id).slice(-8)}`}
-              </Text>
-              <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>{fmtDateHour(localOrder.date)}</Text>
-            </View>
-            <TouchableOpacity onPress={onClose} style={{ padding: 4 }}>
-              <Ionicons name="close" size={20} color={colors.textMuted} />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView showsVerticalScrollIndicator={false} style={{ paddingHorizontal: 18 }}>
-            {/* Statut badges */}
-            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-              <View style={[styles.badge, { backgroundColor: statusInfo.bg, paddingHorizontal: 10, paddingVertical: 5 }]}>
-                <Ionicons name={statusInfo.icon} size={11} color={statusInfo.color} />
-                <Text style={[styles.badgeText, { color: statusInfo.color, fontSize: 11 }]}> {statusInfo.label}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 16, fontWeight: '900', color: colors.text, letterSpacing: -0.3 }}>
+              {localOrder.reference || `#${String(localOrder._id).slice(-8)}`}
+            </Text>
+            <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>{fmtDateHour(localOrder.date)}</Text>
+            <View style={{ flexDirection: 'row', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: statusInfo.color + '15', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 }}>
+                <Ionicons name={statusInfo.icon} size={10} color={statusInfo.color} />
+                <Text style={{ fontSize: 11, fontWeight: '700', color: statusInfo.color }}>{statusInfo.label}</Text>
               </View>
-              <View style={[styles.badge, { backgroundColor: paymentOk ? '#ECFDF5' : '#FFFBEB', paddingHorizontal: 10, paddingVertical: 5 }]}>
-                <Ionicons name={paymentOk ? 'card-outline' : 'card-outline'} size={11} color={paymentOk ? '#10B981' : '#F59E0B'} />
-                <Text style={[styles.badgeText, { color: paymentOk ? '#10B981' : '#F59E0B', fontSize: 11 }]}> {paymentOk ? 'Paiement reçu' : 'Paiement en attente'}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: paymentOk ? '#10B98115' : '#F59E0B15', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 }}>
+                <Ionicons name={paymentOk ? 'checkmark-circle' : 'time'} size={10} color={paymentOk ? '#10B981' : '#F59E0B'} />
+                <Text style={{ fontSize: 11, fontWeight: '700', color: paymentOk ? '#10B981' : '#F59E0B' }}>
+                  {paymentOk ? 'Paiement reçu' : 'Paiement en attente'}
+                </Text>
               </View>
             </View>
+          </View>
+          <TouchableOpacity onPress={onClose} style={{ padding: 4, marginTop: 2 }}>
+            <Ionicons name="close" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
+        </View>
 
-            {/* Montants */}
-            <View style={[styles.totauxBox, { borderColor: colors.border, backgroundColor: colors.bgHover, marginBottom: 16 }]}>
+        {/* Bandeau d'action urgente — visible seulement si articles non validés */}
+        {needsAction && (
+          <View style={{ marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#FEF3C7', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, borderLeftWidth: 3, borderLeftColor: '#F59E0B' }}>
+            <Ionicons name="alert-circle" size={16} color="#D97706" />
+            <Text style={{ flex: 1, fontSize: 12, fontWeight: '600', color: '#92400E', lineHeight: 16 }}>
+              {validatedCount}/{totalCount} article{totalCount > 1 ? 's' : ''} validé{validatedCount > 1 ? 's' : ''} — confirmez votre stock pour préparer la livraison
+            </Text>
+          </View>
+        )}
+      </LinearGradient>
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 24 }}>
+
+        {/* ── Montants ── */}
+        <View style={{ marginTop: 16, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: colors.border, marginBottom: 16 }}>
+          <LinearGradient colors={['#30A08B', '#1e7a6b']} style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
+            <Text style={{ fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Votre gain sur cette commande</Text>
+            <Text style={{ fontSize: 26, fontWeight: '900', color: '#fff', marginTop: 2, letterSpacing: -0.5 }}>
+              {localOrder.montantNet != null ? fmt(localOrder.montantNet) : fmt(localOrder.sellerTotal)}
+            </Text>
+          </LinearGradient>
+          {(localOrder.sellerTotal != null || localOrder.commission > 0) && (
+            <View style={{ backgroundColor: colors.bgHover, paddingHorizontal: 16, paddingVertical: 10, gap: 6 }}>
               {localOrder.sellerTotal != null && (
-                <View style={[styles.totauxRow, { marginBottom: 6 }]}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                   <Text style={{ fontSize: 12, color: colors.textMuted }}>Montant brut</Text>
-                  <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>{fmt(localOrder.sellerTotal)}</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>{fmt(localOrder.sellerTotal)}</Text>
                 </View>
               )}
               {localOrder.commission > 0 && (
-                <View style={[styles.totauxRow, { marginBottom: 6 }]}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                   <Text style={{ fontSize: 12, color: colors.textMuted }}>Commission ({Math.round((localOrder.tauxCommission || 0) * 100)}%)</Text>
-                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#EF4444' }}>−{fmt(localOrder.commission)}</Text>
-                </View>
-              )}
-              {localOrder.montantNet != null && (
-                <View style={[styles.totauxRow, { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 8, marginTop: 4 }]}>
-                  <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>Net vendeur</Text>
-                  <Text style={{ fontSize: 15, fontWeight: '900', color: '#10B981' }}>{fmt(localOrder.montantNet)}</Text>
-                </View>
-              )}
-              {localOrder.montantNet == null && (
-                <View style={styles.totauxRow}>
-                  <Text style={{ fontSize: 12, color: colors.textMuted }}>Total estimé</Text>
-                  <Text style={{ fontSize: 13, fontWeight: '700', color: colors.primary }}>{fmt(localOrder.sellerTotal)}</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#EF4444' }}>−{fmt(localOrder.commission)}</Text>
                 </View>
               )}
             </View>
+          )}
+        </View>
 
-            {/* Liste des produits */}
-            {localOrder.sellerProducts?.length > 0 && (
-              <>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
-                  Articles ({localOrder.sellerProducts.length})
+        {/* ── Articles ── */}
+        {localOrder.sellerProducts?.length > 0 && (
+          <>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <Text style={{ fontSize: 12, fontWeight: '800', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                Articles ({totalCount})
+              </Text>
+              {!isLivre && !isAnnule && (
+                <Text style={{ fontSize: 11, color: allValidated ? '#10B981' : '#F59E0B', fontWeight: '700' }}>
+                  {allValidated ? '✅ Tous validés' : `${validatedCount}/${totalCount} validé${validatedCount > 1 ? 's' : ''}`}
                 </Text>
-                <View style={{ gap: 10, marginBottom: 16 }}>
-                  {localOrder.sellerProducts.map((p, idx) => {
-                    const prixEffectif = p.prixPromo > 0 ? p.prixPromo : p.prix;
-                    const sousTotal = prixEffectif * (p.quantite || 1);
-                    const isVal = p.isValideSeller;
-                    return (
-                      <View key={p.produitId || idx}
-                        style={[styles.totauxBox, { borderColor: colors.border, backgroundColor: colors.bgCard, gap: 8 }]}>
-                        <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
-                          {p.image ? (
-                            <Image source={{ uri: p.image }} style={{ width: 48, height: 48, borderRadius: 10 }} resizeMode="cover" />
-                          ) : (
-                            <View style={{ width: 48, height: 48, borderRadius: 10, backgroundColor: colors.bgHover, justifyContent: 'center', alignItems: 'center' }}>
-                              <Ionicons name="image-outline" size={20} color={colors.textMuted} />
-                            </View>
-                          )}
-                          <View style={{ flex: 1 }}>
-                            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>{p.nom}</Text>
-                            {p.tailles?.length > 0 && (
-                              <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 2 }}>Taille : {p.tailles.join(', ')}</Text>
-                            )}
-                            {p.couleurs?.length > 0 && (
-                              <Text style={{ fontSize: 11, color: colors.textMuted }}>Couleur : {p.couleurs.join(', ')}</Text>
-                            )}
-                            <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 2 }}>
-                              {fmt(prixEffectif)} × {p.quantite || 1} = <Text style={{ fontWeight: '700', color: colors.text }}>{fmt(sousTotal)}</Text>
-                            </Text>
-                          </View>
-                        </View>
-                        {/* Badge + bouton validation */}
-                        {!isLivre && (
-                          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <View style={[styles.badge, { backgroundColor: isVal ? '#ECFDF5' : '#FEF2F2', paddingHorizontal: 8, paddingVertical: 4 }]}>
-                              <Ionicons name={isVal ? 'checkmark-circle' : 'close-circle'} size={11} color={isVal ? '#10B981' : '#EF4444'} />
-                              <Text style={[styles.badgeText, { color: isVal ? '#10B981' : '#EF4444', fontSize: 10 }]}>
-                                {' '}{isVal ? 'Validé' : 'Non validé'}
-                              </Text>
-                            </View>
-                            <TouchableOpacity
-                              onPress={() => toggleProduct(p.produitId, idx)}
-                              disabled={validating !== null}
-                              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 8,
-                                backgroundColor: isVal ? '#FEF2F2' : '#ECFDF5', opacity: validating !== null ? 0.5 : 1 }}>
-                              {validating === p.produitId
-                                ? <ActivityIndicator size="small" color={isVal ? '#EF4444' : '#10B981'} />
-                                : <Ionicons name={isVal ? 'close-circle-outline' : 'checkmark-circle-outline'} size={14} color={isVal ? '#EF4444' : '#10B981'} />
-                              }
-                              <Text style={{ fontSize: 12, fontWeight: '700', color: isVal ? '#EF4444' : '#10B981' }}>
-                                {isVal ? 'Invalider' : 'Valider'}
-                              </Text>
-                            </TouchableOpacity>
+              )}
+            </View>
+
+            <View style={{ gap: 10, marginBottom: 16 }}>
+              {localOrder.sellerProducts.map((p, idx) => {
+                const prixEffectif = p.prixPromo > 0 ? p.prixPromo : p.prix;
+                const sousTotal    = prixEffectif * (p.quantite || 1);
+                const isVal        = p.isValideSeller;
+                return (
+                  <View key={p.produitId || idx} style={{ borderRadius: 14, borderWidth: 1.5, borderColor: isVal ? '#10B98140' : colors.border, backgroundColor: colors.bgCard, overflow: 'hidden' }}>
+                    {/* Bande de couleur statut */}
+                    <View style={{ height: 3, backgroundColor: isVal ? '#10B981' : '#E5E7EB' }} />
+                    <View style={{ padding: 12, gap: 10 }}>
+                      <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
+                        {/* Image produit */}
+                        {p.image ? (
+                          <Image source={{ uri: p.image }} style={{ width: 56, height: 56, borderRadius: 10, backgroundColor: colors.bgHover }} resizeMode="cover" />
+                        ) : (
+                          <View style={{ width: 56, height: 56, borderRadius: 10, backgroundColor: colors.bgHover, justifyContent: 'center', alignItems: 'center' }}>
+                            <Ionicons name="image-outline" size={22} color={colors.textMuted} />
                           </View>
                         )}
+                        <View style={{ flex: 1, gap: 3 }}>
+                          <Text style={{ fontSize: 13, fontWeight: '800', color: colors.text, lineHeight: 18 }}>{p.nom}</Text>
+                          {p.tailles?.length > 0 && (
+                            <Text style={{ fontSize: 11, color: colors.textMuted }}>📐 {p.tailles.join(', ')}</Text>
+                          )}
+                          {p.couleurs?.length > 0 && (
+                            <Text style={{ fontSize: 11, color: colors.textMuted }}>🎨 {p.couleurs.join(', ')}</Text>
+                          )}
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                            <Text style={{ fontSize: 12, color: colors.textMuted }}>{fmtShort(prixEffectif)} ₣ × {p.quantite || 1}</Text>
+                            <Text style={{ fontSize: 12, color: colors.textMuted }}>=</Text>
+                            <Text style={{ fontSize: 13, fontWeight: '900', color: colors.primary }}>{fmtShort(sousTotal)} ₣</Text>
+                          </View>
+                        </View>
                       </View>
-                    );
-                  })}
-                </View>
 
-                {/* Boutons bulk — masqués si livraison reçue */}
-                {!isLivre && (
-                  <View style={{ flexDirection: 'row', gap: 10, marginBottom: 20 }}>
+                      {/* Bouton validation par article */}
+                      {!isLivre && !isAnnule && (
+                        <TouchableOpacity
+                          onPress={() => toggleProduct(p.produitId, idx)}
+                          disabled={validating !== null}
+                          activeOpacity={0.8}
+                          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+                            paddingVertical: 9, borderRadius: 10, opacity: validating !== null ? 0.5 : 1,
+                            backgroundColor: isVal ? '#FEF2F2' : '#ECFDF5',
+                            borderWidth: 1, borderColor: isVal ? '#FCA5A5' : '#6EE7B7' }}>
+                          {validating === p.produitId
+                            ? <ActivityIndicator size="small" color={isVal ? '#EF4444' : '#10B981'} />
+                            : <Ionicons name={isVal ? 'close-circle-outline' : 'checkmark-circle-outline'} size={16} color={isVal ? '#EF4444' : '#10B981'} />
+                          }
+                          <Text style={{ fontSize: 13, fontWeight: '800', color: isVal ? '#EF4444' : '#10B981' }}>
+                            {isVal ? 'Marquer non disponible' : 'Confirmer disponible'}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+
+            {/* ── CTA principal "Tout valider" ── */}
+            {!isLivre && !isAnnule && (
+              <View style={{ gap: 10, marginBottom: 8 }}>
+                {!allValidated && (
+                  <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
                     <TouchableOpacity
                       onPress={() => validateAll(true)}
-                      disabled={allValidated || validating !== null}
-                      style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-                        paddingVertical: 11, borderRadius: 12, backgroundColor: allValidated ? '#F3F4F6' : '#ECFDF5',
-                        opacity: (allValidated || validating !== null) ? 0.5 : 1 }}>
-                      {validating === 'all' ? <ActivityIndicator size="small" color="#10B981" /> : <Ionicons name="checkmark-done-outline" size={15} color="#10B981" />}
-                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#10B981' }}>Tout valider</Text>
+                      disabled={validating !== null}
+                      activeOpacity={0.85}
+                      style={{ opacity: validating !== null ? 0.6 : 1 }}
+                    >
+                      <LinearGradient colors={['#10B981', '#059669']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 15, borderRadius: 14 }}>
+                        {validating === 'all'
+                          ? <ActivityIndicator size="small" color="#fff" />
+                          : <Ionicons name="checkmark-done-circle" size={22} color="#fff" />
+                        }
+                        <Text style={{ fontSize: 15, fontWeight: '900', color: '#fff', letterSpacing: 0.2 }}>
+                          Valider tous les articles
+                        </Text>
+                      </LinearGradient>
                     </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => validateAll(false)}
-                      disabled={noneValidated || validating !== null}
-                      style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-                        paddingVertical: 11, borderRadius: 12, backgroundColor: noneValidated ? '#F3F4F6' : '#FEF2F2',
-                        opacity: (noneValidated || validating !== null) ? 0.5 : 1 }}>
-                      {validating === 'all' ? <ActivityIndicator size="small" color="#EF4444" /> : <Ionicons name="close-circle-outline" size={15} color="#EF4444" />}
-                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#EF4444' }}>Tout invalider</Text>
-                    </TouchableOpacity>
-                  </View>
+                  </Animated.View>
                 )}
-                {isLivre && (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 12,
-                    backgroundColor: '#ECFDF5', marginBottom: 20 }}>
-                    <Ionicons name="checkmark-circle" size={16} color="#10B981" />
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#065F46', flex: 1 }}>
-                      Commande livrée et traitée avec succès.
+                {allValidated && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 14, borderRadius: 14, backgroundColor: '#ECFDF5' }}>
+                    <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#065F46', flex: 1 }}>
+                      Tous les articles sont validés — la livraison peut démarrer.
                     </Text>
                   </View>
                 )}
-              </>
+                {!noneValidated && (
+                  <TouchableOpacity
+                    onPress={() => validateAll(false)}
+                    disabled={validating !== null}
+                    activeOpacity={0.8}
+                    style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      paddingVertical: 10, borderRadius: 12, backgroundColor: colors.bgHover, opacity: validating !== null ? 0.5 : 1 }}>
+                    <Ionicons name="close-circle-outline" size={15} color={colors.textMuted} />
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textMuted }}>Tout invalider</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             )}
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
+
+            {isLivre && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 14, borderRadius: 14, backgroundColor: '#ECFDF5', marginBottom: 8 }}>
+                <Ionicons name="checkmark-circle" size={18} color="#10B981" />
+                <Text style={{ fontSize: 13, fontWeight: '600', color: '#065F46', flex: 1 }}>
+                  Commande livrée et traitée avec succès.
+                </Text>
+              </View>
+            )}
+          </>
+        )}
+      </ScrollView>
+    </CustomBottomSheet>
   );
 }
 
@@ -1298,23 +1358,29 @@ function WithdrawModal({ visible, soldeDisponible, onClose, onConfirm, sending, 
 
 // ─── ÉCRAN PRINCIPAL ──────────────────────────────────────────────────────────
 export default function PortefeuilleScreen() {
-  const { seller }    = useAuthStore();
+  const { seller, subscription } = useAuthStore();
   const { isOffline } = useSync();
   const { colors }    = useTheme();
+  const route         = useRoute();
   const sellerId      = seller?._id || seller?.id;
   const storeName     = seller?.nomBoutique || seller?.nom || 'Ma Boutique';
 
-  // ── Vue active ─────────────────────────────────────────────────────────────
-  const [activeView, setActiveView] = useState('pos');
+  const planName   = subscription?.planName || 'Starter';
+  const hasPosAccess = ['Pro', 'Business'].includes(planName);
+  const visibleViews = VIEWS.filter(v => v.key !== 'pos' || hasPosAccess);
+
+  // ── Vue active — démarre sur marketplace si pas d'accès POS ──────────────
+  const defaultView = hasPosAccess ? 'pos' : 'marketplace';
+  const [activeView, setActiveView] = useState(defaultView);
   const pageScrollRef = useRef(null);
-  const activeViewRef = useRef('pos');
+  const activeViewRef = useRef(defaultView);
 
   const switchView = useCallback((key) => {
-    const idx = VIEWS.findIndex(v => v.key === key);
+    const idx = visibleViews.findIndex(v => v.key === key);
     pageScrollRef.current?.scrollTo({ x: idx * W, animated: true });
     setActiveView(key);
     activeViewRef.current = key;
-  }, []);
+  }, [visibleViews]);
 
   // ── État ───────────────────────────────────────────────────────────────────
   const [periode,        setPeriode]        = useState(30);
@@ -1359,13 +1425,22 @@ export default function PortefeuilleScreen() {
 
   const pollingRef         = useRef(null);
   const dashboardLoadedRef = useRef(false);
-  const mkTabScrollRef     = useRef(null);
-  const posOpacity         = useRef(new Animated.Value(1)).current;
-  // Cache périodes en mémoire — même pattern que DashboardScreen
+const posOpacity         = useRef(new Animated.Value(1)).current;
+  // Cache portfolio par période (hero cards)
   const periodeCache       = useRef({});
-  // Ref isOffline — accessible dans les callbacks sans les re-créer
-  const isOfflineRef  = useRef(isOffline);
-  useEffect(() => { isOfflineRef.current = isOffline; }, [isOffline]);
+  // Caches multi-pages par section — clé `${periode}_${page}`
+  const txCache   = useRef({});
+  const ordCache  = useRef({});
+  const retCache  = useRef({});
+  const posCache  = useRef({});  // clé `${posPeriode}_${page}`
+  const MAX_CACHE_PAGES = 3;
+  // Refs valeurs courantes (lisibles dans callbacks sans dépendances)
+  const isOfflineRef   = useRef(isOffline);
+  const periodeRef     = useRef(periode);
+  const posPeriodeRef  = useRef(posPeriode);
+  useEffect(() => { isOfflineRef.current  = isOffline;   }, [isOffline]);
+  useEffect(() => { periodeRef.current    = periode;     }, [periode]);
+  useEffect(() => { posPeriodeRef.current = posPeriode;  }, [posPeriode]);
   // Ref portfolio — pour lire la valeur courante dans fetchDashboard sans dépendance
   const portfolioRef  = useRef(null);
   useEffect(() => { portfolioRef.current = portfolio; }, [portfolio]);
@@ -1385,10 +1460,15 @@ export default function PortefeuilleScreen() {
     if (!sellerId) return;
 
     if (isOfflineRef.current) {
-      // Mode offline — charger depuis SQLite si dispo
-      if (!portfolioRef.current) {
+      // Mémoire d'abord (switch de période instantané), puis SQLite en fallback
+      if (periodeCache.current[p]) {
+        setPortfolio(periodeCache.current[p]);
+      } else {
         const cached = await getMeta(`portfolio_${sellerId}_${p}`).catch(() => null);
-        if (cached) setPortfolio(cached);
+        if (cached) {
+          periodeCache.current[p] = cached;
+          setPortfolio(cached);
+        }
       }
       setLoading(false);
       setRefreshing(false);
@@ -1432,14 +1512,25 @@ export default function PortefeuilleScreen() {
 
   const fetchTransactions = useCallback(async (page = 1) => {
     if (!sellerId) return;
+    const p   = periodeRef.current;
+    const key = `${p}_${page}`;
 
-    // Mode offline — charger la dernière page 1 mise en cache
+    // Cache mémoire — affichage instantané (online et offline)
+    if (txCache.current[key]) {
+      const c = txCache.current[key];
+      setTransactions(c.transactions);
+      setTxPage(page);
+      setTxTotalPages(c.totalPages);
+      if (isOfflineRef.current) return; // offline : cache suffit
+    }
     if (isOfflineRef.current) {
-      const cached = await getMeta(`txs_${sellerId}_${periode}`).catch(() => null);
-      if (cached) {
-        setTransactions(cached.transactions || []);
-        setTxPage(1);
-        setTxTotalPages(cached.totalPages || 1);
+      // Fallback SQLite si pas en mémoire
+      const raw = await getMeta(`txs_${sellerId}_${p}_${page}`).catch(() => null);
+      if (raw) {
+        txCache.current[key] = raw;
+        setTransactions(raw.transactions);
+        setTxPage(page);
+        setTxTotalPages(raw.totalPages);
       }
       return;
     }
@@ -1448,38 +1539,46 @@ export default function PortefeuilleScreen() {
     try {
       const end   = new Date();
       const start = new Date();
-      start.setDate(start.getDate() - (periode - 1));
+      start.setDate(start.getDate() - (p - 1));
       start.setHours(0, 0, 0, 0);
-      const params = new URLSearchParams({ page, limit: 5, dateStart: start.toISOString(), dateEnd: end.toISOString() });
+      const params = new URLSearchParams({ page, limit: 20, dateStart: start.toISOString(), dateEnd: end.toISOString() });
       if (txType)   params.append('type',   txType);
       if (txStatut) params.append('statut', txStatut);
-      const res  = await apiClient.get(`/api/financial/seller/${sellerId}/transactions?${params}`);
-      const d    = res.data?.data || res.data;
-      setTransactions(d?.transactions || []);
+      const res = await apiClient.get(`/api/financial/seller/${sellerId}/transactions?${params}`);
+      const d   = res.data?.data || res.data;
+      const entry = { transactions: d?.transactions || [], totalPages: d?.pagination?.pages ?? 1 };
+      setTransactions(entry.transactions);
       setTxPage(page);
-      setTxTotalPages(d?.pagination?.pages ?? 1);
-      // Persister page 1 sans filtre pour le cache offline
-      if (page === 1 && !txType && !txStatut) {
-        setMeta(`txs_${sellerId}_${periode}`, {
-          transactions: d?.transactions || [],
-          totalPages:   d?.pagination?.pages ?? 1,
-        }).catch(() => {});
+      setTxTotalPages(entry.totalPages);
+      // Cache mémoire + SQLite (sans filtre actif)
+      if (!txType && !txStatut) {
+        txCache.current[key] = entry;
+        setMeta(`txs_${sellerId}_${p}_${page}`, entry).catch(() => {});
       }
     } catch (_) {
       Toast.show({ type: 'error', text1: 'Erreur transactions' });
     } finally { setTxLoading(false); }
-  }, [sellerId, txType, txStatut, periode]);
+  }, [sellerId, txType, txStatut]);
 
   const fetchOrders = useCallback(async (page = 1) => {
     if (!sellerId) return;
+    const p   = periodeRef.current;
+    const key = `${p}_${page}`;
 
-    // Mode offline — charger la dernière page 1 mise en cache
+    if (ordCache.current[key]) {
+      const c = ordCache.current[key];
+      setOrders(c.orders);
+      setOrdPage(page);
+      setOrdTotalPages(c.totalPages);
+      if (isOfflineRef.current) return;
+    }
     if (isOfflineRef.current) {
-      const cached = await getMeta(`orders_fin_${sellerId}_${periode}`).catch(() => null);
-      if (cached) {
-        setOrders(cached.orders || []);
-        setOrdPage(1);
-        setOrdTotalPages(cached.totalPages || 1);
+      const raw = await getMeta(`orders_fin_${sellerId}_${p}_${page}`).catch(() => null);
+      if (raw) {
+        ordCache.current[key] = raw;
+        setOrders(raw.orders);
+        setOrdPage(page);
+        setOrdTotalPages(raw.totalPages);
       }
       return;
     }
@@ -1488,70 +1587,100 @@ export default function PortefeuilleScreen() {
     try {
       const end   = new Date();
       const start = new Date();
-      start.setDate(start.getDate() - (periode - 1));
+      start.setDate(start.getDate() - (p - 1));
       start.setHours(0, 0, 0, 0);
-      const res  = await apiClient.get(`/api/financial/seller/${sellerId}/orders-financial?page=${page}&limit=5&dateStart=${start.toISOString()}&dateEnd=${end.toISOString()}`);
-      const d    = res.data?.data || res.data;
-      setOrders(d?.orders || []);
+      const res = await apiClient.get(`/api/financial/seller/${sellerId}/orders-financial?page=${page}&limit=20&dateStart=${start.toISOString()}&dateEnd=${end.toISOString()}`);
+      const d   = res.data?.data || res.data;
+      const entry = { orders: d?.orders || [], totalPages: d?.pagination?.totalPages ?? 1 };
+      setOrders(entry.orders);
       setOrdPage(page);
-      setOrdTotalPages(d?.pagination?.totalPages ?? 1);
-      // Persister page 1 pour le cache offline
-      if (page === 1) {
-        setMeta(`orders_fin_${sellerId}_${periode}`, {
-          orders:     d?.orders || [],
-          totalPages: d?.pagination?.totalPages ?? 1,
-        }).catch(() => {});
-      }
+      setOrdTotalPages(entry.totalPages);
+      ordCache.current[key] = entry;
+      setMeta(`orders_fin_${sellerId}_${p}_${page}`, entry).catch(() => {});
     } catch (_) {
       Toast.show({ type: 'error', text1: 'Erreur commandes' });
     } finally { setOrdersLoading(false); }
-  }, [sellerId, periode]);
+  }, [sellerId]);
 
   const fetchPos = useCallback(async (page = 1) => {
-    if (!sellerId) return;
+    if (!sellerId || !hasPosAccess) return;
+    const pp  = posPeriodeRef.current;
+    const key = `${pp}_${page}`;
 
-    // Mode offline — charger la dernière page 1 mise en cache
+    // Toujours restaurer les stats depuis page 1 du cache (hero card + top articles)
+    const restoreStatsFromCache = () => {
+      const s = posCache.current[`${pp}_1`]?.stats;
+      if (s) setPosStatsLive(s);
+    };
+
+    if (posCache.current[key]) {
+      const c = posCache.current[key];
+      setPosVentes(c.ventes);
+      setPosPage(page);
+      setPosTotalPages(c.totalPages);
+      if (page === 1 && c.stats) setPosStatsLive(c.stats);
+      else restoreStatsFromCache();
+      if (isOfflineRef.current) return;
+    }
     if (isOfflineRef.current) {
-      const cached = await getMeta(`pos_hist_${sellerId}_${posPeriode}`).catch(() => null);
-      if (cached) {
-        setPosVentes(cached.ventes || []);
-        setPosPage(1);
-        setPosTotalPages(cached.totalPages || 1);
-        if (cached.stats) setPosStatsLive(cached.stats);
+      // Fallback SQLite — lit la page demandée
+      const raw = await getMeta(`pos_hist_${sellerId}_${pp}_${page}`).catch(() => null);
+      if (raw) {
+        posCache.current[key] = raw;
+        setPosVentes(raw.ventes);
+        setPosPage(page);
+        setPosTotalPages(raw.totalPages);
+        if (page === 1 && raw.stats) {
+          setPosStatsLive(raw.stats);
+        } else {
+          // Stats toujours dans page 1 — lire SQLite si pas déjà en mémoire
+          const p1 = posCache.current[`${pp}_1`];
+          if (p1?.stats) {
+            setPosStatsLive(p1.stats);
+          } else {
+            const r1 = await getMeta(`pos_hist_${sellerId}_${pp}_1`).catch(() => null);
+            if (r1?.stats) {
+              posCache.current[`${pp}_1`] = r1;
+              setPosStatsLive(r1.stats);
+            }
+          }
+        }
       }
       return;
     }
 
     setPosLoading(true);
     try {
-      const params = new URLSearchParams({ page, limit: 5 });
+      const params = new URLSearchParams({ page, limit: 20 });
       if (posStatut) params.append('statut',      posStatut);
       if (posMode)   params.append('modePaiement', posMode);
       const end   = new Date();
       const start = new Date();
-      start.setDate(start.getDate() - (posPeriode - 1));
+      start.setDate(start.getDate() - (pp - 1));
       start.setHours(0, 0, 0, 0);
       params.append('dateStart', start.toISOString());
       params.append('dateEnd',   end.toISOString());
-      const res  = await apiClient.get(`/api/pos/historique/${sellerId}?${params}`);
-      const d    = res.data?.data || res.data;
-      const pag  = d?.pagination || {};
-      setPosVentes(d?.ventes || []);
+      const res = await apiClient.get(`/api/pos/historique/${sellerId}?${params}`);
+      const d   = res.data?.data || res.data;
+      const pag = d?.pagination || {};
+      const totalPages = pag.pages ?? (Math.ceil((pag.total ?? 0) / 20) || 1);
+      // Stats retournées uniquement en page 1 — les conserver pour les pages suivantes
+      const statsToStore = page === 1 ? (d?.stats || null) : (posCache.current[`${pp}_1`]?.stats || null);
+      const entry = { ventes: d?.ventes || [], totalPages, stats: statsToStore };
+      setPosVentes(entry.ventes);
       setPosPage(page);
-      setPosTotalPages(Math.ceil((pag.total ?? 0) / 5) || 1);
+      setPosTotalPages(totalPages);
       if (page === 1 && d?.stats) setPosStatsLive(d.stats);
-      // Persister page 1 sans filtre pour le cache offline
-      if (page === 1 && !posStatut && !posMode) {
-        setMeta(`pos_hist_${sellerId}_${posPeriode}`, {
-          ventes:     d?.ventes || [],
-          totalPages: Math.ceil((pag.total ?? 0) / 5) || 1,
-          stats:      d?.stats || null,
-        }).catch(() => {});
+      else restoreStatsFromCache();
+      // Cache uniquement sans filtre actif
+      if (!posStatut && !posMode) {
+        posCache.current[key] = entry;
+        setMeta(`pos_hist_${sellerId}_${pp}_${page}`, entry).catch(() => {});
       }
     } catch (_) {
       Toast.show({ type: 'error', text1: 'Erreur historique POS' });
     } finally { setPosLoading(false); }
-  }, [sellerId, posStatut, posMode, posPeriode]);
+  }, [sellerId, posStatut, posMode]);
 
   const handleRetrait = async ({ montantDemande, methodeRetrait, detailsRetrait }) => {
     setSendingRetrait(true);
@@ -1566,6 +1695,7 @@ export default function PortefeuilleScreen() {
   };
 
   const handleAnnulerPos = async (reference, motif) => {
+    if (!hasPosAccess) return;
     if (isOffline) {
       Toast.show({ type: 'error', text1: 'Hors ligne', text2: 'Impossible d\'annuler sans connexion' });
       return;
@@ -1584,14 +1714,23 @@ export default function PortefeuilleScreen() {
 
   const fetchRetraits = useCallback(async (page = 1) => {
     if (!sellerId) return;
+    const p   = periodeRef.current;
+    const key = `${p}_${page}`;
 
-    // Mode offline — charger la dernière page 1 mise en cache
+    if (retCache.current[key]) {
+      const c = retCache.current[key];
+      setRetraits(c.retraits);
+      setRetraitsPage(page);
+      setRetraitsTotalPages(c.totalPages);
+      if (isOfflineRef.current) return;
+    }
     if (isOfflineRef.current) {
-      const cached = await getMeta(`retraits_${sellerId}_${periode}`).catch(() => null);
-      if (cached) {
-        setRetraits(cached.retraits || []);
-        setRetraitsPage(1);
-        setRetraitsTotalPages(cached.totalPages || 1);
+      const raw = await getMeta(`retraits_${sellerId}_${p}_${page}`).catch(() => null);
+      if (raw) {
+        retCache.current[key] = raw;
+        setRetraits(raw.retraits);
+        setRetraitsPage(page);
+        setRetraitsTotalPages(raw.totalPages);
       }
       return;
     }
@@ -1600,28 +1739,23 @@ export default function PortefeuilleScreen() {
     try {
       const end   = new Date();
       const start = new Date();
-      start.setDate(start.getDate() - (periode - 1));
+      start.setDate(start.getDate() - (p - 1));
       start.setHours(0, 0, 0, 0);
-      const res  = await apiClient.get(`/api/financial/seller/${sellerId}/retraits?page=${page}&limit=5&dateStart=${start.toISOString()}&dateEnd=${end.toISOString()}`);
-      const d    = res.data;
-      setRetraits(d?.data || []);
+      const res = await apiClient.get(`/api/financial/seller/${sellerId}/retraits?page=${page}&limit=20&dateStart=${start.toISOString()}&dateEnd=${end.toISOString()}`);
+      const d   = res.data;
+      const entry = { retraits: d?.data || [], totalPages: d?.pagination?.pages ?? 1 };
+      setRetraits(entry.retraits);
       setRetraitsPage(page);
-      setRetraitsTotalPages(d?.pagination?.pages ?? 1);
-      // Persister page 1 pour le cache offline
-      if (page === 1) {
-        setMeta(`retraits_${sellerId}_${periode}`, {
-          retraits:   d?.data || [],
-          totalPages: d?.pagination?.pages ?? 1,
-        }).catch(() => {});
-      }
+      setRetraitsTotalPages(entry.totalPages);
+      retCache.current[key] = entry;
+      setMeta(`retraits_${sellerId}_${p}_${page}`, entry).catch(() => {});
     } catch (_) {
       Toast.show({ type: 'error', text1: 'Erreur retraits' });
     } finally { setRetraitsLoading(false); }
-  }, [sellerId, periode]);
+  }, [sellerId]);
 
   const switchMkTab = (tab) => {
     setMkTab(tab);
-    mkTabScrollRef.current?.scrollTo({ x: tab === 'commandes' ? 0 : W - 30, animated: true });
   };
 
   // ─── Effets ────────────────────────────────────────────────────────────────
@@ -1630,27 +1764,277 @@ export default function PortefeuilleScreen() {
     dashboardLoadedRef.current = true;
     fetchDashboard(silent);
   }, [fetchDashboard]);
-  useEffect(() => { fetchTransactions(); }, [fetchTransactions]);
-  useEffect(() => { fetchOrders(); },       [fetchOrders]);
-  useEffect(() => { fetchRetraits(); },     [fetchRetraits]);
-  useEffect(() => { fetchPos(1); },         [fetchPos]);
+  // Les 4 sections réagissent au changement de période via les refs
+  // fetchTransactions/Orders/Retraits lisent periodeRef.current (pas de recréation à chaque période)
+  // → on dépend directement de `periode` et `posPeriode` pour forcer le re-déclenchement
+  useEffect(() => { fetchTransactions(1); }, [fetchTransactions, periode]);
+  useEffect(() => { fetchOrders(1); },       [fetchOrders, periode]);
+  useEffect(() => { fetchRetraits(1); },     [fetchRetraits, periode]);
+  useEffect(() => { fetchPos(1); },          [fetchPos, posPeriode]);
 
-  // Préchargement silencieux de toutes les autres périodes dès que la première charge est terminée
+  // Ouverture automatique depuis une notification push (openOrderId dans les params)
+  // Stratégie : on n'attend pas un délai fixe — on essaie immédiatement, puis on
+  // re-essaie chaque fois que ordersLoading passe à false (fetchOrders vient de finir).
+  const pendingOpenOrderId = useRef(null);
+
+  useEffect(() => {
+    const openOrderId = route?.params?.openOrderId;
+    if (!openOrderId || !sellerId) return;
+    pendingOpenOrderId.current = openOrderId;
+    // Basculer immédiatement sur l'onglet marketplace pour que fetchOrders se déclenche
+    switchView('marketplace');
+    setMkTab('commandes');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route?.params?.openOrderId]);
+
+  // Chaque fois que ordersLoading devient false, on tente d'ouvrir le modal en attente
+  useEffect(() => {
+    if (ordersLoading) return;
+    const openOrderId = pendingOpenOrderId.current;
+    if (!openOrderId) return;
+
+    const tryOpen = async () => {
+      // 1. Chercher dans le cache mémoire (déjà chargé)
+      const allCached = Object.values(ordCache.current).flatMap(c => c?.orders || []);
+      const found = allCached.find(o => String(o._id) === String(openOrderId));
+      if (found) {
+        pendingOpenOrderId.current = null;
+        setSelectedOrder(found);
+        return;
+      }
+      // 2. Chercher dans les orders de la page courante
+      const inCurrentPage = orders.find(o => String(o._id) === String(openOrderId));
+      if (inCurrentPage) {
+        pendingOpenOrderId.current = null;
+        setSelectedOrder(inCurrentPage);
+        return;
+      }
+      // 3. Fallback : fetch direct par ID (commande hors période courante, très ancienne, etc.)
+      try {
+        const res = await apiClient.get(`/getCommandesById/${openOrderId}`);
+        const order = res.data?.commande || res.data;
+        if (order) {
+          pendingOpenOrderId.current = null;
+          setSelectedOrder(order);
+        }
+      } catch (_) {}
+    };
+
+    tryOpen();
+  // ordersLoading en dépendance — se re-déclenche quand fetchOrders termine
+  }, [ordersLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Hydratation SQLite → mémoire (toutes les périodes, toutes les pages) ──────
+  // Au démarrage, on lit tous les caches SQLite existants dans les refs mémoire.
+  // Couvre le cas offline à froid : navigation identique à online si les données
+  // ont été précachées lors d'une session online précédente.
+  useEffect(() => {
+    if (!sellerId) return;
+    const hydrate = async () => {
+      // Portfolio hero cards (Marketplace)
+      await Promise.all(PERIODES.map(async ({ value: p }) => {
+        if (periodeCache.current[p]) return;
+        const cached = await getMeta(`portfolio_${sellerId}_${p}`).catch(() => null);
+        if (cached) periodeCache.current[p] = cached;
+      }));
+
+      // Txs / orders / retraits — toutes les périodes × MAX_CACHE_PAGES
+      await Promise.all(PERIODES.flatMap(({ value: p }) =>
+        Array.from({ length: MAX_CACHE_PAGES }, (_, i) => i + 1).map(async (pg) => {
+          const key = `${p}_${pg}`;
+          if (!txCache.current[key]) {
+            const r = await getMeta(`txs_${sellerId}_${p}_${pg}`).catch(() => null);
+            if (r) txCache.current[key] = r;
+          }
+          if (!ordCache.current[key]) {
+            const r = await getMeta(`orders_fin_${sellerId}_${p}_${pg}`).catch(() => null);
+            if (r) ordCache.current[key] = r;
+          }
+          if (!retCache.current[key]) {
+            const r = await getMeta(`retraits_${sellerId}_${p}_${pg}`).catch(() => null);
+            if (r) retCache.current[key] = r;
+          }
+        })
+      ));
+
+      // POS — toutes les périodes × MAX_CACHE_PAGES
+      await Promise.all(POS_PERIODES.flatMap(({ value: p }) =>
+        Array.from({ length: MAX_CACHE_PAGES }, (_, i) => i + 1).map(async (pg) => {
+          const key = `${p}_${pg}`;
+          if (!posCache.current[key]) {
+            const r = await getMeta(`pos_hist_${sellerId}_${p}_${pg}`).catch(() => null);
+            if (r) posCache.current[key] = r;
+          }
+        })
+      ));
+
+      // Après hydratation : restaurer posStatsLive depuis le cache si encore null.
+      // Corrige la course de démarrage où fetchPos tourne avant que posCache soit rempli.
+      const pp = posPeriodeRef.current;
+      const statsFromCache = posCache.current[`${pp}_1`]?.stats;
+      if (statsFromCache) setPosStatsLive(statsFromCache);
+    };
+    hydrate();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sellerId]);
+
+  // ── Préchargement réseau via bundle endpoint ──────────────────────────────────
+  // 1 seule requête → dashboard + txs + orders + retraits pour toutes les périodes.
+  // Puis POS (endpoint séparé) en parallèle avec le bundle.
+  // Démarre 1,5s après le montage pour ne pas concurrencer la charge initiale.
   useEffect(() => {
     if (!sellerId || isOffline) return;
-    const otherPeriodes = PERIODES.map(p => p.value).filter(p => p !== periode);
-    const prefetch = async () => {
-      await Promise.all(otherPeriodes.map(async (p) => {
-        if (periodeCache.current[p]) return; // déjà en cache
+
+    const run = async () => {
+      // ── 1. Bundle marketplace (1 requête pour toutes les périodes) ──────────
+      const mkPeriodes = PERIODES.map(p => p.value).join(',');
+      try {
+        const res = await apiClient.get(
+          `/api/financial/seller/${sellerId}/prefetch-bundle?periodes=${mkPeriodes}&limit=20&page=1`
+        );
+        const items = res.data?.data || [];
+        for (const item of items) {
+          const p = item.periode;
+          if (!p) continue;
+
+          // Dashboard / hero card
+          if (item.dashboard && !periodeCache.current[p]) {
+            periodeCache.current[p] = item.dashboard;
+            setMeta(`portfolio_${sellerId}_${p}`, item.dashboard).catch(() => {});
+          }
+
+          // Transactions page 1
+          if (item.transactions) {
+            const txPages = item.transactions.pagination?.pages ?? 1;
+            const entry = { transactions: item.transactions.transactions || [], totalPages: txPages };
+            if (!txCache.current[`${p}_1`]) {
+              txCache.current[`${p}_1`] = entry;
+              setMeta(`txs_${sellerId}_${p}_1`, entry).catch(() => {});
+            }
+            // Pages 2 et 3 si elles existent
+            if (txPages > 1) {
+              const end   = new Date();
+              const start = new Date();
+              start.setDate(start.getDate() - (p - 1));
+              start.setHours(0, 0, 0, 0);
+              const dateParams = `dateStart=${start.toISOString()}&dateEnd=${end.toISOString()}`;
+              await Promise.allSettled(
+                Array.from({ length: Math.min(txPages, MAX_CACHE_PAGES) - 1 }, (_, i) => i + 2)
+                  .filter(pg => !txCache.current[`${p}_${pg}`])
+                  .map(async (pg) => {
+                    try {
+                      const r = await apiClient.get(`/api/financial/seller/${sellerId}/transactions?page=${pg}&limit=20&${dateParams}`);
+                      const d = r.data?.data || r.data;
+                      const e = { transactions: d?.transactions || [], totalPages: txPages };
+                      txCache.current[`${p}_${pg}`] = e;
+                      setMeta(`txs_${sellerId}_${p}_${pg}`, e).catch(() => {});
+                    } catch (_) {}
+                  })
+              );
+            }
+          }
+
+          // Commandes page 1
+          if (item.orders) {
+            const ordPages = item.orders.pagination?.totalPages ?? 1;
+            const entry = { orders: item.orders.orders || [], totalPages: ordPages };
+            if (!ordCache.current[`${p}_1`]) {
+              ordCache.current[`${p}_1`] = entry;
+              setMeta(`orders_fin_${sellerId}_${p}_1`, entry).catch(() => {});
+            }
+            if (ordPages > 1) {
+              const end   = new Date();
+              const start = new Date();
+              start.setDate(start.getDate() - (p - 1));
+              start.setHours(0, 0, 0, 0);
+              const dateParams = `dateStart=${start.toISOString()}&dateEnd=${end.toISOString()}`;
+              await Promise.allSettled(
+                Array.from({ length: Math.min(ordPages, MAX_CACHE_PAGES) - 1 }, (_, i) => i + 2)
+                  .filter(pg => !ordCache.current[`${p}_${pg}`])
+                  .map(async (pg) => {
+                    try {
+                      const r = await apiClient.get(`/api/financial/seller/${sellerId}/orders-financial?page=${pg}&limit=20&${dateParams}`);
+                      const d = r.data?.data || r.data;
+                      const e = { orders: d?.orders || [], totalPages: ordPages };
+                      ordCache.current[`${p}_${pg}`] = e;
+                      setMeta(`orders_fin_${sellerId}_${p}_${pg}`, e).catch(() => {});
+                    } catch (_) {}
+                  })
+              );
+            }
+          }
+
+          // Retraits page 1
+          if (item.retraits) {
+            const retPages = item.retraits.pagination?.pages ?? 1;
+            const entry = { retraits: item.retraits.retraits || [], totalPages: retPages };
+            if (!retCache.current[`${p}_1`]) {
+              retCache.current[`${p}_1`] = entry;
+              setMeta(`retraits_${sellerId}_${p}_1`, entry).catch(() => {});
+            }
+            if (retPages > 1) {
+              const end   = new Date();
+              const start = new Date();
+              start.setDate(start.getDate() - (p - 1));
+              start.setHours(0, 0, 0, 0);
+              const dateParams = `dateStart=${start.toISOString()}&dateEnd=${end.toISOString()}`;
+              await Promise.allSettled(
+                Array.from({ length: Math.min(retPages, MAX_CACHE_PAGES) - 1 }, (_, i) => i + 2)
+                  .filter(pg => !retCache.current[`${p}_${pg}`])
+                  .map(async (pg) => {
+                    try {
+                      const r = await apiClient.get(`/api/financial/seller/${sellerId}/retraits?page=${pg}&limit=20&${dateParams}`);
+                      const d = r.data;
+                      const e = { retraits: d?.data || [], totalPages: retPages };
+                      retCache.current[`${p}_${pg}`] = e;
+                      setMeta(`retraits_${sellerId}_${p}_${pg}`, e).catch(() => {});
+                    } catch (_) {}
+                  })
+              );
+            }
+          }
+        }
+      } catch (_) {}
+
+      // ── 2. POS : une requête par période (pas de bundle dédié) ───────────────
+      await Promise.allSettled(POS_PERIODES.map(async ({ value: p }) => {
+        if (posCache.current[`${p}_1`]) return;
         try {
-          await fetchDashboard(true, p);
+          const end   = new Date();
+          const start = new Date();
+          start.setDate(start.getDate() - (p - 1));
+          start.setHours(0, 0, 0, 0);
+          const dateParams = `dateStart=${start.toISOString()}&dateEnd=${end.toISOString()}`;
+          const res = await apiClient.get(`/api/pos/historique/${sellerId}?page=1&limit=20&${dateParams}`);
+          const d   = res.data?.data || res.data;
+          const pag = d?.pagination || {};
+          const totalPages = pag.pages ?? (Math.ceil((pag.total ?? 0) / 20) || 1);
+          const entry = { ventes: d?.ventes || [], totalPages, stats: d?.stats || null };
+          posCache.current[`${p}_1`] = entry;
+          setMeta(`pos_hist_${sellerId}_${p}_1`, entry).catch(() => {});
+          // Si c'est la période active, mettre à jour posStatsLive immédiatement
+          if (p === posPeriodeRef.current && d?.stats) setPosStatsLive(d.stats);
+          // Pages supplémentaires
+          if (totalPages > 1) {
+            await Promise.allSettled(
+              Array.from({ length: Math.min(totalPages, MAX_CACHE_PAGES) - 1 }, (_, i) => i + 2).map(async (pg) => {
+                if (posCache.current[`${p}_${pg}`]) return;
+                try {
+                  const r  = await apiClient.get(`/api/pos/historique/${sellerId}?page=${pg}&limit=20&${dateParams}`);
+                  const rd = r.data?.data || r.data;
+                  const e  = { ventes: rd?.ventes || [], totalPages, stats: null };
+                  posCache.current[`${p}_${pg}`] = e;
+                  setMeta(`pos_hist_${sellerId}_${p}_${pg}`, e).catch(() => {});
+                } catch (_) {}
+              })
+            );
+          }
         } catch (_) {}
       }));
     };
-    // Déclencher après un court délai pour ne pas concurrencer la charge initiale
-    const t = setTimeout(prefetch, 1500);
+
+    const t = setTimeout(run, 1500);
     return () => clearTimeout(t);
-  // Exécuter une seule fois au montage (sellerId + isOffline)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sellerId, isOffline]);
 
@@ -1664,16 +2048,17 @@ export default function PortefeuilleScreen() {
       clearInterval(pollingRef.current);
       return;
     }
-    // Connexion rétablie — toujours recharger transactions/commandes/retraits/POS
-    // (données en cache affichées offline mais doivent être fraîches dès la reconnexion)
+    // Connexion rétablie — vider les caches mémoire pour forcer des données fraîches
+    txCache.current  = {};
+    ordCache.current = {};
+    retCache.current = {};
+    posCache.current = {};
+    periodeCache.current = {};
     fetchTransactions(1);
     fetchOrders(1);
     fetchRetraits(1);
     fetchPos(1);
-    // Portfolio : uniquement si pas encore en cache pour éviter un double appel
-    if (!periodeCache.current[periode]) {
-      fetchDashboard(false);
-    }
+    fetchDashboard(false);
     pollingRef.current = setInterval(() => fetchDashboard(true), 30_000);
     return () => clearInterval(pollingRef.current);
   }, [isOffline]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1684,6 +2069,12 @@ export default function PortefeuilleScreen() {
       setRefreshing(false);
       return;
     }
+    // Pull-to-refresh : vider les caches pour repartir de zéro
+    txCache.current  = {};
+    ordCache.current = {};
+    retCache.current = {};
+    posCache.current = {};
+    periodeCache.current = {};
     setRefreshing(true);
     fetchDashboard();
     fetchTransactions(1);
@@ -1697,8 +2088,6 @@ export default function PortefeuilleScreen() {
   const stats        = portfolio?.statistiques || {};
   const txRecentes   = portfolio?.transactionsRecentes || [];
   const retraitsRec  = portfolio?.retraitsRecents      || [];
-  const posStats     = portfolio?.posStats             || null;
-
   const soldeDisponible = portefeuille.soldeDisponible           ?? 0;
   const soldeBloqueTemp = portefeuille.soldeBloqueTemporairement ?? 0;
   const soldeEnAttente  = portefeuille.soldeEnAttente            ?? 0;
@@ -1706,8 +2095,8 @@ export default function PortefeuilleScreen() {
   const soldeReserve    = portefeuille.soldeReserveRetrait       ?? 0;
   const canWithdraw     = soldeDisponible >= 5000 && !isOffline;
 
-  // En offline, utiliser les stats POS du cache portfolio si aucune stats live
-  const effectivePosStats = posStatsLive || (isOffline ? posStats : null);
+  // Stats POS live ou depuis le cache page 1 de la période active (offline-proof)
+  const effectivePosStats = posStatsLive || posCache.current[`${posPeriode}_1`]?.stats || null;
   const liveStats       = effectivePosStats || {};
   const posCACompletees = liveStats.totalCA            ?? 0;
   const posCAEspeces    = liveStats.totalEspeces        ?? 0;
@@ -1742,10 +2131,10 @@ export default function PortefeuilleScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: colors.bg }]}>
 
-      {/* Sélecteur de vue fixe */}
+      {/* Sélecteur de vue fixe — onglet POS masqué si plan sans accès */}
       <View style={[styles.viewSelectorWrap, { backgroundColor: colors.bgCard, borderBottomColor: colors.border }]}>
         <View style={[styles.viewSelector, { backgroundColor: colors.bgHover, borderColor: colors.border }]}>
-          {VIEWS.map(v => {
+          {visibleViews.map(v => {
             const isActive = activeView === v.key;
             return (
               <TouchableOpacity
@@ -1775,14 +2164,14 @@ export default function PortefeuilleScreen() {
         directionalLockEnabled
         onMomentumScrollEnd={e => {
           const idx = Math.round(e.nativeEvent.contentOffset.x / W);
-          const key = VIEWS[idx]?.key || 'pos';
-          setActiveView(key);
-          activeViewRef.current = key;
+          const key = visibleViews[idx]?.key || visibleViews[0]?.key;
+          if (key) { setActiveView(key); activeViewRef.current = key; }
         }}
         style={{ flex: 1 }}
       >
 
         {/* ════════ PAGE POS ════════════════════════════════════════════════ */}
+        {hasPosAccess && (
         <View style={styles.page}>
           <ScrollView
             showsVerticalScrollIndicator={false}
@@ -1995,6 +2384,7 @@ export default function PortefeuilleScreen() {
 
           </ScrollView>
         </View>
+        )}
 
         {/* ════════ PAGE MARKETPLACE ════════════════════════════════════════ */}
         <View style={styles.page}>
@@ -2184,21 +2574,8 @@ export default function PortefeuilleScreen() {
                   </TouchableOpacity>
                 </View>
 
-                {/* Pages swipeables */}
-                <ScrollView
-                  ref={mkTabScrollRef}
-                  horizontal
-                  pagingEnabled
-                  showsHorizontalScrollIndicator={false}
-                  scrollEventThrottle={16}
-                  onMomentumScrollEnd={e => {
-                    const tab = e.nativeEvent.contentOffset.x < (W - 30) / 2 ? 'commandes' : 'transactions';
-                    setMkTab(tab);
-                  }}
-                  style={{ width: W - 30 }}
-                >
-                  {/* Page commandes */}
-                  <View style={{ width: W - 30 }}>
+                {/* Contenu de l'onglet actif — rendu conditionnel pour que la hauteur s'adapte */}
+                {mkTab === 'commandes' ? (
                   <PulseWrap active={ordersLoading && orders.length > 0} style={{ gap: 0 }}>
                     {ordersLoading && orders.length === 0 ? (
                       <View style={styles.emptyBlock}><ActivityIndicator color={colors.primary} /></View>
@@ -2226,14 +2603,10 @@ export default function PortefeuilleScreen() {
                       </>
                     )}
                   </PulseWrap>
-                  </View>
-
-                  {/* Page transactions */}
-                  <View style={{ width: W - 30 }}>
+                ) : (
                   <PulseWrap active={txLoading && transactions.length > 0} style={{ gap: 0 }}>
-                    {/* Barre de filtres unifiée */}
+                    {/* Barre de filtres */}
                     <View style={{ paddingHorizontal: 14, paddingTop: 12, paddingBottom: 10, gap: 8 }}>
-                      {/* Ligne type */}
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                         <Ionicons name="funnel-outline" size={12} color={colors.textMuted} />
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
@@ -2257,9 +2630,7 @@ export default function PortefeuilleScreen() {
                           })}
                         </ScrollView>
                       </View>
-                      {/* Séparateur */}
                       <View style={{ height: 1, backgroundColor: colors.border, marginHorizontal: -14 }} />
-                      {/* Ligne statut */}
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                         <Ionicons name="ellipse-outline" size={12} color={colors.textMuted} />
                         <View style={{ flexDirection: 'row', gap: 6 }}>
@@ -2313,8 +2684,7 @@ export default function PortefeuilleScreen() {
                       </>
                     )}
                   </PulseWrap>
-                  </View>
-                </ScrollView>
+                )}
               </View>
 
               {/* ── 7. Retraits ────────────────────────────────────────────── */}

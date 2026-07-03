@@ -34,7 +34,7 @@ apiClient.interceptors.request.use(async (config) => {
 
 let _loggingOut = false; // garde pour éviter plusieurs forceLogout en parallèle
 
-// Retry 502 + logout auto sur 401
+// Retry 502 + erreurs réseau + logout auto sur 401
 apiClient.interceptors.response.use(
   (res) => res,
   async (error) => {
@@ -48,6 +48,20 @@ apiClient.interceptors.response.use(
         await new Promise((r) => setTimeout(r, RETRY_DELAYS[req._retryCount - 1]));
         return apiClient(req);
       }
+    }
+
+    // Retry erreur réseau brute (pas de réponse reçue) — React Native peut rater
+    // la première requête après un burst de fetches parallèles (pool TCP saturé).
+    // Codes indiquant que la requête n'a pas atteint le serveur : ECONNRESET,
+    // ECONNABORTED (timeout), ENOTFOUND, ERR_NETWORK, ERR_INTERNET_DISCONNECTED.
+    // On exclut les mutations si l'erreur est ambiguë (timeout = peut-être reçu).
+    const safeToRetry = !error.response && !req._networkRetry;
+    const isTimeout = error.code === 'ECONNABORTED';
+    const isMutation = req.method && ['post', 'put', 'patch', 'delete'].includes(req.method.toLowerCase());
+    if (safeToRetry && !(isTimeout && isMutation)) {
+      req._networkRetry = true;
+      await new Promise((r) => setTimeout(r, 1200));
+      return apiClient(req);
     }
 
     // Logout automatique sur 401 (token expiré) — une seule fois même si plusieurs requêtes parallèles

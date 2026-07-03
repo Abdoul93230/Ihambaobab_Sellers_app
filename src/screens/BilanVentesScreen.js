@@ -4,12 +4,14 @@ import {
   ActivityIndicator, Animated, RefreshControl, Dimensions,
   Modal, TouchableWithoutFeedback,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
 import { syncService } from '../services/syncService';
 import { useSyncStore } from '../stores/syncStore';
 import { useSync } from '../hooks/useSync';
+import { useAuthStore } from '../stores/authStore';
 import CachedImage from '../components/CachedImage';
 
 const { width: W } = Dimensions.get('window');
@@ -170,8 +172,9 @@ function DateModal({ visible, from, to, onConfirm, onClose, colors }) {
   if (!mounted) return null;
   return (
     <Modal visible={mounted} transparent animationType="none" statusBarTranslucent onRequestClose={() => dismiss(onClose)}>
+      <Animated.View style={[bStyles.backdrop, { opacity: backdropAnim }]} pointerEvents="none" />
       <TouchableWithoutFeedback onPress={() => dismiss(onClose)}>
-        <Animated.View style={[bStyles.backdrop, { opacity: backdropAnim }]} />
+        <View style={StyleSheet.absoluteFillObject} />
       </TouchableWithoutFeedback>
       <Animated.View style={[bStyles.sheet, { backgroundColor: colors.bgCard, transform: [{ translateY: slideAnim }] }]}>
         <View style={bStyles.handle}><View style={[bStyles.handleBar, { backgroundColor: colors.border }]} /></View>
@@ -275,9 +278,13 @@ function PeriodSheet({ visible, current, onSelect, onClose, colors }) {
 
   return (
     <Modal visible={mounted} transparent animationType="none" statusBarTranslucent onRequestClose={() => dismiss(onClose)}>
+      {/* Backdrop visuel animé — pointerEvents none pour ne pas bloquer le sheet */}
+      <Animated.View style={[bStyles.backdrop, { opacity: backdropAnim }]} pointerEvents="none" />
+      {/* Backdrop tactile — plein écran mais derrière le sheet dans le z-order */}
       <TouchableWithoutFeedback onPress={() => dismiss(onClose)}>
-        <Animated.View style={[bStyles.backdrop, { opacity: backdropAnim }]} />
+        <View style={StyleSheet.absoluteFillObject} />
       </TouchableWithoutFeedback>
+      {/* Sheet — rendu en dernier = dessus dans le z-order */}
       <Animated.View style={[bStyles.sheet, { backgroundColor: colors.bgCard, transform: [{ translateY: slideAnim }] }]}>
         <View style={bStyles.handle}><View style={[bStyles.handleBar, { backgroundColor: colors.border }]} /></View>
         <Text style={[bStyles.sheetTitle, { color: colors.text }]}>Période d'analyse</Text>
@@ -313,8 +320,12 @@ function PeriodSheet({ visible, current, onSelect, onClose, colors }) {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export default function BilanVentesScreen() {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { toast, notify } = useToast();
   const { triggerSync, isSyncing, isOffline } = useSync();
+  const { seller, subscription } = useAuthStore();
+  const storeName    = seller?.nomBoutique || seller?.nom || seller?.storeName || seller?.name || 'Ma Boutique';
+  const hasPosAccess = ['Pro', 'Business'].includes(subscription?.planName || 'Starter');
 
   // ── Store Zustand — bilanToday réactif (mis à jour par VenteScreen) ────────
   const bilanToday = useSyncStore(s => s.bilanToday);
@@ -481,7 +492,6 @@ export default function BilanVentesScreen() {
 
   // ── Derived ────────────────────────────────────────────────────────────────
   const isHistory = period !== 'today' && period !== 'custom';
-  const isRange   = period === 'custom' && customFrom && customTo;
   const todayData = !isHistory ? bilanData : null;
 
   const histTotal    = historyData ? historyData.reduce((s, d) => s + (d.totalGeneral  || 0), 0) : 0;
@@ -503,22 +513,36 @@ export default function BilanVentesScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.bg }]}>
-      {/* Banners offline / cache stale */}
-      {stale && (
-        <View style={[styles.banner, { backgroundColor: AMBER }]}>
-          <Ionicons name="cloud-offline-outline" size={13} color="#fff" />
-          <Text style={styles.bannerText}>Données en cache — connectez-vous pour actualiser</Text>
-        </View>
-      )}
-      {isOffline && !stale && (
-        <View style={[styles.banner, { backgroundColor: '#6B7280' }]}>
-          <Ionicons name="wifi-outline" size={13} color="#fff" />
-          <Text style={styles.bannerText}>Hors ligne</Text>
-        </View>
-      )}
+
+      {/* ── Barre filtres (période + refresh) ── */}
+      <View style={[styles.filterBar, { backgroundColor: colors.bgCard, borderBottomColor: colors.border }]}>
+        <TouchableOpacity
+          style={[styles.periodBtn, { backgroundColor: PRIMARY + '12', borderColor: PRIMARY + '30' }]}
+          onPress={() => setShowPeriodSheet(true)}
+          activeOpacity={0.75}
+        >
+          <View style={[styles.periodBtnIcon, { backgroundColor: PRIMARY + '20' }]}>
+            <Ionicons name="calendar-outline" size={14} color={PRIMARY} />
+          </View>
+          <Text style={[styles.periodBtnText, { color: PRIMARY }]} numberOfLines={1}>{periodLabel}</Text>
+          <Ionicons name="chevron-down-outline" size={13} color={PRIMARY + 'CC'} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={onRefresh}
+          style={[styles.refreshBtn, { backgroundColor: colors.bgHover, borderColor: colors.border }]}
+          activeOpacity={0.75}
+        >
+          {isSyncing
+            ? <ActivityIndicator size="small" color={PRIMARY} />
+            : <Ionicons name="refresh-outline" size={18} color={colors.textSub} />
+          }
+        </TouchableOpacity>
+      </View>
+
 
       <ScrollView
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
         refreshControl={
           <RefreshControl
             refreshing={isSyncing}
@@ -528,50 +552,53 @@ export default function BilanVentesScreen() {
           />
         }
       >
-        {/* ── Gradient header ── */}
-        <LinearGradient colors={[PRIMARY, '#267a6b']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.gradHeader}>
-          <View style={styles.gradHeaderRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.gradTitle}>Bilan des ventes</Text>
-              <Text style={styles.gradSub}>Vue consolidée POS + marketplace</Text>
-            </View>
-            <TouchableOpacity onPress={onRefresh} style={styles.refreshBtn}>
-              {isSyncing
-                ? <ActivityIndicator size="small" color="#fff" />
-                : <Ionicons name="refresh-outline" size={18} color="#fff" />
-              }
-            </TouchableOpacity>
-          </View>
+        {/* ── Hero card total ── */}
+        {!dataLoading && (bilanData || historyData) && (
+          <View style={styles.heroWrap}>
+            <LinearGradient colors={[PRIMARY, '#1e7a6b']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroCard}>
+              <View style={styles.heroCardTop}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.heroCaption}>Total général · {periodLabel}</Text>
+                  <Text style={styles.heroTotal}>{fmt(todayData?.totalGeneral ?? histTotal)}</Text>
+                </View>
+                {(stale || fromCache) && (
+                  <View style={styles.heroCachePill}>
+                    <Ionicons name="cloud-offline-outline" size={10} color="#fff" />
+                    <Text style={styles.heroCachePillText}>Cache</Text>
+                  </View>
+                )}
+              </View>
+              <View style={styles.heroDivider} />
+              <View style={styles.heroStatRow}>
+                {[
+                  ...(hasPosAccess ? [{ val: fmt(todayData?.pos?.total ?? histPos), label: 'POS', icon: 'storefront-outline' }] : []),
+                  { val: fmt(todayData?.marketplace?.total ?? histCmd),  label: 'Marketplace', icon: 'globe-outline' },
+                  { val: String(todayData?.articlesVendus ?? histArticles ?? 0), label: 'Articles', icon: 'cube-outline' },
+                ].map((s, i, arr) => (
+                  <React.Fragment key={s.label}>
+                    <View style={styles.heroStat}>
+                      <Ionicons name={s.icon} size={11} color="rgba(255,255,255,0.7)" style={{ marginBottom: 2 }} />
+                      <Text style={styles.heroStatVal}>{s.val}</Text>
+                      <Text style={styles.heroStatLabel}>{s.label}</Text>
+                    </View>
+                    {i < arr.length - 1 && <View style={styles.heroStatSep} />}
+                  </React.Fragment>
+                ))}
+              </View>
+            </LinearGradient>
 
-          {/* Sélecteur de période */}
-          <TouchableOpacity
-            style={styles.periodSelector}
-            onPress={() => setShowPeriodSheet(true)}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="calendar-outline" size={14} color="rgba(255,255,255,0.8)" />
-            <Text style={styles.periodSelectorText}>{periodLabel}</Text>
-            <Ionicons name="chevron-down" size={14} color="rgba(255,255,255,0.8)" />
-          </TouchableOpacity>
-
-          {/* Total général */}
-          {!dataLoading && (bilanData || historyData) && (
-            <Text style={styles.gradTotal}>
-              {fmt(todayData?.totalGeneral ?? histTotal)}
-            </Text>
-          )}
-        </LinearGradient>
-
-        {/* Badge plage personnalisée */}
-        {period === 'custom' && customFrom && customTo && (
-          <View style={styles.customBadgeRow}>
-            <View style={[styles.customBadge, { backgroundColor: PRIMARY + '15', borderColor: PRIMARY + '40' }]}>
-              <Ionicons name="calendar-outline" size={12} color={PRIMARY} />
-              <Text style={[styles.customBadgeText, { color: PRIMARY }]}>{periodLabel}</Text>
-            </View>
-            <TouchableOpacity onPress={() => { setPeriod('today'); setCustomFrom(''); setCustomTo(''); }}>
-              <Text style={[styles.resetText, { color: colors.textDisabled }]}>✕ Réinitialiser</Text>
-            </TouchableOpacity>
+            {/* Badge plage personnalisée */}
+            {period === 'custom' && customFrom && customTo && (
+              <View style={styles.customBadgeRow}>
+                <View style={[styles.customBadge, { backgroundColor: PRIMARY + '15', borderColor: PRIMARY + '40' }]}>
+                  <Ionicons name="calendar-outline" size={12} color={PRIMARY} />
+                  <Text style={[styles.customBadgeText, { color: PRIMARY }]}>{periodLabel}</Text>
+                </View>
+                <TouchableOpacity onPress={() => { setPeriod('today'); setCustomFrom(''); setCustomTo(''); }}>
+                  <Text style={[styles.resetText, { color: colors.textDisabled }]}>✕ Réinitialiser</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         )}
 
@@ -635,12 +662,14 @@ export default function BilanVentesScreen() {
                     label="Total" value={fmt(todayData.totalGeneral)}
                     iconBg={PRIMARY + '15'} colors={colors}
                   />
-                  <StatCard
-                    icon={<Ionicons name="cart-outline" size={18} color={INDIGO} />}
-                    label="Caisse POS" value={fmt(todayData.pos?.total)}
-                    sub={`${todayData.pos?.ventes ?? 0} vente(s)`}
-                    iconBg={INDIGO + '15'} colors={colors}
-                  />
+                  {hasPosAccess && (
+                    <StatCard
+                      icon={<Ionicons name="cart-outline" size={18} color={INDIGO} />}
+                      label="Caisse POS" value={fmt(todayData.pos?.total)}
+                      sub={`${todayData.pos?.ventes ?? 0} vente(s)`}
+                      iconBg={INDIGO + '15'} colors={colors}
+                    />
+                  )}
                   <StatCard
                     icon={<Ionicons name="globe-outline" size={18} color={ORANGE} />}
                     label="Marketplace" value={fmt(todayData.marketplace?.total)}
@@ -687,11 +716,13 @@ export default function BilanVentesScreen() {
                       label="Total période" value={fmt(histTotal)}
                       iconBg={PRIMARY + '15'} colors={colors}
                     />
-                    <StatCard
-                      icon={<Ionicons name="cart-outline" size={18} color={INDIGO} />}
-                      label="POS" value={fmt(histPos)}
-                      iconBg={INDIGO + '15'} colors={colors}
-                    />
+                    {hasPosAccess && (
+                      <StatCard
+                        icon={<Ionicons name="cart-outline" size={18} color={INDIGO} />}
+                        label="POS" value={fmt(histPos)}
+                        iconBg={INDIGO + '15'} colors={colors}
+                      />
+                    )}
                     <StatCard
                       icon={<Ionicons name="globe-outline" size={18} color={ORANGE} />}
                       label="Marketplace" value={fmt(histCmd)}
@@ -720,7 +751,7 @@ export default function BilanVentesScreen() {
                       {/* En-tête colonnes */}
                       <View style={[styles.tableHead, { backgroundColor: colors.bgHover, borderBottomColor: colors.border }]}>
                         <Text style={[styles.thDate, { color: colors.textDisabled }]}>Date</Text>
-                        <Text style={[styles.thNum, { color: INDIGO }]}>POS</Text>
+                        {hasPosAccess && <Text style={[styles.thNum, { color: INDIGO }]}>POS</Text>}
                         <Text style={[styles.thNum, { color: ORANGE }]}>Marché</Text>
                         <Text style={[styles.thTotal, { color: colors.text }]}>Total</Text>
                         <Text style={[styles.thArticles, { color: colors.textDisabled }]}>Art.</Text>
@@ -737,7 +768,7 @@ export default function BilanVentesScreen() {
                           ]}
                         >
                           <Text style={[styles.tdDate, { color: colors.textSub }]} numberOfLines={1}>{formatDate(d.date)}</Text>
-                          <Text style={[styles.tdNum, { color: INDIGO }]}>{fmtNum(d.posTotal)}</Text>
+                          {hasPosAccess && <Text style={[styles.tdNum, { color: INDIGO }]}>{fmtNum(d.posTotal)}</Text>}
                           <Text style={[styles.tdNum, { color: ORANGE }]}>{fmtNum(d.commandeTotal)}</Text>
                           <Text style={[styles.tdTotal, { color: colors.text }]}>{fmtNum(d.totalGeneral)}</Text>
                           <Text style={[styles.tdArticles, { color: colors.textDisabled }]}>{d.articlesVendus}</Text>
@@ -802,27 +833,44 @@ export default function BilanVentesScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
 
-  banner: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 6, paddingVertical: 6, paddingHorizontal: 16,
-  },
-  bannerText: { fontSize: 11, fontWeight: '700', color: '#fff' },
 
-  // Gradient header
-  gradHeader: { padding: 20, paddingBottom: 24, gap: 10 },
-  gradHeaderRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  gradTitle: { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
-  gradSub:   { fontSize: 12, color: 'rgba(255,255,255,0.75)', fontWeight: '500', marginTop: 2 },
-  refreshBtn: { padding: 8, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.2)' },
-  gradTotal: { fontSize: 36, fontWeight: '900', color: '#fff', letterSpacing: -1, marginTop: 4 },
-
-  // Period selector
-  periodSelector: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7,
+  // Barre titre fixe
+  filterBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 14, paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  periodSelectorText: { fontSize: 13, color: '#fff', fontWeight: '600', maxWidth: 160 },
+  periodBtn: {
+    flex: 1,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    borderWidth: 1, borderRadius: 12,
+    paddingHorizontal: 10, paddingVertical: 8,
+  },
+  periodBtnIcon: {
+    width: 26, height: 26, borderRadius: 7,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  periodBtnText: { flex: 1, fontSize: 13, fontWeight: '700' },
+  refreshBtn: {
+    width: 40, height: 40, borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    justifyContent: 'center', alignItems: 'center',
+  },
+
+  // Hero card (même pattern que PortefeuilleScreen)
+  heroWrap: { padding: 14, paddingBottom: 0 },
+  heroCard:     { borderRadius: 18, padding: 18, gap: 14 },
+  heroCardTop:  { flexDirection: 'row', alignItems: 'flex-start' },
+  heroCaption:  { fontSize: 11, color: 'rgba(255,255,255,0.75)', fontWeight: '600', marginBottom: 4 },
+  heroTotal:    { fontSize: 28, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
+  heroCachePill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4 },
+  heroCachePillText: { fontSize: 9, fontWeight: '700', color: '#fff' },
+  heroDivider:  { height: 1, backgroundColor: 'rgba(255,255,255,0.2)' },
+  heroStatRow:  { flexDirection: 'row', alignItems: 'center' },
+  heroStat:     { flex: 1, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 10, paddingVertical: 8 },
+  heroStatSep:  { width: 6 },
+  heroStatVal:  { fontSize: 11, fontWeight: '800', color: '#fff' },
+  heroStatLabel: { fontSize: 9, color: 'rgba(255,255,255,0.7)', fontWeight: '600', marginTop: 2 },
 
   // Period sheet options
   periodOption: {

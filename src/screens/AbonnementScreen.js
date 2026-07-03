@@ -110,10 +110,10 @@ function UsageBar({ current, limit, color }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 // CARTES DE STATUT
 // ═══════════════════════════════════════════════════════════════════════════════
-function StatusCard({ subData, statusInfo, productCount, queuedSubs, colors }) {
-  const status    = statusInfo?.status;
+function StatusCard({ subData, statusInfo, subscription, productCount, queuedSubs, colors }) {
+  const status    = statusInfo?.status || subscription?.status;
   const activeSub = subData?.activeSubscription;
-  const planName  = activeSub?.planType || 'Starter';
+  const planName  = activeSub?.planType || subscription?.planName || 'Starter';
   const meta      = PLAN_META[planName] || PLAN_META.Starter;
   const cfg       = SUBSCRIPTION_CONFIG.getPlan(planName);
 
@@ -135,10 +135,10 @@ function StatusCard({ subData, statusInfo, productCount, queuedSubs, colors }) {
             { val: '1', label: 'mois gratuit',  sub: 'Pro & Business' },
             { val: '0', label: 'carte requise', sub: 'Paiement après essai' },
           ].map((item, i) => (
-            <View key={i} style={[s.tripleItem, { backgroundColor: '#fff', borderColor: '#10B981' }]}>
+            <View key={i} style={[s.tripleItem, { backgroundColor: colors.bgCard, borderColor: '#10B981' }]}>
               <Text style={[s.tripleVal, { color: '#10B981' }]}>{item.val}</Text>
-              <Text style={[s.tripleLabel, { color: '#374151' }]}>{item.label}</Text>
-              <Text style={[s.tripleSub, { color: '#6B7280' }]}>{item.sub}</Text>
+              <Text style={[s.tripleLabel, { color: colors.text }]}>{item.label}</Text>
+              <Text style={[s.tripleSub, { color: colors.textMuted }]}>{item.sub}</Text>
             </View>
           ))}
         </View>
@@ -148,7 +148,7 @@ function StatusCard({ subData, statusInfo, productCount, queuedSubs, colors }) {
   }
 
   if (status === 'trial') {
-    const days = daysLeft(activeSub?.trialEndDate);
+    const days = daysLeft(activeSub?.trialEndDate) || subscription?.daysRemaining || 0;
     return (
       <View style={[s.statusCard, { backgroundColor: '#F5F3FF', borderColor: '#6366F1' }]}>
         <View style={s.statusCardHeader}>
@@ -162,23 +162,23 @@ function StatusCard({ subData, statusInfo, productCount, queuedSubs, colors }) {
           </View>
         </View>
         <View style={s.tripleGrid}>
-          <View style={[s.tripleItem, { backgroundColor: '#fff', borderColor: '#6366F1' }]}>
+          <View style={[s.tripleItem, { backgroundColor: colors.bgCard, borderColor: '#6366F1' }]}>
             <Ionicons name="cube-outline" size={14} color="#6366F1" />
             <Text style={[s.tripleVal, { color: '#6366F1', fontSize: 15 }]}>
               {productCount}{cfg?.productLimit !== -1 ? `/${cfg?.productLimit}` : ''}
             </Text>
-            <Text style={[s.tripleSub, { color: '#6B7280' }]}>produits</Text>
+            <Text style={[s.tripleSub, { color: colors.textMuted }]}>produits</Text>
             <UsageBar current={productCount} limit={cfg?.productLimit} color="#6366F1" />
           </View>
-          <View style={[s.tripleItem, { backgroundColor: '#fff', borderColor: '#6366F1' }]}>
+          <View style={[s.tripleItem, { backgroundColor: colors.bgCard, borderColor: '#6366F1' }]}>
             <Ionicons name="trending-down-outline" size={14} color="#8B5CF6" />
             <Text style={[s.tripleVal, { color: '#8B5CF6', fontSize: 15 }]}>{cfg?.commission}%</Text>
-            <Text style={[s.tripleSub, { color: '#6B7280' }]}>commission</Text>
+            <Text style={[s.tripleSub, { color: colors.textMuted }]}>commission</Text>
           </View>
-          <View style={[s.tripleItem, { backgroundColor: '#fff', borderColor: '#6366F1' }]}>
+          <View style={[s.tripleItem, { backgroundColor: colors.bgCard, borderColor: '#6366F1' }]}>
             <Ionicons name="time-outline" size={14} color="#10B981" />
             <Text style={[s.tripleVal, { color: '#10B981', fontSize: 15 }]}>{days}j</Text>
-            <Text style={[s.tripleSub, { color: '#6B7280' }]}>restants</Text>
+            <Text style={[s.tripleSub, { color: colors.textMuted }]}>restants</Text>
           </View>
         </View>
         {queuedSubs.length > 0 && <QueueMini subs={queuedSubs} colors={colors} />}
@@ -193,7 +193,7 @@ function StatusCard({ subData, statusInfo, productCount, queuedSubs, colors }) {
   }
 
   if (status === 'active') {
-    const days = daysLeft(activeSub?.endDate);
+    const days = daysLeft(activeSub?.endDate) || subscription?.daysRemaining || 0;
     const soon = days <= 10;
     return (
       <View style={[s.statusCard, {
@@ -215,26 +215,26 @@ function StatusCard({ subData, statusInfo, productCount, queuedSubs, colors }) {
           </View>
         </View>
         <View style={s.tripleGrid}>
-          <View style={[s.tripleItem, { backgroundColor: '#fff', borderColor: soon ? '#F97316' : '#10B981' }]}>
+          <View style={[s.tripleItem, { backgroundColor: colors.bgCard, borderColor: soon ? '#F97316' : '#10B981' }]}>
             <Ionicons name="cube-outline" size={14} color={meta.color} />
             <Text style={[s.tripleVal, { color: meta.color, fontSize: 15 }]}>
               {productCount}{cfg?.productLimit !== -1 ? `/${cfg?.productLimit}` : ''}
             </Text>
-            <Text style={[s.tripleSub, { color: '#6B7280' }]}>produits</Text>
+            <Text style={[s.tripleSub, { color: colors.textMuted }]}>produits</Text>
             <UsageBar current={productCount} limit={cfg?.productLimit} color={meta.color} />
           </View>
-          <View style={[s.tripleItem, { backgroundColor: '#fff', borderColor: soon ? '#F97316' : '#10B981' }]}>
+          <View style={[s.tripleItem, { backgroundColor: colors.bgCard, borderColor: soon ? '#F97316' : '#10B981' }]}>
             <Ionicons name="trending-down-outline" size={14} color={meta.color} />
             <Text style={[s.tripleVal, { color: meta.color, fontSize: 15 }]}>{cfg?.commission}%</Text>
-            <Text style={[s.tripleSub, { color: '#6B7280' }]}>commission</Text>
+            <Text style={[s.tripleSub, { color: colors.textMuted }]}>commission</Text>
           </View>
-          <View style={[s.tripleItem, { backgroundColor: '#fff', borderColor: soon ? '#F97316' : '#10B981' }]}>
+          <View style={[s.tripleItem, { backgroundColor: colors.bgCard, borderColor: soon ? '#F97316' : '#10B981' }]}>
             <Ionicons name={cfg?.features?.pos ? 'storefront-outline' : 'close-circle-outline'} size={14}
               color={cfg?.features?.pos ? '#10B981' : '#9CA3AF'} />
             <Text style={[s.tripleVal, { color: cfg?.features?.pos ? '#10B981' : '#9CA3AF', fontSize: 12 }]}>
               {cfg?.features?.pos ? 'Inclus' : 'Non'}
             </Text>
-            <Text style={[s.tripleSub, { color: '#6B7280' }]}>POS</Text>
+            <Text style={[s.tripleSub, { color: colors.textMuted }]}>POS</Text>
           </View>
         </View>
         {queuedSubs.length > 0 && <QueueMini subs={queuedSubs} colors={colors} />}
@@ -328,6 +328,28 @@ function QueueMini({ subs, colors }) {
   );
 }
 
+// ─── Bandeau "session à actualiser" — affiché quand le backend a activé mais la session locale est encore suspended ──
+function ReconnectBanner({ colors }) {
+  return (
+    <View style={[s.reconnectBanner, { borderColor: '#5EEAD4', backgroundColor: '#F0FDFA' }]}>
+      <View style={{ flex: 1 }}>
+        <Text style={[s.reconnectBannerTitle, { color: '#134E4A' }]}>Session à actualiser</Text>
+        <Text style={[s.reconnectBannerSub, { color: '#0F766E' }]}>
+          Votre abonnement est valide. Reconnectez-vous pour débloquer l'accès immédiatement.
+        </Text>
+      </View>
+      <TouchableOpacity
+        style={[s.reconnectBtn, { backgroundColor: '#0D9488' }]}
+        onPress={() => useAuthStore.getState().forceLogout()}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="log-in-outline" size={14} color="#fff" />
+        <Text style={s.reconnectBtnText}>Se reconnecter</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 // ─── Carte compte suspendu (avec input code) ──────────────────────────────────
 function SuspendedCard({ code, setCode, onActivate, loading, isOffline, colors }) {
   return (
@@ -348,9 +370,9 @@ function SuspendedCard({ code, setCode, onActivate, loading, isOffline, colors }
         </View>
         <Text style={[s.inputLabel, { color: '#374151' }]}>Code de Réactivation</Text>
         <TextInput
-          style={[s.codeInput, { borderColor: code.length === 8 ? '#10B981' : '#FECACA' }]}
+          style={[s.codeInput, { borderColor: code.length === 8 ? '#10B981' : '#FECACA', backgroundColor: colors.bgCard, color: colors.text }]}
           placeholder="Code reçu de l'administration"
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={colors.textMuted}
           value={code}
           onChangeText={t => setCode(t.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8))}
           autoCapitalize="characters"
@@ -420,8 +442,13 @@ function PlansCarousel({
       ?? cfg?.productLimit
       ?? -1;
     const isProductIncompatible = maxProducts !== -1 && productCount > maxProducts;
-    const isLowerPlan = upgradeOnly && planRank(plan.name) < planRank(activePlanType);
-    const isPlanDisabled = isProductIncompatible || isCurrent || isLowerPlan;
+    // Plan inférieur : bloqué dans tous les modes (upgradeOnly OU canCreateRequest)
+    const isLowerPlan = activePlanType
+      ? planRank(plan.name) < planRank(activePlanType)
+      : false;
+    // Plan actuel : cliquable (renouvellement) sauf en mode upgradeOnly où seul un plan supérieur est pertinent
+    const isCurrentBlocked = upgradeOnly && isCurrent;
+    const isPlanDisabled = isProductIncompatible || isCurrentBlocked || isLowerPlan;
 
     return (
       <View style={{ width: ITEM_W, alignItems: 'center', paddingVertical: 4 }}>
@@ -429,10 +456,10 @@ function PlansCarousel({
         activeOpacity={isPlanDisabled ? 1 : 0.92}
         style={[
           s.planCard,
-          isCurrent
-            ? { width: CARD_W, borderColor: colors.primary, borderWidth: 2, opacity: 0.65 }
-            : isLowerPlan
-              ? { width: CARD_W, borderColor: colors.border, borderWidth: 1, opacity: 0.45 }
+          isLowerPlan
+            ? { width: CARD_W, borderColor: colors.border, borderWidth: 1, opacity: 0.45 }
+            : isCurrentBlocked
+              ? { width: CARD_W, borderColor: colors.primary, borderWidth: 2, opacity: 0.65 }
               : isProductIncompatible
                 ? { width: CARD_W, borderColor: '#FED7AA', borderWidth: 1, opacity: 0.7 }
                 : { width: CARD_W, borderColor: isSelected ? meta.color : colors.border, borderWidth: isSelected ? 2 : 1 },
@@ -445,9 +472,14 @@ function PlansCarousel({
             <Text style={s.badgeText}>⭐ Populaire</Text>
           </View>
         )}
-        {isCurrent && (
+        {isCurrent && isCurrentBlocked && (
           <View style={[s.currentBadge, { backgroundColor: colors.primary }]}>
             <Text style={s.badgeText}>Plan actuel</Text>
+          </View>
+        )}
+        {isCurrent && !isCurrentBlocked && (
+          <View style={[s.currentBadge, { backgroundColor: '#4F46E5' }]}>
+            <Text style={s.badgeText}>↻ Renouveler</Text>
           </View>
         )}
         {isLowerPlan && (
@@ -515,16 +547,22 @@ function PlansCarousel({
           ))}
         </View>
 
-        {isCurrent && (
+        {isCurrent && isCurrentBlocked && (
           <View style={[s.alertBox, { backgroundColor: '#ECFDF5', borderColor: '#6EE7B7', marginTop: 8 }]}>
             <Ionicons name="checkmark-circle-outline" size={14} color="#059669" />
             <Text style={[s.alertText, { color: '#065F46', textAlign: 'center' }]}>Votre plan actuel</Text>
           </View>
         )}
+        {isCurrent && !isCurrentBlocked && (
+          <View style={[s.alertBox, { backgroundColor: '#EEF2FF', borderColor: '#C7D2FE', marginTop: 8 }]}>
+            <Ionicons name="refresh-outline" size={14} color="#4F46E5" />
+            <Text style={[s.alertText, { color: '#3730A3', textAlign: 'center' }]}>Renouveler ce plan</Text>
+          </View>
+        )}
         {isLowerPlan && (
           <View style={[s.alertBox, { backgroundColor: '#F9FAFB', borderColor: '#E5E7EB', marginTop: 8 }]}>
             <Ionicons name="arrow-down-outline" size={14} color="#9CA3AF" />
-            <Text style={[s.alertText, { color: '#6B7280' }]}>Plan inférieur à votre abonnement actuel</Text>
+            <Text style={[s.alertText, { color: '#6B7280' }]}>Plan inférieur — non disponible</Text>
           </View>
         )}
         {isProductIncompatible && !isCurrent && !isLowerPlan && (
@@ -691,6 +729,30 @@ function ActionPanel({
         {/* Mode paiement */}
         {!isTrialMode && (
           <>
+            {/* Renouvellement même plan */}
+            {!isUpgrade && activePlanType && selectedPlan.name === activePlanType && (
+              <View style={[s.upgradeBox, { borderColor: '#6366F1' }]}>
+                <View style={[s.upgradeBoxTop, { backgroundColor: '#6366F1' }]}>
+                  <Ionicons name="refresh-outline" size={13} color="#fff" />
+                  <Text style={s.upgradeBoxTopText}>Renouvellement {selectedPlan.name}</Text>
+                </View>
+                <View style={{ padding: 12, gap: 6 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+                    <Ionicons name="calendar-outline" size={14} color="#4F46E5" style={{ marginTop: 1 }} />
+                    <Text style={[s.upgradeModeDesc, { color: colors.text, flex: 1, fontSize: 12 }]}>
+                      Votre plan {activePlanType} actuel <Text style={{ fontWeight: '700', color: '#4F46E5' }}>continue jusqu'au dernier jour</Text>. Le nouveau cycle démarre automatiquement à l'expiration.
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+                    <Ionicons name="checkmark-circle-outline" size={14} color="#10B981" style={{ marginTop: 1 }} />
+                    <Text style={[s.upgradeModeDesc, { color: colors.textMuted, flex: 1, fontSize: 12 }]}>
+                      Aucun jour perdu — rentabilisez chaque jour de votre abonnement en cours.
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
             {/* Upgrade mode */}
             {isUpgrade && (
               <View style={[s.upgradeBox, { borderColor: meta.color }]}>
@@ -937,30 +999,30 @@ function PendingRequestCard({
           </View>
 
           {/* Montant — élément principal */}
-          <View style={s.payInstrAmount}>
+          <View style={[s.payInstrAmount, { backgroundColor: colors.bgHover }]}>
             <Text style={s.payInstrAmountLabel}>Montant à envoyer</Text>
-            <Text style={s.payInstrAmountValue}>{pd.amount?.toLocaleString()} FCFA</Text>
+            <Text style={[s.payInstrAmountValue, { color: colors.primary }]}>{pd.amount?.toLocaleString()} FCFA</Text>
           </View>
 
           {/* Détails */}
-          <View style={s.payInstrDetails}>
-            <View style={s.payInstrRow}>
-              <View style={s.payInstrIconWrap}>
+          <View style={[s.payInstrDetails, { backgroundColor: colors.bgCard }]}>
+            <View style={[s.payInstrRow, { borderBottomColor: colors.border }]}>
+              <View style={[s.payInstrIconWrap, { backgroundColor: colors.bgHover }]}>
                 <Ionicons name="call-outline" size={15} color={colors.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={s.payInstrRowLabel}>Numéro destinataire</Text>
-                <Text style={s.payInstrRowValue}>{pd.recipientPhone}</Text>
+                <Text style={[s.payInstrRowLabel, { color: colors.textMuted }]}>Numéro destinataire</Text>
+                <Text style={[s.payInstrRowValue, { color: colors.text }]}>{pd.recipientPhone}</Text>
               </View>
             </View>
 
             <View style={[s.payInstrRow, { borderBottomWidth: 0 }]}>
-              <View style={s.payInstrIconWrap}>
+              <View style={[s.payInstrIconWrap, { backgroundColor: colors.bgHover }]}>
                 <Ionicons name="phone-portrait-outline" size={15} color={colors.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={s.payInstrRowLabel}>Méthode de paiement</Text>
-                <Text style={s.payInstrRowValue}>{pd.method?.replace(/_/g, ' ').toUpperCase()}</Text>
+                <Text style={[s.payInstrRowLabel, { color: colors.textMuted }]}>Méthode de paiement</Text>
+                <Text style={[s.payInstrRowValue, { color: colors.text }]}>{pd.method?.replace(/_/g, ' ').toUpperCase()}</Text>
               </View>
             </View>
           </View>
@@ -1203,7 +1265,7 @@ function HistoryCard({ history, paymentHistory = [], colors }) {
 
   const activatedPayments = paymentHistory.filter(p => p.status === 'activated');
   const confirmedPayments = paymentHistory.filter(p => p.status === 'payment_verified' || p.status === 'activated');
-  const totalPaid = activatedPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+  const totalPaid = confirmedPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
 
   const sysActivations = history.filter(h => ['created','activated','renewed','reactivated'].includes(h.actionType));
   const nbAbonnements = activatedPayments.length > 0 ? activatedPayments.length : sysActivations.length;
@@ -1234,7 +1296,7 @@ function HistoryCard({ history, paymentHistory = [], colors }) {
           <Text style={s.sectionHeaderSub}>Tous vos abonnements et transactions</Text>
         </View>
       </View>
-      <View style={[s.histStats, { backgroundColor: '#F5F3FF', borderBottomColor: colors.border }]}>
+      <View style={[s.histStats, { backgroundColor: colors.bgHover, borderBottomColor: colors.border }]}>
         {[
           { val: nbAbonnements,       label: 'Abonnements' },
           { val: nbConfirmed,         label: 'Confirmés' },
@@ -1242,8 +1304,8 @@ function HistoryCard({ history, paymentHistory = [], colors }) {
           { val: fmtPrice(totalPaid), label: 'Total payé', small: true },
         ].map((item, i) => (
           <View key={i} style={s.histStat}>
-            <Text style={[s.histStatVal, { color: '#6D28D9', fontSize: item.small ? 10 : 16 }]}>{item.val}</Text>
-            <Text style={[s.histStatLabel, { color: '#6B7280' }]}>{item.label}</Text>
+            <Text style={[s.histStatVal, { color: colors.primary, fontSize: item.small ? 10 : 16 }]}>{item.val}</Text>
+            <Text style={[s.histStatLabel, { color: colors.textMuted }]}>{item.label}</Text>
           </View>
         ))}
       </View>
@@ -1542,9 +1604,9 @@ export default function AbonnementScreen() {
       const res = await apiClient.post('/api/seller/subscription/activate-with-code', { reactivationCode: reactivationCode.toUpperCase() });
       if (res.data?.status === 'success') {
         Toast.show({ type: 'success', text1: 'Compte réactivé !', text2: 'Bienvenue de retour' });
-        await updateSubscription({ status: 'active' });
         setReactivationCode('');
-        fetchAll(true);
+        // Recharge la session complète pour débloquer la navigation
+        await useAuthStore.getState().verifyAuth();
       } else {
         Toast.show({ type: 'error', text1: 'Erreur', text2: res.data?.message });
       }
@@ -1626,10 +1688,20 @@ export default function AbonnementScreen() {
       >
         {/* Bannière offline */}
         {isOffline && (
-          <View style={s.offlinePill}>
-            <Ionicons name="wifi-outline" size={12} color="#EF4444" />
-            <Text style={s.offlinePillText}>Mode hors ligne — données en cache</Text>
+          <View style={[s.offlineBanner, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+            <Ionicons name="cloud-offline-outline" size={14} color="#F59E0B" />
+            <View style={{ flex: 1 }}>
+              <Text style={[s.offlineBannerTitle, { color: colors.text }]}>Mode hors ligne</Text>
+              <Text style={[s.offlineBannerSub, { color: colors.textMuted }]}>
+                {subData ? 'Données en cache — reconnectez-vous pour actualiser.' : 'Statut affiché depuis le cache local. Reconnectez-vous pour voir les détails complets.'}
+              </Text>
+            </View>
           </View>
+        )}
+
+        {/* Bandeau reconnexion — visible seulement si le backend a déjà activé mais la session locale est encore "suspended" */}
+        {subscription?.status === 'suspended' && ['active', 'trial'].includes(subData?.statusInfo?.status) && (
+          <ReconnectBanner colors={colors} />
         )}
 
         {/* Carte de statut */}
@@ -1646,6 +1718,7 @@ export default function AbonnementScreen() {
           <StatusCard
             subData={subData}
             statusInfo={statusInfo}
+            subscription={subscription}
             productCount={productCount}
             queuedSubs={scheduledQueued}
             colors={colors}
@@ -1769,12 +1842,24 @@ const s = StyleSheet.create({
   centered:    { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
   loadingText: { fontSize: 13 },
 
-  offlinePill: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20,
-    alignSelf: 'center', backgroundColor: '#FEF2F2',
+  offlineBanner: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 10,
+    borderRadius: 12, borderWidth: 1, padding: 12,
   },
-  offlinePillText: { fontSize: 12, color: '#EF4444', fontWeight: '600' },
+  offlineBannerTitle: { fontSize: 12, fontWeight: '700' },
+  offlineBannerSub:   { fontSize: 11, marginTop: 2, lineHeight: 16 },
+
+  reconnectBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    borderRadius: 14, borderWidth: 2, padding: 14,
+  },
+  reconnectBannerTitle: { fontSize: 13, fontWeight: '700' },
+  reconnectBannerSub:   { fontSize: 11, marginTop: 2, lineHeight: 16 },
+  reconnectBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    borderRadius: 10, paddingVertical: 10, paddingHorizontal: 14,
+  },
+  reconnectBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
 
   // Status card
   statusCard:       { borderRadius: 16, borderWidth: 2, padding: 16, gap: 12 },
@@ -1806,10 +1891,11 @@ const s = StyleSheet.create({
   payInstr:           { marginHorizontal: 12, marginBottom: 12, borderRadius: 14, overflow: 'hidden', borderWidth: 1.5, borderColor: '#30A08B' },
   payInstrHeader:     { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#30A08B', paddingVertical: 10, paddingHorizontal: 14 },
   payInstrHeaderText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  payInstrAmount:     { alignItems: 'center', paddingVertical: 18, paddingHorizontal: 14, backgroundColor: '#F0FAF8' },
+  // payInstrAmount et payInstrDetails : bg passé en inline via colors
+  payInstrAmount:     { alignItems: 'center', paddingVertical: 18, paddingHorizontal: 14 },
   payInstrAmountLabel:{ fontSize: 11, color: '#30A08B', fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4 },
   payInstrAmountValue:{ fontSize: 28, fontWeight: '800', color: '#1A6B5A', letterSpacing: -0.5 },
-  payInstrDetails:    { backgroundColor: '#fff', paddingHorizontal: 14, paddingVertical: 6 },
+  payInstrDetails:    { paddingHorizontal: 14, paddingVertical: 6 },
   payInstrRow:        { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#E6F5F2' },
   payInstrIconWrap:   { width: 32, height: 32, borderRadius: 8, backgroundColor: '#E6F5F2', alignItems: 'center', justifyContent: 'center' },
   payInstrRowLabel:   { fontSize: 10, color: '#6B7280', fontWeight: '600', letterSpacing: 0.3, textTransform: 'uppercase', marginBottom: 2 },
@@ -1934,10 +2020,11 @@ const s = StyleSheet.create({
   bigBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
 
   // Suspended / code
+  // codeInput — les couleurs bg/text sont passées en inline depuis SuspendedCard
   codeInput: {
     borderRadius: 10, borderWidth: 2, paddingHorizontal: 12, paddingVertical: 10,
     fontSize: 18, fontWeight: '800', letterSpacing: 4, textAlign: 'center',
-    backgroundColor: '#fff', marginBottom: 10, color: '#111',
+    marginBottom: 10,
   },
   helpBox:  { borderRadius: 8, borderWidth: 1, padding: 10, marginTop: 10 },
   helpText: { fontSize: 12, lineHeight: 17 },

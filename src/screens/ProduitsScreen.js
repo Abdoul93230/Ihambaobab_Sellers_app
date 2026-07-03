@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, FlatList, TextInput, StyleSheet, TouchableOpacity,
-  RefreshControl, ActivityIndicator, Modal, Animated,
+  RefreshControl, ActivityIndicator, Modal, Animated, ScrollView,
   TouchableWithoutFeedback, PanResponder, Dimensions,
 } from 'react-native';
 import CachedImage from '../components/CachedImage';
@@ -274,10 +274,10 @@ function ProduitDetailModal({ produit, visible, onClose, onEdit, colors }) {
               {/* Contenu tab Détails */}
               {activeTab === 'details' && (
                 <View style={styles.tabContent}>
-                  <InfoRow label="Stock" value={`${stock} unités`} colors={colors} icon="cube-outline" />
-                  {produit.quantite !== undefined && !produit.variants?.length && (
-                    <InfoRow label="Quantité" value={`${produit.quantite} unités`} colors={colors} icon="layers-outline" />
-                  )}
+                  {produit.variants?.length > 0
+                    ? <InfoRow label="Stock total" value={`${stock} unités`} colors={colors} icon="cube-outline" />
+                    : <InfoRow label="Quantité" value={`${produit.quantite ?? stock} unités`} colors={colors} icon="layers-outline" />
+                  }
                   {produit.description ? (
                     <View style={styles.descBlock}>
                       <Text style={[styles.descLabel, { color: colors.textMuted }]}>Description</Text>
@@ -490,7 +490,12 @@ export default function ProduitsScreen({ navigation }) {
 
         {/* Filtres statut + vue */}
         <View style={styles.toolbarRow}>
-          <View style={styles.statusFilters}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.statusFilters}
+            style={styles.statusFiltersScroll}
+          >
             {STATUS_FILTERS.map(f => (
               <TouchableOpacity
                 key={f}
@@ -506,7 +511,7 @@ export default function ProduitsScreen({ navigation }) {
                 </Text>
               </TouchableOpacity>
             ))}
-          </View>
+          </ScrollView>
           <View style={styles.viewToggle}>
             <TouchableOpacity
               onPress={() => setViewMode('grid')}
@@ -629,11 +634,12 @@ const styles = StyleSheet.create({
   toolbar: { borderBottomWidth: 1, paddingHorizontal: 12, paddingTop: 12, paddingBottom: 8, gap: 10 },
   searchWrap: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9 },
   searchInput: { flex: 1, fontSize: 14 },
-  toolbarRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  statusFilters: { flexDirection: 'row', gap: 6, flexWrap: 'nowrap' },
+  toolbarRow: { flexDirection: 'row', alignItems: 'center' },
+  statusFiltersScroll: { flex: 1, marginRight: 8 },
+  statusFilters: { flexDirection: 'row', gap: 6, paddingRight: 4 },
   filterChip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 16, borderWidth: 1 },
   filterChipText: { fontSize: 11, fontWeight: '600' },
-  viewToggle: { flexDirection: 'row', gap: 4 },
+  viewToggle: { flexDirection: 'row', gap: 4, flexShrink: 0 },
   viewBtn: { width: 32, height: 32, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
   statsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   statsText: { fontSize: 11 },

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput,
-  ActivityIndicator, Alert, Modal, Animated, PanResponder,
+  ActivityIndicator, Alert, Modal, Animated, PanResponder, Switch,
   TouchableWithoutFeedback, Dimensions, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import CachedImage from '../components/CachedImage';
@@ -246,6 +246,11 @@ function VarianteSheet({ visible, initial, defaultPrice, defaultPromoPrice, onSa
 
   return (
     <BottomSheet visible={visible} onClose={onClose} title={initial ? 'Modifier la variante' : 'Ajouter une variante'} colors={colors} maxHeight="90%">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
+        style={{ flex: 1 }}
+      >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 14, paddingBottom: 20 }} keyboardShouldPersistTaps="handled">
         {/* Couleur || Variante */}
         <Field label="Couleur || Variante" required colors={colors}>
@@ -422,6 +427,7 @@ function VarianteSheet({ visible, initial, defaultPrice, defaultPromoPrice, onSa
           </Field>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
 
       <View style={{ paddingHorizontal: 20, paddingTop: 8 }}>
         <TouchableOpacity style={[styles.submitBtn, { backgroundColor: colors.primary }]} onPress={handleSave} activeOpacity={0.85}>
@@ -507,6 +513,7 @@ export default function ProduitUpdateScreen({ route, navigation }) {
   const [marque, setMarque]       = useState('');
   const [description, setDescription] = useState('');
   const [prixF, setPrixF]         = useState('0');
+  const [showPrixF, setShowPrixF] = useState(false);
   const [weight, setWeight]       = useState('');
   const [typeId, setTypeId]       = useState('');
   // origine calculé automatiquement depuis seller.region/city — pas affiché à l'utilisateur
@@ -529,6 +536,18 @@ export default function ProduitUpdateScreen({ route, navigation }) {
   const storeTypes      = useSyncStore((s) => s.types) ?? [];
   const storeCategories = useSyncStore((s) => s.categories) ?? [];
   const [showTypes, setShowTypes] = useState(false);
+  const [openCats, setOpenCats]   = useState({});
+
+  // Quand le bottom sheet s'ouvre, auto-déplier la catégorie du type déjà sélectionné
+  useEffect(() => {
+    if (!showTypes || !typeId) return;
+    const catMap = Object.fromEntries(storeCategories.map(c => [String(c._id), c.name || c.nom]));
+    const matched = storeTypes.find(t => String(t._id) === typeId);
+    if (!matched) return;
+    const catKey = String(matched.clefCategories || matched.ClefCategorie || 'autres');
+    const catLabel = catMap[catKey] || 'Autres';
+    setOpenCats({ [catLabel]: true });
+  }, [showTypes]);
 
   // États
   const [saving, setSaving]   = useState(false);
@@ -562,13 +581,25 @@ export default function ProduitUpdateScreen({ route, navigation }) {
     setQuantite(String(p.quantite || ''));
     setMarque(p.marque || '');
     setDescription(p.description?.replace(/<[^>]*>/g, '') || '');
-    setPrixF(String(p.prixF || p.prixf || '0'));
+    const loadedPrixF = String(p.prixF || p.prixf || '0');
+    setPrixF(loadedPrixF);
+    setShowPrixF(parseFloat(loadedPrixF) > 0);
     setWeight(String(p.shipping?.weight || ''));
     // origine chargé depuis le produit existant dans la ref (pas affiché)
     if (p.shipping?.origine) origineRef.current = p.shipping.origine;
     const tId = p.ClefType?._id || p.ClefType;
-    const tName = p.ClefType?.nom || p.ClefType?.name || '';
-    if (tId) { setTypeId(String(tId)); setTypeName(tName); }
+    if (tId) {
+      setTypeId(String(tId));
+      const matchedType = storeTypes.find(t => String(t._id) === String(tId));
+      if (matchedType) {
+        const catMap = Object.fromEntries(storeCategories.map(c => [String(c._id), c.name || c.nom]));
+        const catKey = String(matchedType.clefCategories || matchedType.ClefCategorie || 'autres');
+        const catLabel = catMap[catKey] || 'Autres';
+        setTypeName(`${matchedType.nom || matchedType.name} → ${catLabel}`);
+      } else {
+        setTypeName(p.ClefType?.nom || p.ClefType?.name || '');
+      }
+    }
     if (p.image1) setImg1({ uri: p.image1, isNew: false });
     if (p.image2) setImg2({ uri: p.image2, isNew: false });
     if (p.image3) setImg3({ uri: p.image3, isNew: false });
@@ -784,8 +815,7 @@ export default function ProduitUpdateScreen({ route, navigation }) {
     if (description.trim().length > 0 && description.trim().length < 20)
       e.description = 'Description trop courte (minimum 20 caractères)';
 
-    if (!prixF || isNaN(parseFloat(prixF)) || parseFloat(prixF) <= 0)
-      e.prixF = 'Prix fournisseur requis';
+    // prixF optionnel — pas de validation bloquante
     // Poids : pas bloquant — fallback 0.5 comme sur le web (form.weight || 0.5)
 
     setErrors(e);
@@ -984,9 +1014,34 @@ export default function ProduitUpdateScreen({ route, navigation }) {
             </View>
           </View>
 
-          <Field label="Prix fournisseur (₣)" required colors={colors} error={errors.prixF}>
-            <Input value={prixF} onChangeText={setPrixF} keyboardType="numeric" placeholder="0" colors={colors} error={errors.prixF} />
-          </Field>
+          <TouchableOpacity
+            style={[styles.prixFToggleRow, { backgroundColor: colors.bgInput, borderColor: colors.border }]}
+            onPress={() => {
+              if (showPrixF) setPrixF('0');
+              setShowPrixF(v => !v);
+            }}
+            activeOpacity={0.8}
+          >
+            <View style={styles.prixFToggleLeft}>
+              <Ionicons name="pricetag-outline" size={16} color={colors.textMuted} style={{ marginRight: 8 }} />
+              <Text style={[styles.prixFToggleLabel, { color: colors.text }]}>Prix fournisseur</Text>
+              <Text style={[styles.prixFToggleHint, { color: colors.textMuted }]}> · pour calculer votre marge</Text>
+            </View>
+            <Switch
+              value={showPrixF}
+              onValueChange={v => {
+                if (!v) setPrixF('0');
+                setShowPrixF(v);
+              }}
+              trackColor={{ false: colors.border, true: colors.primary + '55' }}
+              thumbColor={showPrixF ? colors.primary : colors.textMuted}
+            />
+          </TouchableOpacity>
+          {showPrixF && (
+            <Field colors={colors} style={{ marginTop: 4 }}>
+              <Input value={prixF} onChangeText={setPrixF} keyboardType="numeric" placeholder="ex: 3 000" colors={colors} />
+            </Field>
+          )}
 
           {/* Type de produit */}
           <Field label="Type de produits" required colors={colors} error={errors.typeId}>
@@ -1147,11 +1202,10 @@ export default function ProduitUpdateScreen({ route, navigation }) {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Bottom sheet — sélection type (groupé par catégorie comme sur le web) */}
+      {/* Bottom sheet — sélection type accordéon par catégorie */}
       <BottomSheet visible={showTypes} onClose={() => setShowTypes(false)} title="Type de produits" colors={colors} maxHeight="75%">
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
           {(() => {
-            // Groupe les types par catégorie (identique à la logique web)
             const catMap = Object.fromEntries(storeCategories.map(c => [String(c._id), c.name || c.nom]));
             const grouped = {};
             storeTypes.forEach(t => {
@@ -1160,32 +1214,55 @@ export default function ProduitUpdateScreen({ route, navigation }) {
               if (!grouped[catLabel]) grouped[catLabel] = [];
               grouped[catLabel].push(t);
             });
-            return Object.entries(grouped).map(([catLabel, catTypes]) => (
-              <View key={catLabel}>
-                {/* Header catégorie */}
-                <View style={[styles.typeCatHeader, { backgroundColor: colors.bgHover, borderBottomColor: colors.border }]}>
-                  <Text style={[styles.typeCatLabel, { color: colors.textMuted }]}>{catLabel.toUpperCase()}</Text>
-                </View>
-                {catTypes.map(t => (
+            return Object.entries(grouped).map(([catLabel, catTypes]) => {
+              const isOpen = !!openCats[catLabel];
+              const hasSelected = catTypes.some(t => String(t._id) === typeId);
+              return (
+                <View key={catLabel} style={[styles.accordionBlock, { borderColor: colors.border }]}>
                   <TouchableOpacity
-                    key={String(t._id)}
-                    style={[styles.typeRow, { borderBottomColor: colors.border }]}
-                    onPress={() => {
-                      setTypeId(String(t._id));
-                      setTypeName(`${t.nom || t.name} → ${catLabel}`);
-                      setShowTypes(false);
-                    }}
+                    style={[styles.accordionHeader, { backgroundColor: isOpen ? colors.primaryLight : colors.bgHover }]}
+                    onPress={() => setOpenCats(prev => ({ ...prev, [catLabel]: !prev[catLabel] }))}
                     activeOpacity={0.75}
                   >
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.typeRowText, { color: colors.text }]}>{t.nom || t.name}</Text>
-                      <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 1 }}>{catLabel}</Text>
+                    <Text style={[styles.accordionLabel, { color: isOpen ? colors.primary : colors.text }]}>
+                      {catLabel}
+                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      {hasSelected && !isOpen && (
+                        <View style={[styles.accordionDot, { backgroundColor: colors.primary }]} />
+                      )}
+                      <Ionicons
+                        name={isOpen ? 'chevron-up' : 'chevron-down'}
+                        size={16}
+                        color={isOpen ? colors.primary : colors.textMuted}
+                      />
                     </View>
-                    {String(t._id) === typeId && <Ionicons name="checkmark" size={18} color={colors.primary} />}
                   </TouchableOpacity>
-                ))}
-              </View>
-            ));
+                  {isOpen && catTypes.map((t, i) => (
+                    <TouchableOpacity
+                      key={String(t._id)}
+                      style={[
+                        styles.accordionItem,
+                        { borderTopColor: colors.border },
+                        String(t._id) === typeId && { backgroundColor: colors.primaryLight },
+                      ]}
+                      onPress={() => {
+                        setTypeId(String(t._id));
+                        setTypeName(`${t.nom || t.name} → ${catLabel}`);
+                        setShowTypes(false);
+                        setOpenCats({});
+                      }}
+                      activeOpacity={0.75}
+                    >
+                      <Text style={[styles.accordionItemText, { color: String(t._id) === typeId ? colors.primary : colors.text }]}>
+                        {t.nom || t.name}
+                      </Text>
+                      {String(t._id) === typeId && <Ionicons name="checkmark-circle" size={18} color={colors.primary} />}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              );
+            });
           })()}
         </ScrollView>
       </BottomSheet>
@@ -1227,6 +1304,10 @@ const styles = StyleSheet.create({
   fieldError: { fontSize: 11, marginTop: 4 },
   fieldHint: { fontSize: 11, marginTop: 3 },
   row2: { flexDirection: 'row', gap: 10 },
+  prixFToggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, marginBottom: 12 },
+  prixFToggleLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  prixFToggleLabel: { fontSize: 14, fontWeight: '500' },
+  prixFToggleHint: { fontSize: 12 },
 
   // Input
   input: { borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14 },
@@ -1275,11 +1356,13 @@ const styles = StyleSheet.create({
   handle: { width: 40, height: 4, borderRadius: 2 },
   sheetTitle: { fontSize: 16, fontWeight: '800', paddingHorizontal: 20, marginBottom: 8 },
 
-  // Types
-  typeCatHeader: { paddingHorizontal: 20, paddingVertical: 8, borderBottomWidth: 1 },
-  typeCatLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 0.8 },
-  typeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 13, borderBottomWidth: 1 },
-  typeRowText: { fontSize: 14, fontWeight: '500' },
+  // Types — accordéon
+  accordionBlock: { borderWidth: 1, borderRadius: 12, marginBottom: 8, overflow: 'hidden' },
+  accordionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 13 },
+  accordionLabel: { fontSize: 14, fontWeight: '700', flex: 1 },
+  accordionDot: { width: 7, height: 7, borderRadius: 4 },
+  accordionItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 12, borderTopWidth: 1 },
+  accordionItemText: { fontSize: 14, fontWeight: '500', flex: 1 },
 
   // Couleurs
   colorGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },

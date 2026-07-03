@@ -100,11 +100,6 @@ export default function PlusScreen() {
     },
   ];
 
-  const themeItems = [
-    { label: 'Mode clair',   icon: 'sunny-outline',  color: '#F59E0B', onPress: () => setTheme('light'),  badge: mode === 'light'  ? '✓' : null, badgeColor: colors.primary },
-    { label: 'Mode sombre',  icon: 'moon-outline',   color: '#6366F1', onPress: () => setTheme('dark'),   badge: mode === 'dark'   ? '✓' : null, badgeColor: colors.primary },
-    { label: 'Système',      icon: 'phone-portrait-outline', color: '#30A08B', onPress: () => setTheme('system'), badge: mode === 'system' ? '✓' : null, badgeColor: colors.primary },
-  ];
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.bg }]}>
@@ -140,7 +135,47 @@ export default function PlusScreen() {
         <MenuSection title="ANALYTIQUES" items={analyticsItems} colors={colors} />
         <MenuSection title="GESTION" items={gestionItems} colors={colors} />
         <MenuSection title="SYNCHRONISATION" items={syncItems} colors={colors} />
-        <MenuSection title="APPARENCE" items={themeItems} colors={colors} />
+        {/* ── Apparence ── */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>APPARENCE</Text>
+          <View style={[styles.themeCard, { backgroundColor: colors.bgCard, shadowColor: colors.shadow }]}>
+            {[
+              { value: 'light',  icon: 'sunny-outline',          label: 'Clair'   },
+              { value: 'dark',   icon: 'moon-outline',           label: 'Sombre'  },
+              { value: 'system', icon: 'phone-portrait-outline', label: 'Système' },
+            ].map((opt, i, arr) => {
+              const active = mode === opt.value;
+              return (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[
+                    styles.themeOption,
+                    i < arr.length - 1 && { borderRightWidth: 1, borderRightColor: colors.border },
+                    active && { backgroundColor: colors.primary + '15' },
+                  ]}
+                  onPress={() => setTheme(opt.value)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name={opt.icon} size={18} color={active ? colors.primary : colors.textMuted} />
+                  <Text style={[styles.themeLabel, { color: active ? colors.primary : colors.textMuted, fontWeight: active ? '700' : '500' }]}>
+                    {opt.label}
+                  </Text>
+                  {active && <View style={[styles.themeActiveDot, { backgroundColor: colors.primary }]} />}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+        <MenuSection
+          title="COMPTE"
+          items={[{
+            label: 'Paramètres du compte',
+            icon: 'person-circle-outline',
+            color: '#30A08B',
+            onPress: () => navigation.navigate('SellerSettings'),
+          }]}
+          colors={colors}
+        />
 
         {/* Déconnexion */}
         <TouchableOpacity
@@ -152,7 +187,7 @@ export default function PlusScreen() {
           <Text style={[styles.logoutText, { color: colors.dangerText }]}>Se déconnecter</Text>
         </TouchableOpacity>
 
-        <Text style={[styles.version, { color: colors.textDisabled }]}>Ihambaobab Vendeur v1.0.0</Text>
+        <Text style={[styles.version, { color: colors.textDisabled }]}>Ihambaobab Pro v1.0.0</Text>
       </ScrollView>
 
       <PhotoProfileModal visible={photoVisible} onClose={() => setPhotoVisible(false)} />
@@ -194,6 +229,21 @@ const styles = StyleSheet.create({
   menuLabel: { flex: 1, fontSize: 14, fontWeight: '500' },
   badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12, marginRight: 4 },
   badgeText: { fontSize: 11, fontWeight: '700', color: '#fff' },
+
+  // Apparence
+  themeCard: {
+    flexDirection: 'row', borderRadius: 14, overflow: 'hidden',
+    shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, elevation: 2,
+  },
+  themeOption: {
+    flex: 1, alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 14, gap: 5, position: 'relative',
+  },
+  themeLabel: { fontSize: 11 },
+  themeActiveDot: {
+    position: 'absolute', bottom: 6,
+    width: 4, height: 4, borderRadius: 2,
+  },
 
   // Logout
   logoutBtn: {

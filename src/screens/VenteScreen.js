@@ -7,6 +7,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
 import { useSyncStore } from '../stores/syncStore';
 import { syncService } from '../services/syncService';
 import { useSync } from '../hooks/useSync';
@@ -903,35 +904,68 @@ function ReceiptModal({ visible, vente, storeName, onClose, onNewSale, colors })
 
 // ─── POS Upgrade Wall ─────────────────────────────────────────────────────────
 function PosUpgradeWall({ planName, colors }) {
+  const navigation = useNavigation();
   return (
-    <View style={[styles.upgradeWall, { backgroundColor: colors.bg }]}>
-      <LinearGradient colors={['#30A08B', '#267a6b']} style={styles.upgradeHeader}>
-        <View style={styles.upgradeLockIcon}>
-          <Ionicons name="lock-closed" size={32} color="#fff" />
+    <ScrollView
+      style={[styles.upgradeWall, { backgroundColor: colors.bg }]}
+      contentContainerStyle={{ paddingBottom: 40 }}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Header gradient */}
+      <LinearGradient colors={['#30A08B', '#1e6b5a']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.upgradeHeader}>
+        <View style={styles.upgradeLockCircle}>
+          <Ionicons name="storefront-outline" size={40} color="#fff" />
         </View>
-        <Text style={styles.upgradeTitle}>Caisse POS non disponible</Text>
-        <Text style={styles.upgradeSub}>Votre plan actuel : <Text style={{ fontWeight: '800' }}>{planName || 'Starter'}</Text></Text>
+        <Text style={styles.upgradeTitle}>Caisse POS</Text>
+        <Text style={styles.upgradeSub}>Disponible à partir du plan Pro</Text>
+        {/* Badge plan actuel */}
+        <View style={styles.upgradePlanBadge}>
+          <Ionicons name="alert-circle-outline" size={13} color="#92400E" />
+          <Text style={styles.upgradePlanBadgeText}>Plan actuel : {planName || 'Starter'}</Text>
+        </View>
       </LinearGradient>
-      <ScrollView contentContainerStyle={styles.upgradeBody}>
-        <View style={[styles.upgradeWarning, { backgroundColor: '#FFFBEB', borderColor: '#FDE68A' }]}>
-          <Text style={{ fontSize: 13, color: '#92400E', lineHeight: 20 }}>
-            La caisse physique (POS) est une fonctionnalité <Text style={{ fontWeight: '800' }}>Pro & Business</Text>.
-            Elle vous permet de vendre en face-à-face avec reçus certifiés et 0% de commission.
-          </Text>
+
+      <View style={styles.upgradeBody}>
+        {/* Description */}
+        <Text style={[styles.upgradeDesc, { color: colors.textMuted }]}>
+          La caisse physique vous permet de vendre en face-à-face avec reçus certifiés et <Text style={{ fontWeight: '700', color: colors.text }}>0% de commission</Text> sur chaque vente.
+        </Text>
+
+        {/* Features */}
+        <View style={[styles.upgradeFeatureBox, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+          {[
+            { icon: 'grid-outline',       color: '#30A08B', text: 'Grille visuelle produits' },
+            { icon: 'receipt-outline',    color: '#6366F1', text: 'Reçus certifiés avec QR code' },
+            { icon: 'logo-whatsapp',      color: '#25D366', text: 'Partage WhatsApp en 1 tap' },
+            { icon: 'checkmark-circle',   color: '#10B981', text: '0% commission ventes physiques' },
+            { icon: 'phone-portrait-outline', color: '#F59E0B', text: 'Mobile Money & espèces' },
+          ].map((f, i) => (
+            <View key={i} style={[styles.upgradeFeatureRow, i < 4 && { borderBottomWidth: 1, borderBottomColor: colors.border }]}>
+              <View style={[styles.upgradeFeatureIcon, { backgroundColor: f.color + '18' }]}>
+                <Ionicons name={f.icon} size={18} color={f.color} />
+              </View>
+              <Text style={[styles.upgradeFeatureText, { color: colors.text }]}>{f.text}</Text>
+            </View>
+          ))}
         </View>
-        {[
-          { icon: '🏪', text: 'Caisse physique avec grille visuelle produits' },
-          { icon: '🧾', text: 'Reçus certifiés avec QR code vérifiable' },
-          { icon: '📱', text: 'Partage reçu par WhatsApp en 1 tap' },
-          { icon: '✅', text: '0% commission sur vos ventes physiques' },
-        ].map((item, i) => (
-          <View key={i} style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
-            <Text style={{ fontSize: 20 }}>{item.icon}</Text>
-            <Text style={{ fontSize: 13, color: colors.text, flex: 1 }}>{item.text}</Text>
-          </View>
-        ))}
-      </ScrollView>
-    </View>
+
+        {/* CTA */}
+        <TouchableOpacity
+          style={styles.upgradeBtn}
+          onPress={() => navigation.navigate('Abonnement')}
+          activeOpacity={0.85}
+        >
+          <LinearGradient colors={['#30A08B', '#267a6b']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.upgradeBtnGradient}>
+            <Ionicons name="arrow-up-circle-outline" size={20} color="#fff" />
+            <Text style={styles.upgradeBtnText}>Passer au plan Pro</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+
+        <Text style={[styles.upgradeHint, { color: colors.textMuted }]}>
+          Vos données et produits existants sont conservés lors du changement de plan.
+        </Text>
+      </View>
+    </ScrollView>
   );
 }
 
@@ -1613,13 +1647,23 @@ const styles = StyleSheet.create({
   newSaleBtnText: { fontSize: 14, fontWeight: '700' },
 
   // Upgrade wall
-  upgradeWall: { flex: 1 },
-  upgradeHeader: { alignItems: 'center', paddingVertical: 40, paddingHorizontal: 24 },
-  upgradeLockIcon: { width: 64, height: 64, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
-  upgradeTitle: { fontSize: 20, fontWeight: '800', color: '#fff', textAlign: 'center' },
-  upgradeSub: { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 4 },
-  upgradeBody: { padding: 20, gap: 12 },
-  upgradeWarning: { borderRadius: 16, padding: 14, borderWidth: 1 },
+  upgradeWall:          { flex: 1 },
+  upgradeHeader:        { alignItems: 'center', paddingTop: 48, paddingBottom: 32, paddingHorizontal: 24 },
+  upgradeLockCircle:    { width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.18)', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
+  upgradeTitle:         { fontSize: 24, fontWeight: '900', color: '#fff', textAlign: 'center', letterSpacing: -0.5 },
+  upgradeSub:           { fontSize: 14, color: 'rgba(255,255,255,0.85)', marginTop: 6, textAlign: 'center' },
+  upgradePlanBadge:     { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#FEF3C7', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5, marginTop: 14 },
+  upgradePlanBadgeText: { fontSize: 12, fontWeight: '700', color: '#92400E' },
+  upgradeBody:          { padding: 20, gap: 16, paddingBottom: 40 },
+  upgradeDesc:          { fontSize: 14, lineHeight: 22, textAlign: 'center' },
+  upgradeFeatureBox:    { borderRadius: 16, borderWidth: 1, overflow: 'hidden' },
+  upgradeFeatureRow:    { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, paddingHorizontal: 16 },
+  upgradeFeatureIcon:   { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  upgradeFeatureText:   { fontSize: 14, fontWeight: '500', flex: 1 },
+  upgradeBtn:           { borderRadius: 16, overflow: 'hidden', marginTop: 4 },
+  upgradeBtnGradient:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 16 },
+  upgradeBtnText:       { fontSize: 16, fontWeight: '800', color: '#fff' },
+  upgradeHint:          { fontSize: 12, textAlign: 'center', lineHeight: 18 },
 
   // Empty
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },

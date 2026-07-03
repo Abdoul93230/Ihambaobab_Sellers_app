@@ -910,13 +910,20 @@ export default function DashboardScreen() {
   const { colors }     = useTheme();
   const { subscription } = useAuthStore();
 
-  // ── Vue active ────────────────────────────────────────────────────────────
-  const [activeView, setActiveView] = useState('pos');
+  // ── Vue active — démarre sur marketplace si pas d'accès POS ────────────
+  // hasPosAccess est calculé plus bas mais useState/useRef s'initialisent une seule fois
+  // On lit directement subscription ici pour éviter la dépendance de l'ordre
+  const _planNameInit   = subscription?.planName || 'Starter';
+  const _hasPosInit     = ['Pro', 'Business'].includes(_planNameInit);
+  const defaultView     = _hasPosInit ? 'pos' : 'marketplace';
+  const [activeView, setActiveView] = useState(defaultView);
+  // Sans accès POS, il n'y a qu'une seule vue (marketplace à 0) — pas besoin de slide
   const slideAnim = useRef(new Animated.Value(0)).current;
 
-  const activeViewRef = useRef('pos');
+  const activeViewRef = useRef(defaultView);
   const switchView = (key) => {
-    const toX = key === 'pos' ? 0 : -W;
+    // pos=0, marketplace=-W (seulement si les deux vues sont présentes)
+    const toX = _hasPosInit ? (key === 'pos' ? 0 : -W) : 0;
     Animated.spring(slideAnim, { toValue: toX, tension: 70, friction: 14, useNativeDriver: true }).start();
     setActiveView(key);
     activeViewRef.current = key;
@@ -925,7 +932,7 @@ export default function DashboardScreen() {
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, g) =>
-        Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+        _hasPosInit && Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
       onPanResponderGrant: () => {
         slideAnim.stopAnimation();
       },
@@ -943,7 +950,6 @@ export default function DashboardScreen() {
         } else if (!isPos && g.dx > threshold) {
           switchView('pos');
         } else {
-          // Revenir à la position courante
           const base = activeViewRef.current === 'pos' ? 0 : -W;
           Animated.spring(slideAnim, { toValue: base, tension: 70, friction: 14, useNativeDriver: true }).start();
         }
@@ -998,37 +1004,41 @@ export default function DashboardScreen() {
     setHistoryData(null);
     try {
       const { syncService } = require('../services/syncService');
-      const bilanRes = await syncService.pullBilanWidget(p, from, to, force);
 
-      // Offline + custom + pas de cache → on signale l'indisponibilité
-      if (!bilanRes && p === 'custom') {
-        setCustomOffline(true);
-        setDataLoading(false);
-        return;
-      }
-
-      let bilanToSet = bilanRes?.data ?? null;
-
+      let bilanToSet = null;
       let hist = null;
+
       if (p === '7d' || p === '30d') {
+        // pullBilanWidget et pullBilanHistory appellent le même endpoint /bilan/history
+        // pour ces périodes → un seul appel suffit pour obtenir widget + historique graphique
         const days = p === '30d' ? 30 : 7;
         const histRes = await syncService.pullBilanHistory(days, force);
-        if (histRes?.data) hist = histRes.data;
-      } else if (p === 'custom' && from && to) {
-        const histRes = await syncService.pullBilanHistory(from, to, force);
-        if (histRes?.data) hist = histRes.data;
-      }
-      if (hist !== null) setHistoryData(hist);
+        if (histRes?.data) {
+          hist = histRes.data;
+          bilanToSet = deriveAggregate(hist);
+        }
+      } else {
+        const bilanRes = await syncService.pullBilanWidget(p, from, to, force);
 
-      // Si bilanWidget a retourné un tableau journalier (cas offline ou endpoint identique),
-      // dériver les totaux agrégés depuis l'historique pour éviter un hero "0 F"
-      if (Array.isArray(bilanToSet)) {
-        bilanToSet = deriveAggregate(bilanToSet);
+        // Offline + custom + pas de cache → on signale l'indisponibilité
+        if (!bilanRes && p === 'custom') {
+          setCustomOffline(true);
+          setDataLoading(false);
+          return;
+        }
+
+        bilanToSet = bilanRes?.data ?? null;
+
+        if (p === 'custom' && from && to) {
+          const histRes = await syncService.pullBilanHistory(from, to, force);
+          if (histRes?.data) hist = histRes.data;
+        }
+
+        if (Array.isArray(bilanToSet)) bilanToSet = deriveAggregate(bilanToSet);
+        if (!bilanToSet && hist)        bilanToSet = deriveAggregate(hist);
       }
-      // Si bilanWidget null mais historique disponible, dériver depuis l'historique
-      if (!bilanToSet && hist) {
-        bilanToSet = deriveAggregate(hist);
-      }
+
+      if (hist !== null) setHistoryData(hist);
       if (bilanToSet) setBilanData(bilanToSet);
 
       // Mettre en cache pour accès instantané au prochain switch
@@ -1039,22 +1049,17 @@ export default function DashboardScreen() {
     setDataLoading(false);
   }, []);
 
-  // Préchargement silencieux de 7j et 30j dès le montage
+  // Préchargement silencieux de 7j et 30j dès le montage (1 seul appel par période)
   useEffect(() => {
     const prefetch = async () => {
       const { syncService } = require('../services/syncService');
-      await Promise.all(['7d', '30d'].map(async (p) => {
-        try {
-          const bilanRes = await syncService.pullBilanWidget(p, '', '', false);
-          const days = p === '30d' ? 30 : 7;
-          const histRes = await syncService.pullBilanHistory(days, false);
-          const hist = histRes?.data ?? null;
-          let bilan = bilanRes?.data ?? null;
-          if (Array.isArray(bilan)) bilan = deriveAggregate(bilan);
-          if (!bilan && hist)        bilan = deriveAggregate(hist);
-          if (!bilan && !hist) return;
-          prefetchCache.current[p] = { bilan, history: hist };
-        } catch (_) {}
+      await Promise.allSettled(['7d', '30d'].map(async (p) => {
+        const days = p === '30d' ? 30 : 7;
+        const histRes = await syncService.pullBilanHistory(days, false);
+        const hist = histRes?.data ?? null;
+        const bilan = hist ? deriveAggregate(hist) : null;
+        if (!bilan && !hist) return;
+        prefetchCache.current[p] = { bilan, history: hist };
       }));
     };
     prefetch();
@@ -1099,9 +1104,11 @@ export default function DashboardScreen() {
     return { activeProducts, lowStock, cancelRate };
   }, [commandes, produits, produitsStats]);
 
-  const planName = subscription?.planName || 'Starter';
-  const isTrial  = subscription?.status === 'trial';
-  const daysLeft = subscription?.daysRemaining;
+  const planName     = subscription?.planName || 'Starter';
+  const isTrial      = subscription?.status === 'trial';
+  const daysLeft     = subscription?.daysRemaining;
+  const hasPosAccess = ['Pro', 'Business'].includes(planName);
+  const visibleViews = VIEWS.filter(v => v.key !== 'pos' || hasPosAccess);
 
   const headerProps = {
     planName, isTrial, daysLeft, mkStats,
@@ -1113,10 +1120,10 @@ export default function DashboardScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.bg }]}>
-      {/* ── Sélecteur de vue fixe (POS / Marketplace) ──────────────────────── */}
+      {/* ── Sélecteur de vue fixe — onglet POS masqué si plan sans accès ────── */}
       <View style={[styles.viewSelectorWrap, { backgroundColor: colors.bgCard, borderBottomColor: colors.border }]}>
         <View style={[styles.viewSelector, { backgroundColor: colors.bgHover, borderColor: colors.border }]}>
-          {VIEWS.map(v => {
+          {visibleViews.map(v => {
             const isActive = activeView === v.key;
             return (
               <TouchableOpacity
@@ -1171,8 +1178,9 @@ export default function DashboardScreen() {
             </View>
           </ScrollView>
         ) : (
-          <Animated.View style={[styles.slidingContainer, { transform: [{ translateX: slideAnim }] }]} {...panResponder.panHandlers}>
-            {/* Vue POS */}
+          <Animated.View style={[styles.slidingContainer, { width: W * visibleViews.length, transform: [{ translateX: slideAnim }] }]} {...panResponder.panHandlers}>
+            {/* Vue POS — rendue uniquement si le plan le permet */}
+            {hasPosAccess && (
             <View style={styles.viewPane}>
               <ScrollView
                 showsVerticalScrollIndicator={false}
@@ -1194,6 +1202,7 @@ export default function DashboardScreen() {
                 />
               </ScrollView>
             </View>
+            )}
 
             {/* Vue Marketplace */}
             <View style={styles.viewPane}>

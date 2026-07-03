@@ -157,7 +157,7 @@ const SUBSCRIPTION_CONFIG = {
     CANCELLED:         'cancelled',
   },
 
-  GRACE_PERIOD_DAYS:       7,
+  GRACE_PERIOD_DAYS:       2,
   PAYMENT_DEADLINE_HOURS:  24,
   RENEWAL_REMINDER_DAYS:   [7, 3, 1],
 

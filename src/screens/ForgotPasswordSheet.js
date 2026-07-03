@@ -8,6 +8,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import axios from 'axios';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BACKEND_URL } from '../config/constants';
 
 const { height: H } = Dimensions.get('window');
@@ -112,8 +113,9 @@ const ot = StyleSheet.create({
 
 // ─── Composant principal ──────────────────────────────────────────────────────
 export default function ForgotPasswordSheet({ visible, onClose }) {
+  const insets = useSafeAreaInsets();
   const [step,         setStep]         = useState(1); // 1=identifiant, 2=otp, 3=mdp
-  const [method,       setMethod]       = useState('email'); // 'email' | 'sms'
+  const [method,       setMethod]       = useState('sms'); // 'email' | 'sms'
   const [identifier,   setIdentifier]   = useState('');
   const [smsCountry,   setSmsCountry]   = useState(SMS_ALLOWED[0]);
   const [otp,          setOtp]          = useState('');
@@ -404,7 +406,7 @@ export default function ForgotPasswordSheet({ visible, onClose }) {
           <ScrollView
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ flexGrow: 1 }}
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: Platform.OS === 'android' ? insets.bottom : 0 }}
           >
 
           {/* ── ÉTAPE 1 : Identifiant ── */}
@@ -413,16 +415,6 @@ export default function ForgotPasswordSheet({ visible, onClose }) {
               {/* Sélecteur méthode */}
               <View style={fp.methodRow}>
                 <TouchableOpacity
-                  style={[fp.methodBtn, method === 'email' && fp.methodBtnActive]}
-                  onPress={() => { setMethod('email'); setIdentifier(''); setError(''); }}
-                  activeOpacity={0.8}
-                >
-                  {method === 'email' && <LinearGradient colors={[PRIMARY + '18', PRIMARY + '06']} style={StyleSheet.absoluteFillObject} borderRadius={12} />}
-                  <Ionicons name="mail-outline" size={16} color={method === 'email' ? PRIMARY : MUTED} />
-                  <Text style={[fp.methodText, method === 'email' && { color: PRIMARY }]}>Par email</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
                   style={[fp.methodBtn, method === 'sms' && fp.methodBtnActive]}
                   onPress={() => { setMethod('sms'); setIdentifier(''); setError(''); }}
                   activeOpacity={0.8}
@@ -430,6 +422,16 @@ export default function ForgotPasswordSheet({ visible, onClose }) {
                   {method === 'sms' && <LinearGradient colors={[SECONDARY + '18', SECONDARY + '06']} style={StyleSheet.absoluteFillObject} borderRadius={12} />}
                   <Ionicons name="phone-portrait-outline" size={16} color={method === 'sms' ? SECONDARY : MUTED} />
                   <Text style={[fp.methodText, method === 'sms' && { color: SECONDARY }]}>Par SMS</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[fp.methodBtn, method === 'email' && fp.methodBtnActive]}
+                  onPress={() => { setMethod('email'); setIdentifier(''); setError(''); }}
+                  activeOpacity={0.8}
+                >
+                  {method === 'email' && <LinearGradient colors={[PRIMARY + '18', PRIMARY + '06']} style={StyleSheet.absoluteFillObject} borderRadius={12} />}
+                  <Ionicons name="mail-outline" size={16} color={method === 'email' ? PRIMARY : MUTED} />
+                  <Text style={[fp.methodText, method === 'email' && { color: PRIMARY }]}>Par email</Text>
                 </TouchableOpacity>
               </View>
 

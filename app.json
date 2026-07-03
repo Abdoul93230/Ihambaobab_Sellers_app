@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Ihambaobab Vendeur",
+    "name": "Ihambaobab Pro",
     "slug": "ihambaobab-seller",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -15,7 +15,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.ihambaobab.seller"
+      "bundleIdentifier": "com.ihambaobab.seller",
+      "infoPlist": {
+        "UIBackgroundModes": ["remote-notification"]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -24,13 +27,16 @@
       },
       "package": "com.ihambaobab.seller",
       "versionCode": 1,
+      "googleServicesFile": "./google-services.json",
       "permissions": [
         "INTERNET",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",
-        "USE_EXACT_ALARM"
+        "USE_EXACT_ALARM",
+        "NOTIFICATIONS",
+        "android.permission.POST_NOTIFICATIONS"
       ]
     },
     "updates": {
@@ -47,7 +53,8 @@
       [
         "expo-notifications",
         {
-          "color": "#30A08B"
+          "color": "#30A08B",
+          "sounds": ["./assets/sounds/order_chime.wav"]
         }
       ],
       "expo-sqlite",

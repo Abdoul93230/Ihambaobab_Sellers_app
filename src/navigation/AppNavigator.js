@@ -27,8 +27,11 @@ import InventaireScreen from '../screens/InventaireScreen';
 import BannièresScreen from '../screens/BannièresScreen';
 import CarnetCreancesScreen from '../screens/CarnetCreancesScreen';
 import BilanVentesScreen from '../screens/BilanVentesScreen';
+import SellerSettingsScreen from '../screens/SellerSettingsScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
 import SyncIndicator from '../components/SyncIndicator';
 import PhotoProfileModal from '../components/PhotoProfileModal';
+import { useNotificationStore } from '../stores/notificationStore';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -94,10 +97,14 @@ function GraceBanner() {
 // ─── Top Header (identique au web) ───────────────────────────────────────────
 function AppHeader({ pageTitle }) {
   const { colors, isDark, toggleTheme } = useTheme();
-  const { seller } = useAuthStore();
+  const { seller, subscription } = useAuthStore();
+  const navigation = useNavigation();
   const [photoVisible, setPhotoVisible] = useState(false);
+  const unreadCount = useNotificationStore(s => s.unreadCount());
 
   const initial = (seller?.storeName || seller?.name || 'V').charAt(0).toUpperCase();
+  const subStatus = subscription?.status;
+  const isBlocked = subStatus === 'suspended' || subStatus === 'no_subscription';
 
   return (
     <SafeAreaView edges={['top']} style={[styles.headerSafe, { backgroundColor: colors.bgCard, borderBottomColor: colors.border }]}>
@@ -123,26 +130,41 @@ function AppHeader({ pageTitle }) {
             <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={18} color={colors.textSub} />
           </TouchableOpacity>
 
-          {/* Notifications */}
-          <TouchableOpacity style={[styles.headerBtn, { backgroundColor: colors.bgHover }]} activeOpacity={0.7}>
-            <Ionicons name="notifications-outline" size={18} color={colors.textSub} />
-          </TouchableOpacity>
+          {/* Notifications — masquées si compte bloqué (pas de screen Notifications dans ce contexte) */}
+          {!isBlocked && (
+            <TouchableOpacity
+              style={[styles.headerBtn, { backgroundColor: colors.bgHover }]}
+              activeOpacity={0.7}
+              onPress={() => navigation.navigate('Notifications')}
+            >
+              <Ionicons name="notifications-outline" size={18} color={colors.textSub} />
+              {unreadCount > 0 && (
+                <View style={styles.notifBadge}>
+                  <Text style={styles.notifBadgeText}>
+                    {unreadCount > 9 ? '9+' : String(unreadCount)}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          )}
 
-          {/* Avatar cliquable → PhotoProfileModal */}
-          <TouchableOpacity
-            style={[styles.avatar, { backgroundColor: colors.primary }]}
-            onPress={() => setPhotoVisible(true)}
-            activeOpacity={0.8}
-          >
-            {seller?.logo
-              ? <CachedImage uri={seller.logo} style={StyleSheet.absoluteFill} contentFit="cover" />
-              : <Text style={styles.avatarText}>{initial}</Text>
-            }
-          </TouchableOpacity>
+          {/* Avatar cliquable → PhotoProfileModal (masqué si bloqué) */}
+          {!isBlocked && (
+            <TouchableOpacity
+              style={[styles.avatar, { backgroundColor: colors.primary }]}
+              onPress={() => setPhotoVisible(true)}
+              activeOpacity={0.8}
+            >
+              {seller?.logo
+                ? <CachedImage uri={seller.logo} style={StyleSheet.absoluteFill} contentFit="cover" />
+                : <Text style={styles.avatarText}>{initial}</Text>
+              }
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
-      <PhotoProfileModal visible={photoVisible} onClose={() => setPhotoVisible(false)} />
+      {!isBlocked && <PhotoProfileModal visible={photoVisible} onClose={() => setPhotoVisible(false)} />}
       <GraceBanner />
     </SafeAreaView>
   );
@@ -335,6 +357,16 @@ export default function AppNavigator() {
               component={BilanVentesScreen}
               options={{ headerShown: true, header: () => <AppHeader pageTitle="Bilan des ventes" /> }}
             />
+            <Stack.Screen
+              name="SellerSettings"
+              component={SellerSettingsScreen}
+              options={{ headerShown: true, header: () => <AppHeader pageTitle="Paramètres du compte" /> }}
+            />
+            <Stack.Screen
+              name="Notifications"
+              component={NotificationsScreen}
+              options={{ headerShown: true, header: () => <AppHeader pageTitle="Notifications" /> }}
+            />
           </>
         )}
       </Stack.Navigator>
@@ -373,6 +405,16 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   avatarText: { fontSize: 13, fontWeight: '800', color: '#fff' },
+
+  // Badge notifications
+  notifBadge: {
+    position: 'absolute', top: 4, right: 4,
+    minWidth: 16, height: 16, borderRadius: 8,
+    backgroundColor: '#EF4444',
+    justifyContent: 'center', alignItems: 'center',
+    paddingHorizontal: 3,
+  },
+  notifBadgeText: { fontSize: 9, fontWeight: '800', color: '#fff' },
 
   // Grace banner
   graceBanner: {
