@@ -72,7 +72,7 @@ function ImageSlot({ label, uri, onPick, onRemove, required, colors }) {
       >
         {uri ? (
           <>
-            <CachedImage uri={uri} style={styles.imgSlotImg} contentFit="cover" />
+            <CachedImage uri={uri} style={styles.imgSlotImg} contentFit="contain" />
             <TouchableOpacity style={styles.imgSlotRemove} onPress={onRemove} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
               <Ionicons name="close-circle" size={22} color="#EF4444" />
             </TouchableOpacity>
@@ -209,7 +209,7 @@ function VarianteSheet({ visible, initial, defaultPrice, defaultPromoPrice, onSa
   }, [visible, initial]);
 
   const pickImg = async () => {
-    const r = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, aspect: [1,1], quality: 0.8 });
+    const r = await ImagePicker.launchImageLibraryAsync({ allowsEditing: false, quality: 0.85 });
     if (!r.canceled) { setImgUri(r.assets[0].uri); setImgIsNew(true); }
   };
 
@@ -625,7 +625,7 @@ export default function ProduitUpdateScreen({ route, navigation }) {
   // ── Sélecteur image — stocke base64 pour persistance offline ─────────────────
   const pickImage = useCallback(async (slot) => {
     const setters = { 1: setImg1, 2: setImg2, 3: setImg3 };
-    const opts = { allowsEditing: true, aspect: [1, 1], quality: 0.75, base64: true };
+    const opts = { allowsEditing: false, quality: 0.85, base64: true };
     Alert.alert('Ajouter une image', '', [
       { text: 'Galerie', onPress: async () => {
         const r = await ImagePicker.launchImageLibraryAsync(opts);
@@ -1318,7 +1318,7 @@ const styles = StyleSheet.create({
   imagesGrid: { flexDirection: 'row', gap: 8 },
   imgSlotWrap: { flex: 1, gap: 4 },
   imgSlotLabel: { fontSize: 10, fontWeight: '600' },
-  imgSlot: { width: '100%', aspectRatio: 1, borderRadius: 12, borderWidth: 1.5, borderStyle: 'dashed', overflow: 'hidden', justifyContent: 'center', alignItems: 'center' },
+  imgSlot: { width: '100%', height: 120, borderRadius: 12, borderWidth: 1.5, borderStyle: 'dashed', overflow: 'hidden', justifyContent: 'center', alignItems: 'center' },
   imgSlotImg: { width: '100%', height: '100%' },
   imgSlotRemove: { position: 'absolute', top: 4, right: 4 },
   imgSlotEmpty: { alignItems: 'center', gap: 4 },

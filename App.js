@@ -6,9 +6,13 @@ import * as SplashScreen from 'expo-splash-screen';
 import Toast from 'react-native-toast-message';
 import AppNavigator from './src/navigation/AppNavigator';
 import AppSplash from './src/components/AppSplash';
-import PushNotificationsBridge from './src/components/PushNotificationsBridge';
+import OnboardingScreen from './src/screens/OnboardingScreen';
+import Constants from 'expo-constants';
+const _isExpoGo = Constants.executionEnvironment === 'storeClient' || Constants.appOwnership === 'expo';
+const PushNotificationsBridge = _isExpoGo ? () => null : require('./src/components/PushNotificationsBridge').default;
 import { ThemeProvider } from './src/context/ThemeContext';
 import { useAuthStore } from './src/stores/authStore';
+import { useAgentStore } from './src/stores/agentStore';
 import { useSyncStore } from './src/stores/syncStore';
 import { useNotificationStore } from './src/stores/notificationStore';
 import { socketService } from './src/services/socketService';
@@ -16,12 +20,15 @@ import { registerBackgroundSync } from './src/services/backgroundSync';
 import { initDB } from './src/db/database';
 import { syncService } from './src/services/syncService';
 import { purgeOldDrafts } from './src/services/imageDraftService';
+import { useTutorial } from './src/hooks/useTutorial';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function App() {
   const verifyAuth      = useAuthStore((s) => s.verifyAuth);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const verifyAgentAuth = useAgentStore((s) => s.verifyAuth);
   const seller          = useAuthStore((s) => s.seller);
   const token           = useAuthStore((s) => s.token);
   // ID stable — évite de recréer le socket si l'objet seller change de référence
@@ -30,6 +37,7 @@ export default function App() {
   const triggerFullSync = useSyncStore((s) => s.triggerFullSync);
 
   const [ready, setReady] = useState(false);
+  const { loaded: tutLoaded, onboardingDone, markOnboardingDone } = useTutorial();
   const appState = useRef(AppState.currentState);
   // Timestamp du dernier foreground sync (évite double-sync)
   const lastForegroundSync = useRef(0);
@@ -40,9 +48,10 @@ export default function App() {
       await initDB();
       await purgeOldDrafts().catch(() => {});
       await syncService.loadFromDB();
+      // await AsyncStorage.clear(); // Force un full sync au prochain login
       // Charge les notifications persistées localement
       useNotificationStore.getState().load().catch(() => {});
-      await verifyAuth();
+      await Promise.all([verifyAuth(), verifyAgentAuth()]);
       try { await SplashScreen.hideAsync(); } catch (_) {}
       registerBackgroundSync();
       setReady(true);
@@ -116,7 +125,17 @@ export default function App() {
     return () => sub.remove();
   }, [isAuthenticated]);
 
-  if (!ready) return <AppSplash />;
+  if (!ready || !tutLoaded) return <AppSplash />;
+
+  if (!onboardingDone) {
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <OnboardingScreen onDone={markOnboardingDone} />
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    );
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

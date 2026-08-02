@@ -8,6 +8,7 @@ import { useSync } from '../hooks/useSync';
 import { useTheme } from '../context/ThemeContext';
 import PhotoProfileModal from '../components/PhotoProfileModal';
 import { useNavigation } from '@react-navigation/native';
+import { useTutorial } from '../hooks/useTutorial';
 
 function MenuSection({ title, items, colors }) {
   return (
@@ -50,6 +51,7 @@ export default function PlusScreen() {
   const { pendingCount, lastSyncLabel, triggerSync, isSyncing } = useSync();
   const { colors, isDark, setTheme, mode } = useTheme();
   const [photoVisible, setPhotoVisible] = useState(false);
+  const { requestTour } = useTutorial();
   const navigation = useNavigation();
 
   const initial = (seller?.storeName || seller?.name || 'V').charAt(0).toUpperCase();
@@ -76,10 +78,14 @@ export default function PlusScreen() {
     },
   ];
 
+  const planName   = subscription?.planName || 'Starter';
+  const hasAgents  = planName === 'Pro' || planName === 'Business';
+  const hasPerfProd = has('performanceProduits') && (planName === 'Pro' || planName === 'Business');
+
   const analyticsItems = [
     // { label: 'Mes Commandes',         icon: 'cart-outline',         color: '#10B981', disabled: false,                      onPress: () => navigation.navigate('Commandes') },
     { label: 'Bilan des ventes',      icon: 'bar-chart-outline',    color: '#30A08B', disabled: !has('bilanJournalier'),    onPress: () => navigation.navigate('BilanVentes') },
-    { label: 'Performance produits',  icon: 'trending-up-outline',  color: '#6366F1', disabled: !has('performanceProduits'), onPress: () => {} },
+    { label: 'Performance produits',  icon: 'trending-up-outline',  color: '#6366F1', disabled: !hasPerfProd,               onPress: () => hasPerfProd && navigation.navigate('PerformanceProduits') },
     { label: 'Rapport mensuel',       icon: 'document-text-outline',color: '#F59E0B', disabled: !has('rapportPeriodique'),  onPress: () => {} },
   ];
 
@@ -88,6 +94,8 @@ export default function PlusScreen() {
     { label: 'Bannières',          icon: 'images-outline',       color: '#B17236', disabled: false,                  onPress: () => navigation.navigate('Bannières') },
     { label: 'Carnet de créances', icon: 'book-outline',         color: '#EF4444', disabled: !has('carnetCreances'), onPress: () => navigation.navigate('CarnetCreances') },
     { label: 'Alertes stock',      icon: 'alert-circle-outline', color: '#F59E0B', disabled: !has('alertesStock'),   onPress: () => {} },
+    { label: 'Agents caissier',    icon: 'people-outline',       color: '#6366F1', disabled: !hasAgents,             onPress: () => hasAgents && navigation.navigate('Agents') },
+    { label: 'Performance agents', icon: 'stats-chart-outline',  color: '#30A08B', disabled: !hasAgents,             onPress: () => hasAgents && navigation.navigate('AgentsPerformance') },
   ];
 
   const syncItems = [
@@ -173,6 +181,19 @@ export default function PlusScreen() {
             icon: 'person-circle-outline',
             color: '#30A08B',
             onPress: () => navigation.navigate('SellerSettings'),
+          }]}
+          colors={colors}
+        />
+        <MenuSection
+          title="AIDE"
+          items={[{
+            label: 'Revoir le tutoriel',
+            icon: 'help-circle-outline',
+            color: '#6366F1',
+            onPress: () => {
+              requestTour();
+              navigation.navigate('Dashboard');
+            },
           }]}
           colors={colors}
         />

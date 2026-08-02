@@ -347,66 +347,64 @@ export default function ForgotPasswordSheet({ visible, onClose }) {
         <Animated.View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.65)', opacity: backdropAnim }]} />
       </TouchableWithoutFeedback>
 
-      {/* Sheet */}
-      <KeyboardAvoidingView
-        style={{ flex: 1, justifyContent: 'flex-end' }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={0}
-        pointerEvents="box-none"
-      >
-        <Animated.View style={[fp.sheet, { transform: [{ translateY: slideAnim }] }]}>
+      {/* Sheet — positionné absolument, KAV à l'intérieur */}
+      <Animated.View style={[fp.sheet, { position: 'absolute', bottom: 0, left: 0, right: 0, transform: [{ translateY: slideAnim }] }]}>
 
-          {/* Poignée */}
-          <View style={fp.handleWrap}><View style={fp.handle} /></View>
+        {/* Poignée */}
+        <View style={fp.handleWrap}><View style={fp.handle} /></View>
 
-          {/* Header avec logo */}
-          <LinearGradient colors={['#30A08B', '#B17236']} style={fp.header} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-            <View style={fp.headerBubble1} /><View style={fp.headerBubble2} />
+        {/* Header avec logo */}
+        <LinearGradient colors={['#30A08B', '#B17236']} style={fp.header} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+          <View style={fp.headerBubble1} /><View style={fp.headerBubble2} />
 
-            {/* Logo */}
-            <View style={fp.logoWrap}>
-              <Image source={require('../../assets/logo.png')} style={fp.logo} resizeMode="contain" />
-            </View>
-
-            <TouchableOpacity style={fp.closeBtn} onPress={dismiss} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Ionicons name="close" size={18} color="rgba(255,255,255,0.85)" />
-            </TouchableOpacity>
-
-            <View style={fp.headerIcon}>
-              <Ionicons name="lock-open-outline" size={24} color={WHITE} />
-            </View>
-            <Text style={fp.headerTitle}>Mot de passe oublié</Text>
-            <Text style={fp.headerSub}>Récupérez l'accès à votre compte en toute sécurité</Text>
-          </LinearGradient>
-
-          {/* Stepper 3 étapes */}
-          <View style={fp.stepper}>
-            {STEPS_META.map((s, i) => (
-              <React.Fragment key={s.num}>
-                <View style={{ alignItems: 'center', gap: 4 }}>
-                  <LinearGradient
-                    colors={s.num < step ? [PRIMARY, PRIMARY] : s.num === step ? [PRIMARY, SECONDARY] : ['#E2E8F0', '#CBD5E1']}
-                    style={[fp.stepDot, s.num === step && fp.stepDotActive]}
-                  >
-                    {s.num < step
-                      ? <Ionicons name="checkmark" size={11} color={WHITE} />
-                      : <Text style={[fp.stepNum, { color: s.num === step ? WHITE : '#94A3B8' }]}>{s.num}</Text>
-                    }
-                  </LinearGradient>
-                  <Text style={[fp.stepLabel, s.num === step && { color: PRIMARY, fontWeight: '700' }]}>{s.label}</Text>
-                </View>
-                {i < 2 && (
-                  <View style={[fp.stepLine, { backgroundColor: s.num < step ? PRIMARY : BORDER }]} />
-                )}
-              </React.Fragment>
-            ))}
+          {/* Logo */}
+          <View style={fp.logoWrap}>
+            <Image source={require('../../assets/logo.png')} style={fp.logo} resizeMode="contain" />
           </View>
 
-          {/* Corps scrollable — évite que le clavier couvre les champs */}
+          <TouchableOpacity style={fp.closeBtn} onPress={dismiss} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Ionicons name="close" size={18} color="rgba(255,255,255,0.85)" />
+          </TouchableOpacity>
+
+          <View style={fp.headerIcon}>
+            <Ionicons name="lock-open-outline" size={24} color={WHITE} />
+          </View>
+          <Text style={fp.headerTitle}>Mot de passe oublié</Text>
+          <Text style={fp.headerSub}>Récupérez l'accès à votre compte en toute sécurité</Text>
+        </LinearGradient>
+
+        {/* Stepper 3 étapes */}
+        <View style={fp.stepper}>
+          {STEPS_META.map((s, i) => (
+            <React.Fragment key={s.num}>
+              <View style={{ alignItems: 'center', gap: 4 }}>
+                <LinearGradient
+                  colors={s.num < step ? [PRIMARY, PRIMARY] : s.num === step ? [PRIMARY, SECONDARY] : ['#E2E8F0', '#CBD5E1']}
+                  style={[fp.stepDot, s.num === step && fp.stepDotActive]}
+                >
+                  {s.num < step
+                    ? <Ionicons name="checkmark" size={11} color={WHITE} />
+                    : <Text style={[fp.stepNum, { color: s.num === step ? WHITE : '#94A3B8' }]}>{s.num}</Text>
+                  }
+                </LinearGradient>
+                <Text style={[fp.stepLabel, s.num === step && { color: PRIMARY, fontWeight: '700' }]}>{s.label}</Text>
+              </View>
+              {i < 2 && (
+                <View style={[fp.stepLine, { backgroundColor: s.num < step ? PRIMARY : BORDER }]} />
+              )}
+            </React.Fragment>
+          ))}
+        </View>
+
+        {/* Corps scrollable — KAV ici pour que seul le contenu remonte */}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
+        >
           <ScrollView
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ flexGrow: 1, paddingBottom: Platform.OS === 'android' ? insets.bottom : 0 }}
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + 16 }}
           >
 
           {/* ── ÉTAPE 1 : Identifiant ── */}
@@ -736,16 +734,16 @@ export default function ForgotPasswordSheet({ visible, onClose }) {
           )}
 
           </ScrollView>
+        </KeyboardAvoidingView>
 
-        </Animated.View>
-      </KeyboardAvoidingView>
+      </Animated.View>
     </Modal>
   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const fp = StyleSheet.create({
-  sheet:        { backgroundColor: WHITE, borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: SHEET_H, shadowColor: '#000', shadowOffset: { width: 0, height: -8 }, shadowOpacity: 0.18, shadowRadius: 24, elevation: 28 },
+  sheet:        { backgroundColor: WHITE, borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: SHEET_H, shadowColor: '#000', shadowOffset: { width: 0, height: -8 }, shadowOpacity: 0.18, shadowRadius: 24, elevation: 28, overflow: 'hidden' },
   handleWrap:   { alignItems: 'center', paddingTop: 12, paddingBottom: 4 },
   handle:       { width: 40, height: 4, borderRadius: 2, backgroundColor: BORDER },
 

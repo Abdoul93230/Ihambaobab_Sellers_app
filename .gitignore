@@ -44,3 +44,7 @@ Thumbs.db
 # Package managers
 yarn.lock
 package-lock.json
+
+# Firebase
+google-services.json
+GoogleService-Info.plist

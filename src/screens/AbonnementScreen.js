@@ -406,7 +406,7 @@ function PlansCarousel({
   plans, billingCycle, setBillingCycle,
   selectedPlan, setSelectedPlan,
   activePlanType, upgradeOnly, isTrialMode,
-  productCount,
+  productCount, history,
   colors,
 }) {
   const flatRef = useRef(null);
@@ -414,6 +414,15 @@ function PlansCarousel({
 
   // Plans visibles selon la logique web
   const visiblePlans = plans || [];
+
+  // Plan le plus récemment souscrit dans l'historique — badge réabonnement
+  const lastUsedPlanType = useMemo(() => {
+    if (!history?.length) return null;
+    const sorted = [...history]
+      .filter(h => ['activated', 'created', 'renewed', 'reactivated'].includes(h.actionType))
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return sorted[0]?.actionDetails?.newPlan?.planType || null;
+  }, [history]);
 
   const onScroll = useCallback((e) => {
     const idx = Math.round(e.nativeEvent.contentOffset.x / ITEM_W);
@@ -434,7 +443,13 @@ function PlansCarousel({
       ? (plan.pricing?.annual  || cfg?.pricing?.annual  || 0)
       : (plan.pricing?.monthly || cfg?.pricing?.monthly || 0);
     const savings = SUBSCRIPTION_CONFIG.calculateAnnualSavings(plan.name);
-    const features = SUBSCRIPTION_CONFIG.generateFeatureList(plan.name, billingCycle);
+    const featuresRaw = SUBSCRIPTION_CONFIG.generateFeatureList(plan.name, billingCycle);
+    // Afficher la feature "mois d'essai" uniquement pour un tout premier abonnement
+    // (même condition que la chip : isTrialMode sans aucun historique)
+    const isFirstEverSubscriber = isTrialMode && !lastUsedPlanType;
+    const features = isFirstEverSubscriber
+      ? featuresRaw
+      : featuresRaw.filter(f => !f.name?.includes("mois d'essai"));
 
     // Désactiver si l'usage actuel dépasse la limite du plan
     const maxProducts = plan.features?.productManagement?.maxProducts
@@ -442,13 +457,16 @@ function PlansCarousel({
       ?? cfg?.productLimit
       ?? -1;
     const isProductIncompatible = maxProducts !== -1 && productCount > maxProducts;
-    // Plan inférieur : bloqué dans tous les modes (upgradeOnly OU canCreateRequest)
+    // Plan inférieur (rang < plan actif) — visuel uniquement, pas forcément bloqué
     const isLowerPlan = activePlanType
       ? planRank(plan.name) < planRank(activePlanType)
       : false;
     // Plan actuel : cliquable (renouvellement) sauf en mode upgradeOnly où seul un plan supérieur est pertinent
     const isCurrentBlocked = upgradeOnly && isCurrent;
-    const isPlanDisabled = isProductIncompatible || isCurrentBlocked || isLowerPlan;
+    // Downgrade bloqué uniquement si l'usage actuel dépasse les limites du plan cible
+    const isPlanDisabled = isProductIncompatible || isCurrentBlocked;
+    // Ce plan figure dans l'historique du vendeur (hors plan actif) → badge réabonnement
+    const isLastUsed = !isCurrent && plan.name === lastUsedPlanType;
 
     return (
       <View style={{ width: ITEM_W, alignItems: 'center', paddingVertical: 4 }}>
@@ -456,12 +474,12 @@ function PlansCarousel({
         activeOpacity={isPlanDisabled ? 1 : 0.92}
         style={[
           s.planCard,
-          isLowerPlan
-            ? { width: CARD_W, borderColor: colors.border, borderWidth: 1, opacity: 0.45 }
-            : isCurrentBlocked
-              ? { width: CARD_W, borderColor: colors.primary, borderWidth: 2, opacity: 0.65 }
-              : isProductIncompatible
-                ? { width: CARD_W, borderColor: '#FED7AA', borderWidth: 1, opacity: 0.7 }
+          isCurrentBlocked
+            ? { width: CARD_W, borderColor: colors.primary, borderWidth: 2, opacity: 0.65 }
+            : isProductIncompatible
+              ? { width: CARD_W, borderColor: '#FED7AA', borderWidth: 1, opacity: 0.7 }
+              : isLowerPlan
+                ? { width: CARD_W, borderColor: '#CBD5E1', borderWidth: 1, opacity: 0.75 }
                 : { width: CARD_W, borderColor: isSelected ? meta.color : colors.border, borderWidth: isSelected ? 2 : 1 },
         ]}
         onPress={() => !isPlanDisabled && setSelectedPlan(isSelected ? null : plan)}
@@ -482,12 +500,21 @@ function PlansCarousel({
             <Text style={s.badgeText}>↻ Renouveler</Text>
           </View>
         )}
-        {isLowerPlan && (
+        {isLowerPlan && !isProductIncompatible && (
           <View style={[s.currentBadge, { backgroundColor: '#9CA3AF' }]}>
-            <Text style={s.badgeText}>Plan inférieur</Text>
+            <Text style={s.badgeText}>↓ Downgrade</Text>
           </View>
         )}
-
+        {isLowerPlan && isProductIncompatible && (
+          <View style={[s.currentBadge, { backgroundColor: '#EF4444' }]}>
+            <Text style={s.badgeText}>Incompatible</Text>
+          </View>
+        )}
+        {isLastUsed && !isLowerPlan && (
+          <View style={[s.currentBadge, { backgroundColor: '#B17236' }]}>
+            <Text style={s.badgeText}>↺ Réabonnement</Text>
+          </View>
+        )}
         {/* Header coloré */}
         <View style={[s.planCardTop, { backgroundColor: meta.color }]}>
           <View style={[s.planIconWrap, { backgroundColor: meta.bg }]}>
@@ -516,13 +543,29 @@ function PlansCarousel({
           <Text style={[s.savingsText, { color: '#10B981' }]}>Économisez {fmtPrice(savings)}/an</Text>
         )}
 
-        {/* Essai gratuit */}
-        {isTrialMode && (cfg?.pricing?.trialMonths || 0) > 0 && (
+        {/* Essai gratuit — premier abonnement uniquement (pas d'historique) */}
+        {isTrialMode && !lastUsedPlanType && (cfg?.pricing?.trialMonths || 0) > 0 && (
           <View style={[s.trialChip, { backgroundColor: meta.bg, borderColor: meta.color + '50' }]}>
             <Ionicons name="gift-outline" size={13} color={meta.color} />
             <Text style={[s.trialChipText, { color: meta.color }]}>
               {cfg.pricing.trialMonths} mois d'essai gratuit
             </Text>
+          </View>
+        )}
+
+        {/* Réabonnement — plan déjà souscrit par le passé */}
+        {isLastUsed && (
+          <View style={[s.trialChip, { backgroundColor: '#B1723612', borderColor: '#B1723640' }]}>
+            <Ionicons name="refresh-outline" size={13} color="#B17236" />
+            <Text style={[s.trialChipText, { color: '#B17236' }]}>Déjà souscrit — réabonnement</Text>
+          </View>
+        )}
+
+        {/* Plan actif en cours */}
+        {isCurrent && !isTrialMode && (
+          <View style={[s.trialChip, { backgroundColor: meta.bg, borderColor: meta.color + '50' }]}>
+            <Ionicons name="checkmark-circle-outline" size={13} color={meta.color} />
+            <Text style={[s.trialChipText, { color: meta.color }]}>Abonnement en cours</Text>
           </View>
         )}
 
@@ -559,16 +602,16 @@ function PlansCarousel({
             <Text style={[s.alertText, { color: '#3730A3', textAlign: 'center' }]}>Renouveler ce plan</Text>
           </View>
         )}
-        {isLowerPlan && (
-          <View style={[s.alertBox, { backgroundColor: '#F9FAFB', borderColor: '#E5E7EB', marginTop: 8 }]}>
-            <Ionicons name="arrow-down-outline" size={14} color="#9CA3AF" />
-            <Text style={[s.alertText, { color: '#6B7280' }]}>Plan inférieur — non disponible</Text>
+        {isLowerPlan && !isProductIncompatible && (
+          <View style={[s.alertBox, { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', marginTop: 8 }]}>
+            <Ionicons name="arrow-down-outline" size={14} color="#94A3B8" />
+            <Text style={[s.alertText, { color: '#64748B' }]}>Downgrade possible — vous perdrez certaines fonctionnalités</Text>
           </View>
         )}
-        {isProductIncompatible && !isCurrent && !isLowerPlan && (
-          <View style={[s.alertBox, { backgroundColor: '#FFF7ED', borderColor: '#FED7AA', marginTop: 8 }]}>
-            <Ionicons name="warning-outline" size={14} color="#D97706" />
-            <Text style={[s.alertText, { color: '#92400E' }]}>
+        {isProductIncompatible && (
+          <View style={[s.alertBox, { backgroundColor: '#FEF2F2', borderColor: '#FECACA', marginTop: 8 }]}>
+            <Ionicons name="warning-outline" size={14} color="#DC2626" />
+            <Text style={[s.alertText, { color: '#991B1B' }]}>
               Incompatible — vous avez {productCount} produits, ce plan est limité à {maxProducts}.
             </Text>
           </View>
@@ -1798,6 +1841,7 @@ export default function AbonnementScreen() {
               upgradeOnly={upgradeOnly}
               isTrialMode={isTrialMode}
               productCount={productCount}
+              history={history}
               colors={colors}
             />
             <ActionPanel
@@ -1921,7 +1965,6 @@ const s = StyleSheet.create({
   // Generic card
   card: {
     borderRadius: 16, borderWidth: 1, overflow: 'hidden',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, elevation: 2,
   },
   cardTitle: { fontSize: 14, fontWeight: '800', padding: 14, paddingBottom: 8 },
 
@@ -1951,7 +1994,6 @@ const s = StyleSheet.create({
   // Plan card
   planCard: {
     borderRadius: 14, overflow: 'hidden', marginVertical: 4,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, elevation: 3,
   },
   planCardTop:  { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 14 },
   planIconWrap: { width: 38, height: 38, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },

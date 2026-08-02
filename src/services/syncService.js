@@ -293,7 +293,12 @@ export const syncService = {
   // Invalidation ciblée (socket event, après mutation)
   // Force le re-fetch de l'entité sans attendre la staleness
   invalidateAndFetch: async (...entities) => {
-    
+    // Ne jamais lancer si un agent est connecté — son token serait injecté sur des routes vendeur
+    try {
+      const { useAgentStore } = require('../stores/agentStore');
+      if (useAgentStore.getState().isAuthenticated) return;
+    } catch (_) {}
+
     const { isConnected } = await NetInfo.fetch();
     if (!isConnected) return; // offline → pas de fetch, garder local
 
@@ -394,7 +399,11 @@ export const syncService = {
     if (!pending.length) return;
 
     const HANDLERS = {
-      CREATE_VENTE: (p) => apiClient.post('/api/pos/vente', p),
+      CREATE_VENTE: ({ _agentToken, ...p }) => apiClient.post('/api/pos/vente', p, {
+        // Token agent stocké dans le payload (vente faite en mode agent offline)
+        // L'intercepteur axios le respecte car Authorization est déjà positionné
+        headers: _agentToken ? { Authorization: `Bearer ${_agentToken}` } : {},
+      }),
       UPDATE_COMMANDE_STATUS: ({ commandeId, status }) => {
         const sid = getSellerId();
         if (status === 'validated')
@@ -494,6 +503,25 @@ export const syncService = {
         await cleanupDrafts(allDraftKeys);
         return res;
       },
+
+      // Import en masse hors ligne — envoyé quand la connexion revient
+      // Retourne les noms rejetés par le serveur pour nettoyage ciblé des local_*
+      BULK_IMPORT_PRODUCTS: async ({ products }) => {
+        const BATCH = 20;
+        const rejectedNames = new Set(); // noms rejetés par le serveur (doublons, quota…)
+        for (let i = 0; i < products.length; i += BATCH) {
+          const res = await apiClient.post('/Products/bulk-create', {
+            products: products.slice(i, i + BATCH),
+          }, { timeout: TIMEOUTS.UPLOAD });
+          // Collecte les noms rejetés (réponse 207 partielle)
+          if (Array.isArray(res.data?.failedProducts)) {
+            res.data.failedProducts.forEach(fp => {
+              if (fp.nom) rejectedNames.add((fp.nom).toLowerCase());
+            });
+          }
+        }
+        return { rejectedNames };
+      },
     };
 
     for (const mutation of pending) {
@@ -506,7 +534,7 @@ export const syncService = {
       if (!reserved) continue; // déjà en cours ailleurs
 
       try {
-        await handler(mutation.payload);
+        const result = await handler(mutation.payload);
         await mutationQueue.markDone(mutation.id);
 
         // Nettoyage des entrées locales (local_xxx) avant le refetch
@@ -519,6 +547,47 @@ export const syncService = {
             'produits',
             current.filter(p => !String(p._id).startsWith('local_'))
           );
+        }
+
+        if (mutation.type === 'BULK_IMPORT_PRODUCTS') {
+          const db = getDB();
+          const rejectedNames = result?.rejectedNames ?? new Set();
+
+          if (rejectedNames.size === 0) {
+            // Tous acceptés → nettoyage complet des local_*
+            await db.runAsync(`DELETE FROM produits WHERE id LIKE 'local_%'`);
+            const current = useSyncStore.getState().produits ?? [];
+            useSyncStore.getState().setStoreData(
+              'produits',
+              current.filter(p => !String(p._id).startsWith('local_'))
+            );
+          } else {
+            // Rejets partiels → ne supprimer que les local_* dont le nom a été accepté
+            const localRows = await db.getAllAsync(
+              `SELECT id, json_extract(data, '$.name') as name FROM produits WHERE id LIKE 'local_%'`
+            ).catch(() => []);
+            const toDelete = localRows.filter(
+              r => !rejectedNames.has((r.name || '').toLowerCase())
+            );
+            await db.withTransactionAsync(async () => {
+              for (const r of toDelete) {
+                await db.runAsync(`DELETE FROM produits WHERE id = ?`, [r.id]);
+              }
+            });
+            // Dans le store mémoire : retire les acceptés, marque les rejetés avec _syncError
+            const current = useSyncStore.getState().produits ?? [];
+            const deletedIds = new Set(toDelete.map(r => r.id));
+            useSyncStore.getState().setStoreData(
+              'produits',
+              current
+                .filter(p => !deletedIds.has(String(p._id)))
+                .map(p =>
+                  String(p._id).startsWith('local_') && rejectedNames.has((p.name || '').toLowerCase())
+                    ? { ...p, _syncError: 'Doublon ou quota atteint' }
+                    : p
+                )
+            );
+          }
         }
 
         if (mutation.type === 'CREATE_CREANCE') {
@@ -543,8 +612,9 @@ export const syncService = {
           SEND_RAPPEL_CREANCE:    ['creances'],
           UPDATE_STOCK_PRODUIT:  ['produits'],
           ADJUST_STOCK:          ['produits'],
-          UPDATE_PRODUCT:        ['produits'],
-          CREATE_PRODUCT:        ['produits'],
+          UPDATE_PRODUCT:           ['produits'],
+          CREATE_PRODUCT:           ['produits'],
+          BULK_IMPORT_PRODUCTS:     ['produits'],
         };
         const toInvalidate = entityMap[mutation.type];
         if (toInvalidate) {

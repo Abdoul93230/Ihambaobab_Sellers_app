@@ -14,6 +14,9 @@ import { useModules } from '../hooks/useModules';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../stores/authStore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTutorial } from '../hooks/useTutorial';
+import DashboardTour from '../components/DashboardTour';
+import { useTourTabContext } from '../context/TourTabContext';
 
 const { width: W } = Dimensions.get('window');
 const ITEM_H = 44;
@@ -270,7 +273,7 @@ function TooltipBar({ selected, onClear, color, formatVal, colors }) {
 }
 
 // ─── Header inline (affiché dans le scroll des vues) ─────────────────────────
-function DashboardHeader({ planName, isTrial, daysLeft, mkStats, period, customFrom, customTo, onPressPeriod, loading, colors }) {
+function DashboardHeader({ planName, isTrial, daysLeft, mkStats, period, customFrom, customTo, onPressPeriod, loading, colors, periodBarRef, onPeriodLayout }) {
   const label = period === 'custom' && customFrom && customTo
     ? `${toAxisLabel(customFrom)} → ${toAxisLabel(customTo)}`
     : period === 'today' ? "Aujourd'hui"
@@ -329,6 +332,9 @@ function DashboardHeader({ planName, isTrial, daysLeft, mkStats, period, customF
 
       {/* Barre période */}
       <TouchableOpacity
+        ref={periodBarRef}
+        collapsable={false}
+        onLayout={onPeriodLayout}
         style={[styles.periodBar, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
         onPress={onPressPeriod}
         activeOpacity={0.8}
@@ -351,7 +357,7 @@ function DashboardHeader({ planName, isTrial, daysLeft, mkStats, period, customF
 }
 
 // ─── VUE POS ──────────────────────────────────────────────────────────────────
-function ViewPOS({ bilanData, historyData, loading, colors }) {
+function ViewPOS({ bilanData, historyData, loading, hasBilan, period, colors }) {
   const [selPoint, setSelPoint] = useState(null);
   useEffect(() => { setSelPoint(null); }, [historyData]);
 
@@ -369,13 +375,14 @@ function ViewPOS({ bilanData, historyData, loading, colors }) {
     { key: 'AUTRE',        label: 'Autre',         icon: 'ellipsis-horizontal',    color: '#8B5CF6', val: modeP.AUTRE        || 0 },
   ].filter(m => m.val > 0);
 
+  const hasTimeSeries = period === '7d' || period === '30d' || period === 'custom';
   const n = (historyData || []).length;
   const every = n > 14 ? 5 : n > 7 ? 2 : 1;
-  const lineData = (historyData || []).map((d, i) => ({
+  const lineData = hasTimeSeries && n > 0 ? (historyData || []).map((d, i) => ({
     value: d.posTotal ?? 0,
     label: i % every === 0 ? toAxisLabel(d.date) : '',
-  }));
-  const hasChart = lineData.some(d => d.value > 0);
+  })) : [];
+  const hasChart = hasTimeSeries && lineData.some(d => d.value > 0);
   const chartW   = W - 80;
 
   if (loading) return <ViewSkeleton colors={colors} />;
@@ -383,6 +390,13 @@ function ViewPOS({ bilanData, historyData, loading, colors }) {
   return (
     <View style={{ gap: 14 }}>
       {/* Carte récap total */}
+      {!hasBilan ? (
+        <View style={[styles.bilanLocked, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+          <Ionicons name="lock-closed-outline" size={22} color={colors.textMuted} style={{ marginBottom: 8 }} />
+          <Text style={[styles.bilanLockedTitle, { color: colors.text }]}>Module Bilan non activé</Text>
+          <Text style={[styles.bilanLockedSub, { color: colors.textMuted }]}>Contactez l'administrateur pour accéder aux statistiques.</Text>
+        </View>
+      ) : (
       <LinearGradient colors={['#30A08B', '#1e7a6b']} start={{x:0,y:0}} end={{x:1,y:1}} style={styles.heroCard}>
         <View style={styles.heroRow}>
           <View>
@@ -412,6 +426,7 @@ function ViewPOS({ bilanData, historyData, loading, colors }) {
           </View>
         </View>
       </LinearGradient>
+      )}
 
       {/* Modes de paiement */}
       {modes.length > 0 && (
@@ -624,7 +639,7 @@ const MK_CHART_TABS = [
   { key: 'commandes', label: 'Commandes', color: '#267a6b' },
 ];
 
-function ViewMarketplace({ bilanData, historyData, commandesLocal, cancelRate, loading, period, colors }) {
+function ViewMarketplace({ bilanData, historyData, commandesLocal, cancelRate, loading, period, hasBilan, colors }) {
   const [chartTab, setChartTab] = useState('revenus');
   const [selPoint, setSelPoint] = useState(null);
   useEffect(() => { setSelPoint(null); }, [historyData, chartTab]);
@@ -687,6 +702,13 @@ function ViewMarketplace({ bilanData, historyData, commandesLocal, cancelRate, l
   return (
     <View style={{ gap: 14 }}>
       {/* Carte récap Marketplace */}
+      {!hasBilan ? (
+        <View style={[styles.bilanLocked, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+          <Ionicons name="lock-closed-outline" size={22} color={colors.textMuted} style={{ marginBottom: 8 }} />
+          <Text style={[styles.bilanLockedTitle, { color: colors.text }]}>Module Bilan non activé</Text>
+          <Text style={[styles.bilanLockedSub, { color: colors.textMuted }]}>Contactez l'administrateur pour accéder aux statistiques.</Text>
+        </View>
+      ) : (
       <LinearGradient colors={['#30A08B', '#1e7a6b']} start={{x:0,y:0}} end={{x:1,y:1}} style={styles.heroCard}>
         <View style={styles.heroRow}>
           <View>
@@ -715,6 +737,7 @@ function ViewMarketplace({ bilanData, historyData, commandesLocal, cancelRate, l
           ))}
         </View>
       </LinearGradient>
+      )}
 
       {/* Graphique avec switch */}
       <View style={[styles.card, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
@@ -901,6 +924,74 @@ const VIEWS = [
 ];
 
 export default function DashboardScreen() {
+  const { tourDone, markTourDone, pendingTour, consumeTour } = useTutorial();
+  const [showTour,    setShowTour]    = useState(false);
+  const [tourTargets, setTourTargets] = useState({});
+  const tourTabCtx = useTourTabContext();
+
+  // Refs pour mesurer chaque élément à highlighter
+  const refViewSelector = useRef(null);
+  const refPeriodBtn    = useRef(null);
+
+  const measureTarget = useCallback((key, ref) => {
+    if (!ref?.current) return;
+    ref.current.measureInWindow((x, y, width, height) => {
+      if (width === 0 && height === 0) return;
+      setTourTargets(prev => ({ ...prev, [key]: { x, y, width, height } }));
+    });
+  }, []);
+
+  // Abonnement aux positions des onglets mesurées par TabNavigator via onLayout
+  useEffect(() => {
+    if (!tourTabCtx) return;
+    return tourTabCtx.subscribe((tabs) => {
+      setTourTargets(prev => ({ ...prev, ...tabs }));
+    });
+  }, [tourTabCtx]);
+
+  // Appelé par DashboardTour à chaque changement d'étape
+  const doMeasure = useCallback(() => {
+    measureTarget('viewSelector', refViewSelector);
+    setTimeout(() => measureTarget('periodBtn', refPeriodBtn), 300);
+  }, [measureTarget]);
+
+  // Quand viewSelector est mesuré, on attend periodBtn
+  useEffect(() => {
+    if (!tourDone && tourTargets.viewSelector && !tourTargets.periodBtn) {
+      const t = setTimeout(() => measureTarget('periodBtn', refPeriodBtn), 400);
+      return () => clearTimeout(t);
+    }
+  }, [tourDone, tourTargets.viewSelector]);
+
+  // Déclenche le tour quand les cibles dashboard sont prêtes
+  useEffect(() => {
+    if (!tourDone && tourTargets.viewSelector && tourTargets.periodBtn) {
+      setShowTour(true);
+    }
+  }, [tourDone, tourTargets.viewSelector, tourTargets.periodBtn]);
+
+  // Relance depuis PlusScreen
+  useEffect(() => {
+    if (!pendingTour) return;
+    setTourTargets({});
+    setShowTour(false);
+    let t2;
+    const t1 = setTimeout(() => {
+      measureTarget('viewSelector', refViewSelector);
+      t2 = setTimeout(() => {
+        measureTarget('periodBtn', refPeriodBtn);
+        setShowTour(true);
+      }, 400);
+    }, 600);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [pendingTour]);
+
+  const handleTourDone = useCallback(() => {
+    setShowTour(false);
+    markTourDone();
+    consumeTour();
+  }, [markTourDone, consumeTour]);
+
   const commandes      = useSyncStore(s => s.commandes)      ?? [];
   const produits       = useSyncStore(s => s.produits)       ?? [];
   const produitsStats  = useSyncStore(s => s.produitsStats);
@@ -1104,25 +1195,51 @@ export default function DashboardScreen() {
     return { activeProducts, lowStock, cancelRate };
   }, [commandes, produits, produitsStats]);
 
+  const { has: hasModule } = useModules();
+  const hasBilan     = hasModule('bilanJournalier');
   const planName     = subscription?.planName || 'Starter';
   const isTrial      = subscription?.status === 'trial';
   const daysLeft     = subscription?.daysRemaining;
   const hasPosAccess = ['Pro', 'Business'].includes(planName);
   const visibleViews = VIEWS.filter(v => v.key !== 'pos' || hasPosAccess);
 
-  const headerProps = {
+  const headerPropsBase = {
     planName, isTrial, daysLeft, mkStats,
     period, customFrom, customTo,
     onPressPeriod: () => setShowPeriod(true),
     loading: dataLoading,
     colors,
   };
+  const headerProps = {
+    ...headerPropsBase,
+    periodBarRef: refPeriodBtn,
+    onPeriodLayout: null,
+  };
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.bg }]}>
+      {showTour && (
+        <DashboardTour
+          onDone={handleTourDone}
+          targets={tourTargets}
+          onRemeasure={doMeasure}
+          hasPosAccess={hasPosAccess}
+        />
+      )}
       {/* ── Sélecteur de vue fixe — onglet POS masqué si plan sans accès ────── */}
       <View style={[styles.viewSelectorWrap, { backgroundColor: colors.bgCard, borderBottomColor: colors.border }]}>
-        <View style={[styles.viewSelector, { backgroundColor: colors.bgHover, borderColor: colors.border }]}>
+        <View
+          ref={refViewSelector}
+          collapsable={false}
+          onLayout={() => setTimeout(() => {
+            if (!refViewSelector.current) return;
+            refViewSelector.current.measureInWindow((x, y, w, h) => {
+              if (w === 0 && h === 0) return;
+              setTourTargets(prev => ({ ...prev, viewSelector: { x, y, width: w, height: h } }));
+            });
+          }, 500)}
+          style={[styles.viewSelector, { backgroundColor: colors.bgHover, borderColor: colors.border }]}
+        >
           {visibleViews.map(v => {
             const isActive = activeView === v.key;
             return (
@@ -1198,6 +1315,8 @@ export default function DashboardScreen() {
                   bilanData={bilanData}
                   historyData={historyData}
                   loading={dataLoading}
+                  hasBilan={hasBilan}
+                  period={period}
                   colors={colors}
                 />
               </ScrollView>
@@ -1217,7 +1336,7 @@ export default function DashboardScreen() {
                 }
                 contentContainerStyle={styles.viewScroll}
               >
-                <DashboardHeader {...headerProps} />
+                <DashboardHeader {...(hasPosAccess ? headerPropsBase : headerProps)} />
                 <ViewMarketplace
                   bilanData={bilanData}
                   historyData={historyData}
@@ -1225,6 +1344,7 @@ export default function DashboardScreen() {
                   cancelRate={mkStats.cancelRate}
                   loading={dataLoading}
                   period={period}
+                  hasBilan={hasBilan}
                   colors={colors}
                 />
               </ScrollView>
@@ -1309,6 +1429,11 @@ const styles = StyleSheet.create({
   wheelCell:    { height: ITEM_H, justifyContent: 'center', alignItems: 'center' },
   wheelSep:     { fontSize: 18, marginHorizontal: 2, opacity: 0.3 },
   wheelLabel:   { fontSize: 12, fontWeight: '700', marginLeft: 2 },
+
+  // Bilan locked
+  bilanLocked:      { borderRadius: 18, borderWidth: 1, padding: 24, alignItems: 'center', justifyContent: 'center' },
+  bilanLockedTitle: { fontSize: 14, fontWeight: '700', marginBottom: 4, textAlign: 'center' },
+  bilanLockedSub:   { fontSize: 12, textAlign: 'center' },
 
   // Hero card
   heroCard:     { borderRadius: 18, padding: 18, gap: 14 },

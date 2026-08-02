@@ -4,6 +4,7 @@ import * as SecureStore from 'expo-secure-store';
 import apiClient, { BACKEND_URL } from '../config/api';
 import { STORAGE_KEY } from '../config/constants';
 import axios from 'axios';
+import { resetFailedSellerMutations } from '../db/database';
 
 const saveSession = async (data) => {
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -76,6 +77,11 @@ export const useAuthStore = create((set) => ({
 
           // Rafraîchit subscription ET logo en arrière-plan (non bloquant)
           // subscription.daysRemaining doit être recalculé côté serveur à chaque démarrage
+          // Ne pas lancer si un agent est connecté : son token serait injecté sur ces routes vendeur
+          try {
+            const { useAgentStore } = require('./agentStore');
+            if (useAgentStore.getState().isAuthenticated) return;
+          } catch (_) {}
           Promise.allSettled([
             // Abonnement frais depuis le serveur
             apiClient.get('/api/seller/subscription/complete-status', {
@@ -168,6 +174,15 @@ export const useAuthStore = create((set) => ({
 
       await saveSession({ token, seller, subscription });
       set({ seller, token, subscription, isAuthenticated: true, loading: false, error: null, isResubscriptionToken: false });
+
+      // Rescue les mutations vendeur bloquées sur 'failed' (ex: token expiré)
+      try {
+        const reset = await resetFailedSellerMutations();
+        if (reset > 0) {
+          const mod = require('../services/syncService');
+          (mod.syncService || mod.default || mod).pushPendingMutations();
+        }
+      } catch (_) {}
 
       // Le login ne retourne pas logo — on le charge en arrière-plan
       const sellerId = seller?.id || seller?._id;

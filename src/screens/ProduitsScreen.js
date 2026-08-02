@@ -2,10 +2,15 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, FlatList, TextInput, StyleSheet, TouchableOpacity,
   RefreshControl, ActivityIndicator, Modal, Animated, ScrollView,
-  TouchableWithoutFeedback, PanResponder, Dimensions,
+  TouchableWithoutFeedback, PanResponder, Dimensions, Alert,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import CachedImage from '../components/CachedImage';
 import { Ionicons } from '@expo/vector-icons';
+import { SvgXml } from 'react-native-svg';
+import QRCode from 'qrcode';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import { useSyncStore } from '../stores/syncStore';
 import { useSync } from '../hooks/useSync';
 import { useTheme } from '../context/ThemeContext';
@@ -13,6 +18,7 @@ import { useAuthStore } from '../stores/authStore';
 import { syncService } from '../services/syncService';
 import apiClient from '../config/api';
 import SUBSCRIPTION_CONFIG from '../config/subscriptionConfig';
+import Toast from 'react-native-toast-message';
 
 const W = Dimensions.get('window').width;
 
@@ -138,7 +144,7 @@ function ProduitRow({ produit, onPress, colors }) {
 // ─── Modal détail produit ─────────────────────────────────────────────────────
 const DETAIL_H = Dimensions.get('window').height * 0.85;
 
-function ProduitDetailModal({ produit, visible, onClose, onEdit, colors }) {
+function ProduitDetailModal({ produit, visible, onClose, onEdit, onEtiquette, colors }) {
   const slideAnim = useRef(new Animated.Value(DETAIL_H)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
   const [mounted, setMounted] = useState(false);
@@ -195,18 +201,26 @@ function ProduitDetailModal({ produit, visible, onClose, onEdit, colors }) {
       </TouchableWithoutFeedback>
 
       <Animated.View style={[styles.detailSheet, { backgroundColor: colors.bgCard, transform: [{ translateY: slideAnim }] }]}>
-        {/* Handle */}
-        <View style={styles.detailTopRow}>
-          <View {...panResponder.panHandlers} style={[styles.handleArea, { flex: 1 }]}>
-            <View style={[styles.handle, { backgroundColor: colors.border }]} />
-          </View>
+        {/* Handle + Actions */}
+        <View {...panResponder.panHandlers} style={styles.handleArea}>
+          <View style={[styles.handle, { backgroundColor: colors.border }]} />
+        </View>
+        <View style={[styles.detailActionsRow, { borderBottomColor: colors.border }]}>
           <TouchableOpacity
-            style={[styles.editBtn, { backgroundColor: colors.primaryLight }]}
+            style={[styles.detailActionBtn, { backgroundColor: colors.primaryLight }]}
             onPress={() => { dismiss(() => { onClose(); onEdit(produit); }); }}
             activeOpacity={0.8}
           >
-            <Ionicons name="create-outline" size={16} color={colors.primary} />
-            <Text style={[styles.editBtnText, { color: colors.primary }]}>Modifier</Text>
+            <Ionicons name="create-outline" size={14} color={colors.primary} />
+            <Text style={[styles.detailActionText, { color: colors.primary }]}>Modifier</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.detailActionBtn, { backgroundColor: '#FFF7ED' }]}
+            onPress={() => { dismiss(() => { onClose(); onEtiquette?.(produit); }); }}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="qr-code-outline" size={14} color="#B45309" />
+            <Text style={[styles.detailActionText, { color: '#B45309' }]}>Étiquette</Text>
           </TouchableOpacity>
         </View>
 
@@ -345,6 +359,213 @@ function InfoRow({ label, value, colors, icon }) {
   );
 }
 
+// ─── Modal Étiquette QR ────────────────────────────────────────────────────────
+function EtiquetteModal({ produit, visible, onClose, colors }) {
+  const [qrSvg, setQrSvg] = useState(null);
+  const [printing, setPrinting] = useState(false);
+
+  const hasPromo = produit?.prixPromo > 0 && produit?.prixPromo < produit?.prix;
+  const prixAffiche = hasPromo ? produit.prixPromo : produit?.prix;
+  const qrData = produit ? `${produit._id}|${produit.name}|${prixAffiche}` : '';
+
+  useEffect(() => {
+    if (!produit) return;
+    QRCode.toString(qrData, { type: 'svg', width: 180, margin: 2 })
+      .then(svg => setQrSvg(svg))
+      .catch(() => setQrSvg(null));
+  }, [produit, qrData]);
+
+  const handlePrint = async () => {
+    if (!produit) return;
+    setPrinting(true);
+    try {
+      const prixHtml = hasPromo
+        ? `<span style="color:#DC2626;font-size:22px;font-weight:800;">${fmt(produit.prixPromo)} ₣</span>
+           <span style="text-decoration:line-through;color:#9CA3AF;font-size:14px;margin-left:8px;">${fmt(produit.prix)} ₣</span>`
+        : `<span style="color:#1D4ED8;font-size:22px;font-weight:800;">${fmt(produit.prix)} ₣</span>`;
+
+      const qrSvgData = await QRCode.toString(qrData, { type: 'svg', width: 200, margin: 2 });
+
+      const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f5f5f5; }
+  .label { width: 280px; background: white; border-radius: 16px; padding: 24px 20px; text-align: center;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.12); font-family: Arial, sans-serif; }
+  .qr-wrap { display: flex; justify-content: center; margin-bottom: 16px; }
+  .name { font-size: 16px; font-weight: 700; color: #111827; margin-bottom: 8px; line-height: 1.3; }
+  .prix-row { margin-bottom: ${produit.barcode ? '8px' : '0'}; }
+  .barcode { font-size: 12px; color: #6B7280; letter-spacing: 2px; }
+  .brand { font-size: 12px; color: #6B7280; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+  <div class="label">
+    <div class="qr-wrap">${qrSvgData}</div>
+    ${produit.marque ? `<div class="brand">${produit.marque}</div>` : ''}
+    <div class="name">${produit.name}</div>
+    <div class="prix-row">${prixHtml}</div>
+    ${produit.barcode ? `<div class="barcode">EAN: ${produit.barcode}</div>` : ''}
+  </div>
+</body>
+</html>`;
+
+      await Print.printAsync({ html });
+    } catch (e) {
+      Alert.alert('Erreur', "Impossible d'imprimer l'étiquette.");
+    } finally {
+      setPrinting(false);
+    }
+  };
+
+  const handleShare = async () => {
+    if (!produit) return;
+    setPrinting(true);
+    try {
+      const qrSvgData = await QRCode.toString(qrData, { type: 'svg', width: 200, margin: 2 });
+      const prixHtml = hasPromo
+        ? `<span style="color:#DC2626;font-size:22px;font-weight:800;">${fmt(produit.prixPromo)} ₣</span>
+           <span style="text-decoration:line-through;color:#9CA3AF;font-size:14px;margin-left:8px;">${fmt(produit.prix)} ₣</span>`
+        : `<span style="color:#1D4ED8;font-size:22px;font-weight:800;">${fmt(produit.prix)} ₣</span>`;
+
+      const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f5f5f5; }
+  .label { width: 280px; background: white; border-radius: 16px; padding: 24px 20px; text-align: center;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.12); font-family: Arial, sans-serif; }
+  .qr-wrap { display: flex; justify-content: center; margin-bottom: 16px; }
+  .name { font-size: 16px; font-weight: 700; color: #111827; margin-bottom: 8px; }
+  .prix-row { margin-bottom: 0; }
+  .brand { font-size: 12px; color: #6B7280; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+  <div class="label">
+    <div class="qr-wrap">${qrSvgData}</div>
+    ${produit.marque ? `<div class="brand">${produit.marque}</div>` : ''}
+    <div class="name">${produit.name}</div>
+    <div class="prix-row">${prixHtml}</div>
+  </div>
+</body>
+</html>`;
+
+      const { uri } = await Print.printToFileAsync({ html });
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: '.pdf' });
+      } else {
+        Alert.alert('Info', 'Le partage n\'est pas disponible sur cet appareil.');
+      }
+    } catch (e) {
+      Alert.alert('Erreur', "Impossible de partager l'étiquette.");
+    } finally {
+      setPrinting(false);
+    }
+  };
+
+  if (!produit) return null;
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
+      <TouchableWithoutFeedback onPress={onClose}>
+        <View style={styles.erBackdrop} />
+      </TouchableWithoutFeedback>
+      <View style={styles.erCentered}>
+        <View style={[styles.etSheet, { backgroundColor: colors.bgCard }]}>
+          {/* Header */}
+          <View style={[styles.erHeader, { borderBottomColor: colors.border }]}>
+            <View style={[styles.erIconWrap, { backgroundColor: '#FFF7ED' }]}>
+              <Ionicons name="qr-code-outline" size={18} color="#B45309" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.erTitle, { color: colors.text }]}>Étiquette produit</Text>
+              <Text style={[styles.erSubtitle, { color: colors.textMuted }]} numberOfLines={1}>{produit.name}</Text>
+            </View>
+            <TouchableOpacity onPress={onClose} style={styles.erClose}>
+              <Ionicons name="close" size={20} color={colors.textMuted} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Aperçu étiquette */}
+          <View style={[styles.etPreviewWrap, { backgroundColor: colors.bgHover }]}>
+            <View style={[styles.etLabel, { backgroundColor: colors.bgCard, shadowColor: '#000' }]}>
+              {qrSvg ? (
+                <SvgXml xml={qrSvg} width={160} height={160} />
+              ) : (
+                <View style={styles.etQrPlaceholder}>
+                  <ActivityIndicator size="large" color={colors.primary} />
+                </View>
+              )}
+              {produit.marque ? (
+                <Text style={[styles.etBrand, { color: colors.textMuted }]}>{produit.marque}</Text>
+              ) : null}
+              <Text style={[styles.etName, { color: colors.text }]} numberOfLines={2}>{produit.name}</Text>
+              <View style={styles.etPrixRow}>
+                {hasPromo ? (
+                  <>
+                    <Text style={styles.etPrixPromo}>{fmt(produit.prixPromo)} ₣</Text>
+                    <Text style={[styles.etPrixOld, { color: colors.textMuted }]}>{fmt(produit.prix)} ₣</Text>
+                  </>
+                ) : (
+                  <Text style={[styles.etPrix, { color: colors.primary }]}>{fmt(produit.prix)} ₣</Text>
+                )}
+              </View>
+              {produit.barcode ? (
+                <Text style={[styles.etBarcode, { color: colors.textMuted }]}>EAN: {produit.barcode}</Text>
+              ) : null}
+            </View>
+          </View>
+
+          {/* QR info */}
+          <View style={[styles.etInfo, { backgroundColor: colors.bgHover, borderColor: colors.border }]}>
+            <Ionicons name="information-circle-outline" size={14} color={colors.textMuted} />
+            <Text style={[styles.etInfoText, { color: colors.textMuted }]}>
+              Le QR code contient l'identifiant, le nom et le prix du produit.
+            </Text>
+          </View>
+
+          {/* Actions */}
+          <View style={[styles.erFooter, { borderTopColor: colors.border }]}>
+            <TouchableOpacity
+              style={[styles.etBtnShare, { borderColor: colors.border }]}
+              onPress={handleShare}
+              disabled={printing}
+              activeOpacity={0.8}
+            >
+              {printing
+                ? <ActivityIndicator size="small" color={colors.primary} />
+                : <>
+                    <Ionicons name="share-outline" size={16} color={colors.primary} />
+                    <Text style={[styles.etBtnShareText, { color: colors.primary }]}>Partager PDF</Text>
+                  </>
+              }
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.erBtnSave, { backgroundColor: '#B45309', flex: 1.2 }]}
+              onPress={handlePrint}
+              disabled={printing}
+              activeOpacity={0.85}
+            >
+              {printing
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <>
+                    <Ionicons name="print-outline" size={16} color="#fff" />
+                    <Text style={styles.erBtnSaveText}>Imprimer</Text>
+                  </>
+              }
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 // ─── Écran principal ──────────────────────────────────────────────────────────
 export default function ProduitsScreen({ navigation }) {
   const { colors } = useTheme();
@@ -358,6 +579,14 @@ export default function ProduitsScreen({ navigation }) {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
   const [selectedProduit, setSelectedProduit] = useState(null);
   const [detailVisible, setDetailVisible] = useState(false);
+
+  const [etiquetteProduit, setEtiquetteProduit] = useState(null);
+  const [etiquetteVisible, setEtiquetteVisible] = useState(false);
+  const [bulkEditMode, setBulkEditMode] = useState(false);
+  const [editedProducts, setEditedProducts] = useState({});
+  const [expandedProduct, setExpandedProduct] = useState(null);
+  const [isSavingBulk, setIsSavingBulk] = useState(false);
+  const [moreMenuVisible, setMoreMenuVisible] = useState(false);
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -428,13 +657,11 @@ export default function ProduitsScreen({ navigation }) {
       const isLocal = String(p._id).startsWith('local_');
       const key = `${p.name?.toLowerCase()}_${p.prix}`;
       if (isLocal) {
-        // Produit local : ajouter seulement si pas déjà un produit serveur avec même nom+prix
         if (!seenNames.has(key)) {
           seenNames.set(key, deduped.length);
           deduped.push(p);
         }
       } else {
-        // Produit serveur : s'il y avait un local avec même key, le remplacer
         if (seenNames.has(key)) {
           deduped[seenNames.get(key)] = p;
         } else {
@@ -464,154 +691,561 @@ export default function ProduitsScreen({ navigation }) {
     setDetailVisible(true);
   };
 
+  const openEtiquette = (p) => {
+    setEtiquetteProduit(p);
+    setEtiquetteVisible(true);
+  };
+
+  const toggleBulkEditMode = () => {
+    setBulkEditMode(v => {
+      if (v) { setEditedProducts({}); setExpandedProduct(null); }
+      return !v;
+    });
+  };
+
+  const handleBulkEditChange = useCallback((productId, field, value) => {
+    setEditedProducts(prev => ({
+      ...prev,
+      [productId]: { ...(prev[productId] || {}), [field]: value },
+    }));
+  }, []);
+
+  const handleVariantEditChange = useCallback((productId, vIndex, field, value, originalVariants) => {
+    setEditedProducts(prev => {
+      const edits = prev[productId] || {};
+      const updated = edits.variants ? [...edits.variants] : [...originalVariants];
+      updated[vIndex] = { ...updated[vIndex], [field]: value };
+      return { ...prev, [productId]: { ...edits, variants: updated } };
+    });
+  }, []);
+
+  const handleBulkSave = async () => {
+    const ids = Object.keys(editedProducts);
+    if (ids.length === 0) return;
+    setIsSavingBulk(true);
+    try {
+      const updates = ids.map(id => ({ id, changes: editedProducts[id] }));
+
+      // Mise à jour locale immédiate (SQLite + store mémoire) — offline-first
+      const { upsertMany } = require('../db/database');
+      const currentProduits = useSyncStore.getState().produits ?? [];
+      const updatedProduits = currentProduits.map(p => {
+        const edit = editedProducts[String(p._id)];
+        if (!edit) return p;
+        return { ...p, ...edit, _pendingSync: true };
+      });
+      await upsertMany('produits', updatedProduits.filter(p => editedProducts[String(p._id)]), p => String(p._id)).catch(() => {});
+      useSyncStore.getState().setStoreData('produits', updatedProduits);
+
+      if (isOffline) {
+        // Offline → mise en queue une mutation UPDATE_PRODUCT par produit modifié
+        // Le payload doit être identique à celui de ProduitUpdateScreen (sellerOrAdmin, Clefournisseur…)
+        // pour que prepareAdvancedUpdateData côté backend ne rejette pas la requête
+        for (const { id, changes } of updates) {
+          const original = currentProduits.find(p => String(p._id) === id);
+          const clefournisseur = typeof original?.Clefournisseur === 'object'
+            ? original?.Clefournisseur?._id || seller?._id
+            : (original?.Clefournisseur || seller?._id);
+          await syncService.queueMutation('UPDATE_PRODUCT', {
+            productId: id,
+            // Champs modifiés par l'édition rapide
+            ...changes,
+            // Champs requis par prepareAdvancedUpdateData
+            sellerOrAdmin: 'seller',
+            sellerOrAdmin_id: seller?._id,
+            Clefournisseur: clefournisseur,
+            // Champs non modifiés mais attendus par le backend (valeurs existantes)
+            name: original?.name,
+            prix: changes.prix !== undefined ? changes.prix : original?.prix,
+            prixPromo: changes.prixPromo !== undefined ? changes.prixPromo : (original?.prixPromo || 0),
+            quantite: changes.quantite !== undefined ? changes.quantite : (original?.quantite ?? 0),
+            marque: original?.marque || 'inconnu',
+            description: original?.description || '',
+            ClefType: original?.ClefType,
+            variants: original?.variants || [],
+            deletedVariantIds: [],
+          });
+        }
+        useSyncStore.getState().setPendingCount(
+          (useSyncStore.getState().pendingCount || 0) + updates.length
+        );
+        Toast.show({ type: 'info', text1: 'Modifié hors ligne ✓', text2: 'Sera synchronisé automatiquement dès le retour du réseau.' });
+      } else {
+        // Online → envoi direct
+        await apiClient.put('/Products/bulk-update', { updates });
+        Toast.show({ type: 'success', text1: 'Sauvegarde terminée', text2: `${updates.length} produit(s) mis à jour.` });
+        triggerSync();
+      }
+
+      setEditedProducts({});
+      setBulkEditMode(false);
+      setExpandedProduct(null);
+    } catch (_) {
+      Toast.show({ type: 'error', text1: 'Erreur', text2: 'Impossible de sauvegarder les modifications.' });
+    } finally {
+      setIsSavingBulk(false);
+    }
+  };
+
   const numCols = viewMode === 'grid' ? 2 : 1;
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.bg }]}>
       {/* Toolbar */}
       <View style={[styles.toolbar, { backgroundColor: colors.bgCard, borderBottomColor: colors.border }]}>
-        {/* Barre de recherche */}
-        <View style={[styles.searchWrap, { backgroundColor: colors.bgInput, borderColor: colors.border }]}>
-          <Ionicons name="search-outline" size={16} color={colors.textMuted} />
-          <TextInput
-            style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Rechercher un produit..."
-            placeholderTextColor={colors.textPlaceholder}
-            value={search}
-            onChangeText={setSearch}
-            returnKeyType="search"
-          />
-          {search.length > 0 && (
-            <TouchableOpacity onPress={() => { setSearch(''); setServerResults(null); }}>
-              <Ionicons name="close-circle" size={16} color={colors.textMuted} />
-            </TouchableOpacity>
-          )}
-        </View>
 
-        {/* Filtres statut + vue */}
-        <View style={styles.toolbarRow}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.statusFilters}
-            style={styles.statusFiltersScroll}
-          >
-            {STATUS_FILTERS.map(f => (
-              <TouchableOpacity
-                key={f}
-                onPress={() => setStatusFilter(f)}
-                style={[
-                  styles.filterChip,
-                  { backgroundColor: colors.bgHover, borderColor: colors.border },
-                  statusFilter === f && { backgroundColor: colors.primary, borderColor: colors.primary },
-                ]}
-              >
-                <Text style={[styles.filterChipText, { color: statusFilter === f ? '#fff' : colors.textSub }]}>
-                  {STATUS_LABELS[f]}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-          <View style={styles.viewToggle}>
+        {bulkEditMode ? (
+          /* ── Barre contexte mode Édition Rapide ── */
+          <View style={styles.bulkContextBar}>
+            <View style={[styles.bulkContextIcon, { backgroundColor: '#FEF3C7' }]}>
+              <Ionicons name="flash" size={15} color="#D97706" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.bulkContextTitle, { color: colors.text }]}>Édition Rapide</Text>
+              <Text style={[styles.bulkContextSub, { color: colors.textMuted }]}>
+                {displayData.length} produit{displayData.length > 1 ? 's' : ''} · modifiez prix et stock en ligne
+              </Text>
+            </View>
             <TouchableOpacity
-              onPress={() => setViewMode('grid')}
-              style={[styles.viewBtn, viewMode === 'grid' && { backgroundColor: colors.primary }]}
+              onPress={toggleBulkEditMode}
+              style={[styles.bulkContextClose, { backgroundColor: colors.bgHover }]}
+              activeOpacity={0.7}
             >
-              <Ionicons name="grid-outline" size={16} color={viewMode === 'grid' ? '#fff' : colors.textMuted} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setViewMode('list')}
-              style={[styles.viewBtn, viewMode === 'list' && { backgroundColor: colors.primary }]}
-            >
-              <Ionicons name="list-outline" size={16} color={viewMode === 'list' ? '#fff' : colors.textMuted} />
+              <Ionicons name="close" size={18} color={colors.textMuted} />
             </TouchableOpacity>
           </View>
-        </View>
+        ) : (
+          <>
+            {/* Ligne 1 : Recherche + bouton ⋯ */}
+            <View style={styles.toolbarLine1}>
+              <View style={[styles.searchWrap, { backgroundColor: colors.bgInput, borderColor: colors.border, flex: 1 }]}>
+                <Ionicons name="search-outline" size={15} color={colors.textMuted} />
+                <TextInput
+                  style={[styles.searchInput, { color: colors.text }]}
+                  placeholder="Rechercher un produit..."
+                  placeholderTextColor={colors.textPlaceholder}
+                  value={search}
+                  onChangeText={setSearch}
+                  returnKeyType="search"
+                />
+                {search.length > 0 && (
+                  <TouchableOpacity onPress={() => { setSearch(''); setServerResults(null); }}>
+                    <Ionicons name="close-circle" size={15} color={colors.textMuted} />
+                  </TouchableOpacity>
+                )}
+              </View>
+              <TouchableOpacity
+                onPress={() => setMoreMenuVisible(v => !v)}
+                style={[styles.moreBtn, { backgroundColor: moreMenuVisible ? colors.primary : colors.bgHover, borderColor: colors.border }]}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="ellipsis-horizontal" size={18} color={moreMenuVisible ? '#fff' : colors.textMuted} />
+              </TouchableOpacity>
+            </View>
 
-        {/* Stats */}
-        <View style={styles.statsRow}>
-          <Text style={[styles.statsText, { color: colors.textMuted }]}>
-            {displayData.length} produit(s)
-            {produitsStats?.totalPublished !== undefined ? ` · ${produitsStats.totalPublished} publié(s)` : ''}
-          </Text>
-          {isOffline && (
-            <View style={[styles.offlineBadge, { backgroundColor: colors.bgWarning }]}>
-              <Ionicons name="cloud-offline-outline" size={11} color={colors.warningText} />
-              <Text style={[styles.offlineBadgeText, { color: colors.warningText }]}>Hors ligne</Text>
+            {/* Menu déroulant "Plus d'actions" */}
+            {moreMenuVisible && (
+              <View style={[styles.moreMenu, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+                <TouchableOpacity
+                  style={styles.moreMenuItem}
+                  onPress={() => { setMoreMenuVisible(false); toggleBulkEditMode(); }}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.moreMenuIcon, { backgroundColor: '#FEF3C7' }]}>
+                    <Ionicons name="flash" size={15} color="#D97706" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.moreMenuLabel, { color: colors.text }]}>Édition Rapide</Text>
+                    <Text style={[styles.moreMenuSub, { color: colors.textMuted }]}>Modifier prix et stock en masse</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={14} color={colors.border} />
+                </TouchableOpacity>
+                <View style={[styles.moreMenuDivider, { backgroundColor: colors.border }]} />
+                <TouchableOpacity
+                  style={styles.moreMenuItem}
+                  onPress={() => { setMoreMenuVisible(false); navigation.navigate('ImportMasse'); }}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.moreMenuIcon, { backgroundColor: colors.primaryLight }]}>
+                    <Ionicons name="cloud-upload-outline" size={15} color={colors.primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.moreMenuLabel, { color: colors.text }]}>Import en masse</Text>
+                    <Text style={[styles.moreMenuSub, { color: colors.textMuted }]}>Créer plusieurs produits d'un coup</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={14} color={colors.border} />
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Ligne 2 : Filtres statut + toggle vue */}
+            <View style={styles.toolbarLine2}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.statusFilters}
+                style={styles.statusFiltersScroll}
+              >
+                {STATUS_FILTERS.map(f => (
+                  <TouchableOpacity
+                    key={f}
+                    onPress={() => setStatusFilter(f)}
+                    style={[
+                      styles.filterChip,
+                      { backgroundColor: colors.bgHover, borderColor: colors.border },
+                      statusFilter === f && { backgroundColor: colors.primary, borderColor: colors.primary },
+                    ]}
+                  >
+                    <Text style={[styles.filterChipText, { color: statusFilter === f ? '#fff' : colors.textSub }]}>
+                      {STATUS_LABELS[f]}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              <View style={[styles.viewToggle, { backgroundColor: colors.bgHover, borderColor: colors.border }]}>
+                <TouchableOpacity
+                  onPress={() => setViewMode('grid')}
+                  style={[styles.viewToggleBtn, viewMode === 'grid' && { backgroundColor: colors.bgCard }]}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="grid-outline" size={15} color={viewMode === 'grid' ? colors.primary : colors.textMuted} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setViewMode('list')}
+                  style={[styles.viewToggleBtn, viewMode === 'list' && { backgroundColor: colors.bgCard }]}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="list-outline" size={15} color={viewMode === 'list' ? colors.primary : colors.textMuted} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Ligne 3 : Stats + badge offline */}
+            <View style={styles.statsRow}>
+              <Text style={[styles.statsText, { color: colors.textMuted }]}>
+                {displayData.length} produit{displayData.length > 1 ? 's' : ''}
+                {produitsStats?.totalPublished !== undefined ? ` · ${produitsStats.totalPublished} publié${produitsStats.totalPublished > 1 ? 's' : ''}` : ''}
+              </Text>
+              {isOffline && (
+                <View style={[styles.offlineBadge, { backgroundColor: colors.bgWarning }]}>
+                  <Ionicons name="cloud-offline-outline" size={10} color={colors.warningText} />
+                  <Text style={[styles.offlineBadgeText, { color: colors.warningText }]}>Hors ligne</Text>
+                </View>
+              )}
+            </View>
+          </>
+        )}
+      </View>
+
+      {/* ── Mode Édition Rapide (tableau bulk) ── */}
+      {bulkEditMode ? (
+        <View style={{ flex: 1 }}>
+          <FlatList
+            data={displayData}
+            keyExtractor={p => String(p._id)}
+            contentContainerStyle={[styles.listContent, { paddingBottom: 100 }]}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl refreshing={isSyncing} onRefresh={() => triggerSync()} tintColor={colors.primary} />
+            }
+            renderItem={({ item: product }) => {
+              const edits = editedProducts[product._id] || {};
+              const isEdited = Object.keys(edits).length > 0;
+              const hasVariants = product.variants?.length > 0;
+              const totalVariantStock = hasVariants
+                ? product.variants.reduce((a, v) => a + (Number(v.stock) || 0), 0) : 0;
+              const currentPrix     = edits.prix      !== undefined ? String(edits.prix)     : String(product.prix || '');
+              const currentPrixPromo= edits.prixPromo !== undefined ? String(edits.prixPromo): String(product.prixPromo || '');
+              const currentQuantite = edits.quantite  !== undefined ? String(edits.quantite) : String(product.quantite ?? '');
+              const isExpanded = expandedProduct === product._id;
+
+              return (
+                <View style={[
+                  styles.bulkRow,
+                  { backgroundColor: isEdited ? '#F0FDF9' : colors.bgCard, borderColor: isEdited ? '#30A08B40' : colors.border },
+                ]}>
+                  {/* Produit info */}
+                  <View style={styles.bulkRowTop}>
+                    <View style={[styles.bulkThumb, { backgroundColor: colors.bgHover }]}>
+                      {product.image1
+                        ? <CachedImage uri={product.image1} style={StyleSheet.absoluteFill} contentFit="cover" />
+                        : <Ionicons name="cube-outline" size={16} color={colors.textMuted} />
+                      }
+                    </View>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={[styles.bulkRowName, { color: colors.text }]} numberOfLines={1}>{product.name}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                        <Text style={[styles.bulkRowSub, { color: colors.textMuted }]} numberOfLines={1}>
+                          {product.marque || 'Sans marque'}
+                        </Text>
+                        {hasVariants && (
+                          <View style={[styles.variantBadge, { backgroundColor: colors.bgHover }]}>
+                            <Text style={[styles.variantBadgeText, { color: colors.textMuted }]}>
+                              {product.variants.length}v
+                            </Text>
+                          </View>
+                        )}
+                        {isEdited && (
+                          <View style={styles.editedDot} />
+                        )}
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Champs */}
+                  <View style={styles.bulkFieldsRow}>
+                    {/* Prix */}
+                    <View style={styles.bulkFieldWrap}>
+                      <Text style={[styles.bulkFieldLabel, { color: colors.textMuted }]}>Prix (F)</Text>
+                      {hasVariants ? (
+                        <TouchableOpacity
+                          style={[styles.bulkVariantBtn, {
+                            backgroundColor: isExpanded ? '#F0FDF9' : colors.bgHover,
+                            borderColor: isExpanded ? '#30A08B50' : colors.border,
+                          }]}
+                          onPress={() => setExpandedProduct(isExpanded ? null : product._id)}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={[styles.bulkVariantBtnText, { color: isExpanded ? '#30A08B' : colors.textMuted }]}>
+                            Variantes
+                          </Text>
+                          <Ionicons
+                            name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                            size={12}
+                            color={isExpanded ? '#30A08B' : colors.textMuted}
+                          />
+                        </TouchableOpacity>
+                      ) : (
+                        <TextInput
+                          style={[styles.bulkInput, { backgroundColor: colors.bgInput, borderColor: colors.border, color: colors.text }]}
+                          value={currentPrix}
+                          onChangeText={v => handleBulkEditChange(product._id, 'prix', Number(v) || 0)}
+                          keyboardType="numeric"
+                          placeholder="0"
+                          placeholderTextColor={colors.textPlaceholder}
+                        />
+                      )}
+                    </View>
+
+                    {/* Prix Promo */}
+                    <View style={styles.bulkFieldWrap}>
+                      <Text style={[styles.bulkFieldLabel, { color: colors.textMuted }]}>Promo (F)</Text>
+                      {hasVariants ? (
+                        <View style={[styles.bulkInput, { backgroundColor: colors.bgHover, borderColor: colors.border, justifyContent: 'center' }]}>
+                          <Text style={[styles.bulkFieldLabel, { color: colors.textMuted, textAlign: 'center' }]}>—</Text>
+                        </View>
+                      ) : (
+                        <TextInput
+                          style={[styles.bulkInput, { backgroundColor: colors.bgInput, borderColor: colors.border, color: colors.text }]}
+                          value={currentPrixPromo}
+                          onChangeText={v => handleBulkEditChange(product._id, 'prixPromo', Number(v) || 0)}
+                          keyboardType="numeric"
+                          placeholder="0"
+                          placeholderTextColor={colors.textPlaceholder}
+                        />
+                      )}
+                    </View>
+
+                    {/* Stock */}
+                    <View style={styles.bulkFieldWrap}>
+                      <Text style={[styles.bulkFieldLabel, { color: colors.textMuted }]}>Stock</Text>
+                      {hasVariants ? (
+                        <View style={[styles.bulkInput, { backgroundColor: colors.bgHover, borderColor: colors.border, justifyContent: 'center' }]}>
+                          <Text style={[styles.bulkFieldLabel, { color: colors.textMuted, textAlign: 'center' }]}>
+                            {totalVariantStock}
+                          </Text>
+                        </View>
+                      ) : (
+                        <TextInput
+                          style={[styles.bulkInput, { backgroundColor: colors.bgInput, borderColor: colors.border, color: colors.text }]}
+                          value={currentQuantite}
+                          onChangeText={v => handleBulkEditChange(product._id, 'quantite', Number(v) || 0)}
+                          keyboardType="numeric"
+                          placeholder="0"
+                          placeholderTextColor={colors.textPlaceholder}
+                        />
+                      )}
+                    </View>
+                  </View>
+
+                  {/* Zone variantes dépliée */}
+                  {hasVariants && isExpanded && (
+                    <View style={[styles.variantZone, { borderTopColor: colors.border, backgroundColor: colors.bgHover }]}>
+                      <Text style={[styles.variantZoneTitle, { color: colors.textMuted }]}>
+                        Édition des {product.variants.length} variante{product.variants.length > 1 ? 's' : ''}
+                      </Text>
+                      {product.variants.map((variant, vIndex) => {
+                        const vEdits = edits.variants?.[vIndex] ?? {};
+                        const vPrix  = vEdits.price !== undefined ? String(vEdits.price)  : String(variant.price  || '');
+                        const vStock = vEdits.stock !== undefined ? String(vEdits.stock)  : String(variant.stock  || '');
+                        return (
+                          <View
+                            key={variant._id || vIndex}
+                            style={[styles.variantRow, { backgroundColor: colors.bgCard, borderColor: colors.border }]}
+                          >
+                            {/* Couleur / Image */}
+                            <View style={[styles.variantSwatch, {
+                              backgroundColor: variant.colorCode || '#E5E7EB',
+                              borderColor: colors.border,
+                              overflow: 'hidden',
+                            }]}>
+                              {variant.imageUrl
+                                ? <CachedImage uri={variant.imageUrl} style={StyleSheet.absoluteFill} contentFit="cover" />
+                                : null
+                              }
+                            </View>
+                            <View style={{ flex: 1, minWidth: 0 }}>
+                              <Text style={[styles.variantName, { color: colors.text }]} numberOfLines={1}>
+                                {variant.color || `Variante ${vIndex + 1}`}
+                              </Text>
+                              {variant.sizes?.length > 0 && (
+                                <Text style={[styles.variantSizes, { color: colors.textMuted }]}>
+                                  {variant.sizes.join(', ')}
+                                </Text>
+                              )}
+                            </View>
+                            {/* Prix variante */}
+                            <View style={styles.variantInputWrap}>
+                              <Text style={[styles.bulkFieldLabel, { color: colors.textMuted }]}>Prix</Text>
+                              <TextInput
+                                style={[styles.bulkInputSm, { backgroundColor: colors.bgInput, borderColor: colors.border, color: colors.text }]}
+                                value={vPrix}
+                                onChangeText={v => handleVariantEditChange(product._id, vIndex, 'price', Number(v) || 0, product.variants)}
+                                keyboardType="numeric"
+                                placeholder="0"
+                                placeholderTextColor={colors.textPlaceholder}
+                              />
+                            </View>
+                            {/* Stock variante */}
+                            <View style={styles.variantInputWrap}>
+                              <Text style={[styles.bulkFieldLabel, { color: colors.textMuted }]}>Stock</Text>
+                              <TextInput
+                                style={[styles.bulkInputSm, { backgroundColor: colors.bgInput, borderColor: colors.border, color: colors.text }]}
+                                value={vStock}
+                                onChangeText={v => handleVariantEditChange(product._id, vIndex, 'stock', Number(v) || 0, product.variants)}
+                                keyboardType="numeric"
+                                placeholder="0"
+                                placeholderTextColor={colors.textPlaceholder}
+                              />
+                            </View>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  )}
+                </View>
+              );
+            }}
+          />
+
+          {/* Barre de sauvegarde sticky */}
+          {Object.keys(editedProducts).length > 0 && (
+            <View style={[styles.bulkSaveBar, { backgroundColor: colors.bgCard, borderTopColor: colors.border }]}>
+              <View style={[styles.bulkSaveCount, { backgroundColor: '#30A08B20' }]}>
+                <Text style={styles.bulkSaveCountText}>{Object.keys(editedProducts).length}</Text>
+              </View>
+              <Text style={[styles.bulkSaveLabel, { color: colors.text }]}>
+                produit{Object.keys(editedProducts).length > 1 ? 's' : ''} modifié{Object.keys(editedProducts).length > 1 ? 's' : ''}
+              </Text>
+              <TouchableOpacity
+                style={styles.bulkCancelBtn}
+                onPress={() => setEditedProducts({})}
+                disabled={isSavingBulk}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="close" size={16} color={colors.textMuted} />
+                <Text style={[styles.bulkCancelText, { color: colors.textMuted }]}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.bulkSaveBtn, { backgroundColor: '#30A08B', opacity: isSavingBulk ? 0.7 : 1 }]}
+                onPress={handleBulkSave}
+                disabled={isSavingBulk}
+                activeOpacity={0.85}
+              >
+                {isSavingBulk
+                  ? <ActivityIndicator size="small" color="#fff" />
+                  : <>
+                      <Ionicons name="save-outline" size={15} color="#fff" />
+                      <Text style={styles.bulkSaveBtnText}>Sauvegarder</Text>
+                    </>
+                }
+              </TouchableOpacity>
             </View>
           )}
         </View>
-      </View>
-
-      {/* Liste */}
-      <FlatList
-        key={viewMode}
-        data={displayData}
-        keyExtractor={p => String(p._id)}
-        numColumns={numCols}
-        columnWrapperStyle={viewMode === 'grid' ? styles.gridRow : undefined}
-        contentContainerStyle={[styles.listContent, displayData.length === 0 && { flex: 1 }]}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isSyncing}
-            onRefresh={() => { triggerSync(); setPage(1); setHasMore(produitsStats?.hasMore ?? false); }}
-            tintColor={colors.primary}
+      ) : (
+        <>
+          {/* ── Mode normal (grille/liste) ── */}
+          <FlatList
+            key={viewMode}
+            data={displayData}
+            keyExtractor={p => String(p._id)}
+            numColumns={numCols}
+            columnWrapperStyle={viewMode === 'grid' ? styles.gridRow : undefined}
+            contentContainerStyle={[styles.listContent, displayData.length === 0 && { flex: 1 }]}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={isSyncing}
+                onRefresh={() => { triggerSync(); setPage(1); setHasMore(produitsStats?.hasMore ?? false); }}
+                tintColor={colors.primary}
+              />
+            }
+            renderItem={({ item }) =>
+              viewMode === 'grid'
+                ? <ProduitCard produit={item} onPress={onPressProduit} colors={colors} />
+                : <ProduitRow produit={item} onPress={onPressProduit} colors={colors} />
+            }
+            onEndReached={loadNextPage}
+            onEndReachedThreshold={0.3}
+            ListFooterComponent={
+              loading ? (
+                <View style={styles.footerLoader}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                  <Text style={[styles.footerText, { color: colors.textMuted }]}>Chargement...</Text>
+                </View>
+              ) : hasMore && !loading ? (
+                <TouchableOpacity style={[styles.loadMoreBtn, { borderColor: colors.border }]} onPress={loadNextPage}>
+                  <Text style={[styles.loadMoreText, { color: colors.primary }]}>Charger plus</Text>
+                </TouchableOpacity>
+              ) : null
+            }
+            ListEmptyComponent={
+              !isSyncing && (
+                <View style={styles.empty}>
+                  <Ionicons name="cube-outline" size={48} color={colors.border} />
+                  <Text style={[styles.emptyTitle, { color: colors.text }]}>
+                    {search.length > 0 ? 'Aucun résultat' : 'Aucun produit'}
+                  </Text>
+                  <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+                    {search.length > 0 ? `Aucun produit pour "${search}"` : 'Vos produits apparaîtront ici'}
+                  </Text>
+                </View>
+              )
+            }
           />
-        }
-        renderItem={({ item }) =>
-          viewMode === 'grid'
-            ? <ProduitCard produit={item} onPress={onPressProduit} colors={colors} />
-            : <ProduitRow produit={item} onPress={onPressProduit} colors={colors} />
-        }
-        onEndReached={loadNextPage}
-        onEndReachedThreshold={0.3}
-        ListFooterComponent={
-          loading ? (
-            <View style={styles.footerLoader}>
-              <ActivityIndicator size="small" color={colors.primary} />
-              <Text style={[styles.footerText, { color: colors.textMuted }]}>Chargement...</Text>
-            </View>
-          ) : hasMore && !loading ? (
-            <TouchableOpacity style={[styles.loadMoreBtn, { borderColor: colors.border }]} onPress={loadNextPage}>
-              <Text style={[styles.loadMoreText, { color: colors.primary }]}>Charger plus</Text>
-            </TouchableOpacity>
-          ) : null
-        }
-        ListEmptyComponent={
-          !isSyncing && (
-            <View style={styles.empty}>
-              <Ionicons name="cube-outline" size={48} color={colors.border} />
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>
-                {search.length > 0 ? 'Aucun résultat' : 'Aucun produit'}
-              </Text>
-              <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-                {search.length > 0 ? `Aucun produit pour "${search}"` : 'Vos produits apparaîtront ici'}
-              </Text>
-            </View>
-          )
-        }
-      />
 
-      {/* FAB — nouveau produit */}
-      {(() => {
-        const planName = subscription?.planName || 'Starter';
-        const limit = SUBSCRIPTION_CONFIG.getPlan(planName)?.productLimit ?? -1;
-        const total = produits.length;
-        const atLimit = limit !== -1 && total >= limit;
-        return (
-          <TouchableOpacity
-            style={[styles.fab, { backgroundColor: atLimit ? '#9CA3AF' : colors.primary }]}
-            onPress={() => {
-              if (atLimit) { navigation.navigate('Abonnement'); return; }
-              navigation.navigate('ProduitUpdate', { produit: null });
-            }}
-            activeOpacity={0.85}
-          >
-            <Ionicons name={atLimit ? 'lock-closed' : 'add'} size={atLimit ? 20 : 26} color="#fff" />
-          </TouchableOpacity>
-        );
-      })()}
+          {/* FAB — nouveau produit */}
+          {(() => {
+            const planName = subscription?.planName || 'Starter';
+            const limit = SUBSCRIPTION_CONFIG.getPlan(planName)?.productLimit ?? -1;
+            const total = produits.length;
+            const atLimit = limit !== -1 && total >= limit;
+            return (
+              <TouchableOpacity
+                style={[styles.fab, { backgroundColor: atLimit ? '#9CA3AF' : colors.primary }]}
+                onPress={() => {
+                  if (atLimit) { navigation.navigate('Abonnement'); return; }
+                  navigation.navigate('ProduitUpdate', { produit: null });
+                }}
+                activeOpacity={0.85}
+              >
+                <Ionicons name={atLimit ? 'lock-closed' : 'add'} size={atLimit ? 20 : 26} color="#fff" />
+              </TouchableOpacity>
+            );
+          })()}
+        </>
+      )}
 
       {/* Modal détail */}
       <ProduitDetailModal
@@ -619,6 +1253,15 @@ export default function ProduitsScreen({ navigation }) {
         visible={detailVisible}
         onClose={() => setDetailVisible(false)}
         onEdit={(p) => navigation.navigate('ProduitUpdate', { produit: p })}
+        onEtiquette={(p) => { setDetailVisible(false); setTimeout(() => openEtiquette(p), 200); }}
+        colors={colors}
+      />
+
+      {/* Modal Étiquette */}
+      <EtiquetteModal
+        produit={etiquetteProduit}
+        visible={etiquetteVisible}
+        onClose={() => setEtiquetteVisible(false)}
         colors={colors}
       />
     </View>
@@ -631,16 +1274,39 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
 
   // Toolbar
-  toolbar: { borderBottomWidth: 1, paddingHorizontal: 12, paddingTop: 12, paddingBottom: 8, gap: 10 },
-  searchWrap: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9 },
+  toolbar: { borderBottomWidth: 1, paddingHorizontal: 12, paddingTop: 10, paddingBottom: 8, gap: 8 },
+
+  // Mode bulk — barre de contexte
+  bulkContextBar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
+  bulkContextIcon: { width: 34, height: 34, borderRadius: 10, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+  bulkContextTitle: { fontSize: 14, fontWeight: '800' },
+  bulkContextSub: { fontSize: 11, marginTop: 1 },
+  bulkContextClose: { width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+
+  // Ligne 1 : recherche + bouton ⋯
+  toolbarLine1: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  searchWrap: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 12, paddingHorizontal: 11, paddingVertical: 8 },
   searchInput: { flex: 1, fontSize: 14 },
-  toolbarRow: { flexDirection: 'row', alignItems: 'center' },
-  statusFiltersScroll: { flex: 1, marginRight: 8 },
-  statusFilters: { flexDirection: 'row', gap: 6, paddingRight: 4 },
+  moreBtn: { width: 38, height: 38, borderRadius: 12, borderWidth: 1, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+
+  // Menu déroulant
+  moreMenu: { borderRadius: 14, borderWidth: 1, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, elevation: 8 },
+  moreMenuItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
+  moreMenuIcon: { width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+  moreMenuLabel: { fontSize: 13, fontWeight: '700' },
+  moreMenuSub: { fontSize: 11, marginTop: 1 },
+  moreMenuDivider: { height: 1, marginHorizontal: 14 },
+
+  // Ligne 2 : filtres + toggle vue
+  toolbarLine2: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  statusFiltersScroll: { flex: 1 },
+  statusFilters: { flexDirection: 'row', gap: 6 },
   filterChip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 16, borderWidth: 1 },
   filterChipText: { fontSize: 11, fontWeight: '600' },
-  viewToggle: { flexDirection: 'row', gap: 4, flexShrink: 0 },
-  viewBtn: { width: 32, height: 32, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  viewToggle: { flexDirection: 'row', borderRadius: 10, borderWidth: 1, overflow: 'hidden', flexShrink: 0 },
+  viewToggleBtn: { width: 30, height: 30, justifyContent: 'center', alignItems: 'center' },
+
+  // Ligne 3 : stats
   statsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   statsText: { fontSize: 11 },
   offlineBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 },
@@ -663,7 +1329,6 @@ const styles = StyleSheet.create({
   cardPrixOld: { fontSize: 11, textDecorationLine: 'line-through' },
   stockBadge: { paddingHorizontal: 6, paddingVertical: 3, borderRadius: 8 },
   stockText: { fontSize: 10, fontWeight: '600' },
-
   // Row liste
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: 1, gap: 12, marginBottom: 2 },
   rowImg: { width: 56, height: 56, borderRadius: 12, overflow: 'hidden', justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
@@ -738,4 +1403,83 @@ const styles = StyleSheet.create({
   varianteImg: { width: 44, height: 44, borderRadius: 8 },
   varianteDot: { width: 16, height: 16, borderRadius: 8 },
   varianteStock: { fontSize: 10, fontWeight: '600' },
+
+  // Bulk edit table
+  bulkRow: { borderRadius: 12, borderWidth: 1, marginHorizontal: 12, marginBottom: 8, overflow: 'hidden' },
+  bulkRowTop: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10 },
+  bulkThumb: { width: 40, height: 40, borderRadius: 8, overflow: 'hidden', justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+  bulkRowName: { fontSize: 13, fontWeight: '700' },
+  bulkRowSub: { fontSize: 11 },
+  variantBadge: { paddingHorizontal: 5, paddingVertical: 2, borderRadius: 6 },
+  variantBadgeText: { fontSize: 9, fontWeight: '700' },
+  editedDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#30A08B' },
+  bulkFieldsRow: { flexDirection: 'row', gap: 6, paddingHorizontal: 10, paddingBottom: 10 },
+  bulkFieldWrap: { flex: 1, gap: 4 },
+  bulkFieldLabel: { fontSize: 9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.3 },
+  bulkInput: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 7, fontSize: 13, textAlign: 'center' },
+  bulkVariantBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, borderWidth: 1, borderRadius: 8, paddingVertical: 8 },
+  bulkVariantBtnText: { fontSize: 11, fontWeight: '600' },
+  // Variant zone
+  variantZone: { borderTopWidth: 1, padding: 10, gap: 8 },
+  variantZoneTitle: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginLeft: 4, marginBottom: 2 },
+  variantRow: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 8, borderRadius: 10, borderWidth: 1 },
+  variantSwatch: { width: 36, height: 36, borderRadius: 8, borderWidth: 1, flexShrink: 0 },
+  variantName: { fontSize: 12, fontWeight: '600' },
+  variantSizes: { fontSize: 10 },
+  variantInputWrap: { gap: 3, alignItems: 'center', width: 60 },
+  bulkInputSm: { borderWidth: 1, borderRadius: 7, paddingHorizontal: 6, paddingVertical: 6, fontSize: 12, textAlign: 'center', width: 60 },
+  // Save bar
+  bulkSaveBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 10, borderTopWidth: 1, shadowColor: '#000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.08, elevation: 8 },
+  bulkSaveCount: { width: 26, height: 26, borderRadius: 13, justifyContent: 'center', alignItems: 'center' },
+  bulkSaveCountText: { fontSize: 12, fontWeight: '800', color: '#30A08B' },
+  bulkSaveLabel: { fontSize: 12, fontWeight: '600', flex: 1 },
+  bulkCancelBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10 },
+  bulkCancelText: { fontSize: 13, fontWeight: '600' },
+  bulkSaveBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10 },
+  bulkSaveBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+
+  // Détail actions row
+  detailActionsRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1 },
+  detailActionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, flex: 1, justifyContent: 'center' },
+  detailActionText: { fontSize: 12, fontWeight: '700' },
+
+  // Édition Rapide modal
+  erBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.55)' },
+  erCentered: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 },
+  erSheet: { width: '100%', borderRadius: 24, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, elevation: 16 },
+  erHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1 },
+  erIconWrap: { width: 36, height: 36, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  erTitle: { fontSize: 16, fontWeight: '800' },
+  erSubtitle: { fontSize: 12, marginTop: 1 },
+  erClose: { width: 32, height: 32, justifyContent: 'center', alignItems: 'center' },
+  erBody: { padding: 16, gap: 14 },
+  erField: { gap: 6 },
+  erRow: { flexDirection: 'row', gap: 12 },
+  erLabel: { fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3 },
+  erInput: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 15 },
+  erDiscountBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 },
+  erVariantNote: { flexDirection: 'row', gap: 8, padding: 12, borderRadius: 12, borderWidth: 1, alignItems: 'flex-start' },
+  erVariantNoteText: { fontSize: 12, flex: 1, lineHeight: 18 },
+  erFooter: { flexDirection: 'row', gap: 10, padding: 16, borderTopWidth: 1 },
+  erBtnCancel: { flex: 1, paddingVertical: 13, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  erBtnCancelText: { fontSize: 14, fontWeight: '600' },
+  erBtnSave: { flex: 1.5, flexDirection: 'row', gap: 6, paddingVertical: 13, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  erBtnSaveText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+
+  // Étiquette modal
+  etSheet: { width: '100%', borderRadius: 24, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, elevation: 16 },
+  etPreviewWrap: { margin: 16, borderRadius: 20, padding: 20, alignItems: 'center' },
+  etLabel: { width: 220, padding: 20, borderRadius: 20, alignItems: 'center', gap: 8, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, elevation: 8 },
+  etQrPlaceholder: { width: 160, height: 160, justifyContent: 'center', alignItems: 'center' },
+  etBrand: { fontSize: 11, textAlign: 'center' },
+  etName: { fontSize: 14, fontWeight: '700', textAlign: 'center', lineHeight: 20 },
+  etPrixRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
+  etPrix: { fontSize: 18, fontWeight: '800' },
+  etPrixPromo: { fontSize: 18, fontWeight: '800', color: '#DC2626' },
+  etPrixOld: { fontSize: 13, textDecorationLine: 'line-through' },
+  etBarcode: { fontSize: 11, letterSpacing: 1.5, marginTop: 2 },
+  etInfo: { flexDirection: 'row', gap: 8, marginHorizontal: 16, marginBottom: 4, padding: 10, borderRadius: 12, borderWidth: 1, alignItems: 'flex-start' },
+  etInfoText: { fontSize: 11, flex: 1, lineHeight: 16 },
+  etBtnShare: { flex: 1, flexDirection: 'row', gap: 6, paddingVertical: 13, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  etBtnShareText: { fontSize: 13, fontWeight: '700' },
 });

@@ -3,7 +3,7 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ActivityIndicator, KeyboardAvoidingView, Platform,
   ScrollView, Image, StatusBar, Animated, Dimensions,
-  Modal, Linking,
+  Modal, Linking, FlatList, TouchableWithoutFeedback,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +24,122 @@ const MUTED     = '#64748B';
 const BORDER    = '#E2E8F0';
 const WHITE     = '#FFFFFF';
 const BG        = '#F8FAFC';
+
+// ─── Pays téléphone ───────────────────────────────────────────────────────────
+const COUNTRIES = [
+  { code: 'NE', name: 'Niger',         dial: '+227', flag: '🇳🇪', format: 'XX XX XX XX',    digits: 8 },
+  { code: 'BJ', name: 'Bénin',         dial: '+229', flag: '🇧🇯', format: 'XX XX XX XX',    digits: 8 },
+  { code: 'BF', name: 'Burkina Faso',  dial: '+226', flag: '🇧🇫', format: 'XX XX XX XX',    digits: 8 },
+  { code: 'ML', name: 'Mali',          dial: '+223', flag: '🇲🇱', format: 'XX XX XX XX',    digits: 8 },
+  { code: 'SN', name: 'Sénégal',       dial: '+221', flag: '🇸🇳', format: 'XX XXX XX XX',   digits: 9 },
+  { code: 'CI', name: "Côte d'Ivoire", dial: '+225', flag: '🇨🇮', format: 'XX XX XX XX XX', digits: 10 },
+  { code: 'TG', name: 'Togo',          dial: '+228', flag: '🇹🇬', format: 'XX XX XX XX',    digits: 8 },
+  { code: 'GN', name: 'Guinée',        dial: '+224', flag: '🇬🇳', format: 'XXX XX XX XX',   digits: 9 },
+  { code: 'CM', name: 'Cameroun',      dial: '+237', flag: '🇨🇲', format: 'X XX XX XX XX',  digits: 9 },
+  { code: 'MR', name: 'Mauritanie',    dial: '+222', flag: '🇲🇷', format: 'XX XX XX XX',    digits: 8 },
+  { code: 'GH', name: 'Ghana',         dial: '+233', flag: '🇬🇭', format: 'XX XXX XXXX',    digits: 9 },
+  { code: 'NG', name: 'Nigeria',       dial: '+234', flag: '🇳🇬', format: 'XXX XXX XXXX',   digits: 10 },
+  { code: 'FR', name: 'France',        dial: '+33',  flag: '🇫🇷', format: 'X XX XX XX XX',  digits: 9 },
+  { code: 'MA', name: 'Maroc',         dial: '+212', flag: '🇲🇦', format: 'X XX XX XX XX',  digits: 9 },
+  { code: 'DZ', name: 'Algérie',       dial: '+213', flag: '🇩🇿', format: 'XXX XX XX XX',   digits: 9 },
+  { code: 'US', name: 'États-Unis',    dial: '+1',   flag: '🇺🇸', format: 'XXX XXX XXXX',   digits: 10 },
+];
+
+const formatPhone = (raw, pattern) => {
+  const digits = raw.replace(/\D/g, '');
+  let res = '', di = 0;
+  for (let i = 0; i < pattern.length && di < digits.length; i++) {
+    if (pattern[i] === 'X') res += digits[di++];
+    else if (di > 0) res += pattern[i];
+  }
+  return res;
+};
+const strip = (s) => s.replace(/\D/g, '');
+
+// ─── Picker indicatif ─────────────────────────────────────────────────────────
+function CountryPicker({ value, onChange }) {
+  const insets                  = useSafeAreaInsets();
+  const [open, setOpen]         = useState(false);
+  const [mounted, setMounted]   = useState(false);
+  const [search, setSearch]     = useState('');
+  const slideAnim = useRef(new Animated.Value(H * 0.72)).current;
+  const bgAnim    = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => { if (open) setMounted(true); }, [open]);
+  useEffect(() => {
+    if (!mounted) return;
+    Animated.parallel([
+      Animated.spring(slideAnim, { toValue: 0, tension: 60, friction: 12, useNativeDriver: true }),
+      Animated.timing(bgAnim,    { toValue: 1, duration: 220, useNativeDriver: true }),
+    ]).start();
+  }, [mounted]);
+
+  const dismiss = (cb) => {
+    Animated.parallel([
+      Animated.timing(slideAnim, { toValue: H * 0.72, duration: 220, useNativeDriver: true }),
+      Animated.timing(bgAnim,    { toValue: 0,        duration: 220, useNativeDriver: true }),
+    ]).start(() => { setMounted(false); setOpen(false); cb?.(); });
+  };
+
+  const filtered = COUNTRIES.filter(c =>
+    c.name.toLowerCase().includes(search.toLowerCase()) || c.dial.includes(search)
+  );
+
+  return (
+    <>
+      <TouchableOpacity style={s.dialBtn} onPress={() => setOpen(true)} activeOpacity={0.7}>
+        <Text style={s.dialFlag}>{value.flag}</Text>
+        <Text style={s.dialCode}>{value.dial}</Text>
+        <Ionicons name="chevron-down" size={11} color={MUTED} />
+      </TouchableOpacity>
+
+      {mounted && (
+        <Modal visible={mounted} transparent animationType="none" statusBarTranslucent onRequestClose={() => dismiss()}>
+          <TouchableWithoutFeedback onPress={() => dismiss()}>
+            <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)', opacity: bgAnim }]} />
+          </TouchableWithoutFeedback>
+          <Animated.View style={[s.pickerSheet, {
+            position: 'absolute', bottom: 0, left: 0, right: 0,
+            maxHeight: H * 0.72,
+            paddingBottom: insets.bottom + 12,
+            transform: [{ translateY: slideAnim }],
+          }]}>
+            <View style={s.sheetHandle}><View style={s.handle} /></View>
+            <Text style={s.sheetTitle}>Indicatif téléphonique</Text>
+            <View style={s.searchWrap}>
+              <Ionicons name="search-outline" size={15} color={MUTED} />
+              <TextInput
+                style={s.searchInput}
+                placeholder="Rechercher..."
+                placeholderTextColor={MUTED}
+                value={search}
+                onChangeText={setSearch}
+                autoFocus
+              />
+            </View>
+            <FlatList
+              data={filtered}
+              keyExtractor={i => i.code}
+              keyboardShouldPersistTaps="handled"
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[s.sheetRow, item.code === value.code && { backgroundColor: `${PRIMARY}10` }]}
+                  onPress={() => { dismiss(() => onChange(item)); setSearch(''); }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={{ fontSize: 22, marginRight: 12 }}>{item.flag}</Text>
+                  <Text style={[s.sheetRowLabel, item.code === value.code && { color: PRIMARY, fontWeight: '800' }]}>{item.name}</Text>
+                  <Text style={{ color: MUTED, fontWeight: '700', fontSize: 13 }}>{item.dial}</Text>
+                  {item.code === value.code && <Ionicons name="checkmark" size={16} color={PRIMARY} style={{ marginLeft: 8 }} />}
+                </TouchableOpacity>
+              )}
+            />
+          </Animated.View>
+        </Modal>
+      )}
+    </>
+  );
+}
 
 // ─── Champ animé ─────────────────────────────────────────────────────────────
 function AnimatedField({ label, icon, hasError, errorMsg, children }) {
@@ -263,7 +379,10 @@ const pm = StyleSheet.create({
 // ─── Écran principal ──────────────────────────────────────────────────────────
 export default function LoginScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const [identifier,    setIdentifier]    = useState('');
+  const [loginMethod,   setLoginMethod]   = useState('email');
+  const [email,         setEmail]         = useState('');
+  const [loginCountry,  setLoginCountry]  = useState(COUNTRIES[0]);
+  const [phoneRaw,      setPhoneRaw]      = useState('');
   const [password,      setPassword]      = useState('');
   const [showPassword,  setShowPassword]  = useState(false);
   const [showPending,   setShowPending]   = useState(false);
@@ -286,8 +405,14 @@ export default function LoginScreen({ navigation }) {
   }, []);
 
   const handleChange = (setter) => (val) => { if (error) clearError(); setter(val); };
-  const handleLogin  = async () => {
-    const id = identifier.trim();
+
+  const buildIdentifier = () => {
+    if (loginMethod === 'email') return email.trim();
+    return `${loginCountry.dial}${strip(phoneRaw)}`;
+  };
+
+  const handleLogin = async () => {
+    const id = buildIdentifier();
     const pw = password.trim();
     if (!id || !pw) return;
     const result = await login(id, pw);
@@ -295,10 +420,14 @@ export default function LoginScreen({ navigation }) {
       setShowPending(true);
     }
   };
-  const canSubmit = identifier.trim().length > 0 && password.trim().length > 0 && !loading;
+
+  const identifierFilled = loginMethod === 'email'
+    ? email.trim().length > 0
+    : strip(phoneRaw).length >= loginCountry.digits;
+  const canSubmit = identifierFilled && password.trim().length > 0 && !loading;
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: '#0D2218' }}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       <PendingModal visible={showPending} onClose={() => setShowPending(false)} />
       <ForgotPasswordSheet visible={showForgot} onClose={() => setShowForgot(false)} />
@@ -356,20 +485,63 @@ export default function LoginScreen({ navigation }) {
               </View>
             </View>
 
-            {/* Champs */}
-            <AnimatedField label="Email ou téléphone" icon="person-outline" hasError={!!error}>
-              <TextInput
-                style={s.input}
-                value={identifier}
-                onChangeText={handleChange(setIdentifier)}
-                placeholder="vendeur@email.com"
-                placeholderTextColor={MUTED}
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="email-address"
-                returnKeyType="next"
-              />
-            </AnimatedField>
+            {/* Sélecteur méthode + champ conditionnel */}
+            <View style={{ marginBottom: 14 }}>
+              {/* Toggle Email / Téléphone */}
+              <View style={s.methodToggle}>
+                <TouchableOpacity
+                  style={[s.methodBtn, loginMethod === 'email' && s.methodBtnActive]}
+                  onPress={() => { setLoginMethod('email'); if (error) clearError(); }}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="mail-outline" size={14} color={loginMethod === 'email' ? WHITE : MUTED} />
+                  <Text style={[s.methodBtnText, loginMethod === 'email' && s.methodBtnTextActive]}>Email</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[s.methodBtn, loginMethod === 'phone' && s.methodBtnActive]}
+                  onPress={() => { setLoginMethod('phone'); if (error) clearError(); }}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="phone-portrait-outline" size={14} color={loginMethod === 'phone' ? WHITE : MUTED} />
+                  <Text style={[s.methodBtnText, loginMethod === 'phone' && s.methodBtnTextActive]}>Téléphone</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Champ email */}
+              {loginMethod === 'email' && (
+                <AnimatedField label="Adresse email" icon="mail-outline" hasError={!!error}>
+                  <TextInput
+                    style={s.input}
+                    value={email}
+                    onChangeText={handleChange(setEmail)}
+                    placeholder="vendeur@email.com"
+                    placeholderTextColor={MUTED}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="email-address"
+                    returnKeyType="next"
+                  />
+                </AnimatedField>
+              )}
+
+              {/* Champ téléphone avec indicatif */}
+              {loginMethod === 'phone' && (
+                <AnimatedField label="Numéro de téléphone" icon="phone-portrait-outline" hasError={!!error}>
+                  <CountryPicker value={loginCountry} onChange={(c) => { setLoginCountry(c); if (error) clearError(); }} />
+                  <View style={s.phoneDivider} />
+                  <TextInput
+                    style={[s.input, { paddingLeft: 8 }]}
+                    value={phoneRaw}
+                    onChangeText={(v) => { setPhoneRaw(formatPhone(v, loginCountry.format)); if (error) clearError(); }}
+                    placeholder={loginCountry.format.replace(/X/g, '0')}
+                    placeholderTextColor={MUTED}
+                    keyboardType="phone-pad"
+                    returnKeyType="next"
+                    maxLength={loginCountry.format.length}
+                  />
+                </AnimatedField>
+              )}
+            </View>
 
             <AnimatedField label="Mot de passe" icon="lock-closed-outline" hasError={!!error} errorMsg={error}>
               <TextInput
@@ -437,6 +609,16 @@ export default function LoginScreen({ navigation }) {
               <Ionicons name="storefront-outline" size={16} color={PRIMARY} />
               <Text style={s.registerBtnText}>Créer ma boutique</Text>
               <Ionicons name="chevron-forward" size={14} color={PRIMARY} />
+            </TouchableOpacity>
+
+            {/* Connexion agent caissier — lien discret */}
+            <TouchableOpacity
+              style={s.agentBtn}
+              onPress={() => navigation.navigate('AgentLogin')}
+              activeOpacity={0.6}
+            >
+              <Ionicons name="people-outline" size={13} color={MUTED} />
+              <Text style={s.agentBtnText}>Accès espace caissier</Text>
             </TouchableOpacity>
 
           </Animated.View>
@@ -540,6 +722,33 @@ const s = StyleSheet.create({
   // Register
   registerBtn:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1.5, borderColor: PRIMARY + '40', borderRadius: 14, paddingVertical: 11, backgroundColor: PRIMARY + '08' },
   registerBtnText: { fontSize: 14, fontWeight: '800', color: PRIMARY },
+
+  // Agent login
+  agentBtn:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, marginTop: 2 },
+  agentBtnText: { fontSize: 13, fontWeight: '600', color: MUTED },
+
+  // Method toggle
+  methodToggle:       { flexDirection: 'row', backgroundColor: BG, borderRadius: 12, borderWidth: 1.5, borderColor: BORDER, padding: 3, marginBottom: 12, gap: 3 },
+  methodBtn:          { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, borderRadius: 9 },
+  methodBtnActive:    { backgroundColor: PRIMARY, shadowColor: PRIMARY, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 6, elevation: 4 },
+  methodBtnText:      { fontSize: 13, fontWeight: '700', color: MUTED },
+  methodBtnTextActive:{ color: WHITE },
+
+  // Phone input
+  phoneDivider:       { width: 1, height: 22, backgroundColor: BORDER, marginVertical: 6 },
+
+  // Country picker modal
+  dialBtn:      { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 4 },
+  dialFlag:     { fontSize: 20 },
+  dialCode:     { fontSize: 14, fontWeight: '700', color: DARK, minWidth: 38 },
+  pickerSheet:  { backgroundColor: WHITE, borderTopLeftRadius: 28, borderTopRightRadius: 28, shadowColor: '#000', shadowOffset: { width: 0, height: -6 }, shadowOpacity: 0.15, elevation: 30 },
+  sheetHandle:  { alignItems: 'center', paddingTop: 12, paddingBottom: 8 },
+  handle:       { width: 40, height: 4, borderRadius: 2, backgroundColor: BORDER },
+  sheetTitle:   { fontSize: 16, fontWeight: '900', color: DARK, paddingHorizontal: 20, paddingBottom: 10 },
+  searchWrap:   { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16, marginBottom: 8, backgroundColor: BG, borderRadius: 10, borderWidth: 1, borderColor: BORDER, paddingHorizontal: 10, paddingVertical: 8 },
+  searchInput:  { flex: 1, fontSize: 14, color: DARK },
+  sheetRow:     { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 13 },
+  sheetRowLabel:{ flex: 1, fontSize: 14, fontWeight: '600', color: DARK },
 
   footerWrap:        { alignItems: 'center', marginTop: 16, gap: 8 },
   footerContacts:    { flexDirection: 'row', alignItems: 'center', gap: 10 },

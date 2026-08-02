@@ -78,6 +78,21 @@ const SCHEMA = `
     received_at INTEGER NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS agent_ventes (
+    id         TEXT PRIMARY KEY,
+    data       TEXT NOT NULL,
+    statut     TEXT NOT NULL DEFAULT 'COMPLETEE',
+    created_at INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_agent_ventes_statut  ON agent_ventes(statut);
+  CREATE INDEX IF NOT EXISTS idx_agent_ventes_created ON agent_ventes(created_at DESC);
+
+  CREATE TABLE IF NOT EXISTS agent_stats_cache (
+    cache_key  TEXT PRIMARY KEY,
+    data       TEXT NOT NULL,
+    fetched_at INTEGER NOT NULL
+  );
+
   CREATE INDEX IF NOT EXISTS idx_produits_published ON produits(isPublished);
   CREATE INDEX IF NOT EXISTS idx_commandes_date ON commandes(date DESC);
   CREATE INDEX IF NOT EXISTS idx_commandes_status ON commandes(status);
@@ -174,6 +189,16 @@ export async function readWhere(table, whereClause, params = []) {
     params
   );
   return rows.map(r => JSON.parse(r.data));
+}
+
+// Retourne un Set des noms (en minuscules) de tous les produits en SQLite
+// Utilisé pour la détection offline des doublons lors de l'import CSV
+export async function getLocalProductNames() {
+  const db = getDB();
+  const rows = await db.getAllAsync(
+    `SELECT json_extract(data, '$.name') as name FROM produits`
+  ).catch(() => []);
+  return new Set(rows.map(r => (r.name || '').toLowerCase()).filter(Boolean));
 }
 
 // Count avec filtre optionnel
@@ -384,6 +409,57 @@ export async function cleanupMutations() {
   );
 }
 
+// Remet en pending les mutations vendeur bloquées sur 'failed' à cause d'un 401.
+// Le nouveau token sera injecté par l'intercepteur axios à l'envoi.
+// On exclut les mutations agent (elles ont _agentToken et sont gérées par refreshAgentTokenInMutations).
+export async function resetFailedSellerMutations() {
+  const db = getDB();
+  const now = Date.now();
+  const rows = await db.getAllAsync(
+    `SELECT id, payload FROM mutations WHERE status = 'failed'`
+  ).catch(() => []);
+
+  let reset = 0;
+  for (const row of rows) {
+    try {
+      const payload = JSON.parse(row.payload);
+      if ('_agentToken' in payload) continue; // mutation agent, gérée ailleurs
+      await db.runAsync(
+        `UPDATE mutations SET status='pending', retries=0, updated_at=? WHERE id=?`,
+        [now, row.id]
+      );
+      reset++;
+    } catch (_) {}
+  }
+  return reset;
+}
+
+// Remplace le _agentToken dans toutes les mutations CREATE_VENTE en attente/erreur/failed.
+// Appelé après un re-login agent pour rescuer les mutations dont le token a expiré.
+export async function refreshAgentTokenInMutations(newToken) {
+  const db = getDB();
+  const now = Date.now();
+  const rows = await db.getAllAsync(
+    `SELECT id, payload FROM mutations
+     WHERE type = 'CREATE_VENTE' AND status IN ('pending', 'error', 'failed')`
+  ).catch(() => []);
+
+  let refreshed = 0;
+  for (const row of rows) {
+    try {
+      const payload = JSON.parse(row.payload);
+      if (!('_agentToken' in payload)) continue; // mutation vendeur, on ignore
+      payload._agentToken = newToken;
+      await db.runAsync(
+        `UPDATE mutations SET payload=?, status='pending', retries=0, updated_at=? WHERE id=?`,
+        [JSON.stringify(payload), now, row.id]
+      );
+      refreshed++;
+    } catch (_) {}
+  }
+  return refreshed;
+}
+
 // ─── Bilan optimiste (mise à jour locale après vente POS) ────────────────────
 // delta : { posTotal, posVentes, articles, modePaiement }
 export async function updateBilanCache(delta) {
@@ -468,6 +544,89 @@ export async function markNotificationReadDB(id) {
     `UPDATE notifications SET read_at = ? WHERE id = ? AND read_at IS NULL`,
     [Date.now(), id]
   );
+}
+
+// ─── Agent ventes cache ───────────────────────────────────────────────────────
+
+// Upsert une page de ventes serveur dans le cache local
+export async function upsertAgentVentes(ventes) {
+  if (!ventes?.length) return;
+  const db = getDB();
+  await db.withTransactionAsync(async () => {
+    for (const v of ventes) {
+      await db.runAsync(
+        `INSERT INTO agent_ventes(id, data, statut, created_at)
+         VALUES(?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET
+           data=excluded.data, statut=excluded.statut`,
+        [
+          String(v._id),
+          JSON.stringify(v),
+          v.statut || 'COMPLETEE',
+          new Date(v.createdAt || Date.now()).getTime(),
+        ]
+      );
+    }
+  });
+}
+
+// Lit les ventes depuis le cache local avec filtre statut + pagination
+export async function readAgentVentes(statut = 'COMPLETEE', page = 1, limit = 20) {
+  const db = getDB();
+  const offset = (page - 1) * limit;
+  const rows = await db.getAllAsync(
+    `SELECT data FROM agent_ventes
+     WHERE statut = ?
+     ORDER BY created_at DESC
+     LIMIT ? OFFSET ?`,
+    [statut, limit, offset]
+  );
+  return rows.map(r => JSON.parse(r.data));
+}
+
+// Compte total pour la pagination offline
+export async function countAgentVentes(statut = 'COMPLETEE') {
+  const db = getDB();
+  const row = await db.getFirstAsync(
+    `SELECT COUNT(*) as n FROM agent_ventes WHERE statut = ?`,
+    [statut]
+  );
+  return row?.n ?? 0;
+}
+
+// Purge le cache des ventes agent à la déconnexion
+export async function clearAgentVentes() {
+  const db = getDB();
+  await db.runAsync(`DELETE FROM agent_ventes`);
+  await db.runAsync(`DELETE FROM agent_stats_cache`);
+}
+
+// ─── Agent stats cache (par période) ─────────────────────────────────────────
+// cache_key = ex: "agent_stats_1_7" (agentId_nbJours) ou "seller_agents_7" (sellerId_nbJours)
+
+export async function setAgentStatsCache(cacheKey, data) {
+  const db = getDB();
+  await db.runAsync(
+    `INSERT INTO agent_stats_cache(cache_key, data, fetched_at)
+     VALUES(?, ?, ?)
+     ON CONFLICT(cache_key) DO UPDATE SET data=excluded.data, fetched_at=excluded.fetched_at`,
+    [cacheKey, JSON.stringify(data), Date.now()]
+  );
+}
+
+export async function getAgentStatsCache(cacheKey) {
+  const db = getDB();
+  const row = await db.getFirstAsync(
+    `SELECT data, fetched_at FROM agent_stats_cache WHERE cache_key = ?`,
+    [cacheKey]
+  );
+  if (!row) return null;
+  return { data: JSON.parse(row.data), fetchedAt: row.fetched_at };
+}
+
+export async function clearAgentStatsCache() {
+  const db = getDB();
+  await db.runAsync(`DELETE FROM agent_stats_cache`);
 }
 
 export async function markAllNotificationsReadDB() {

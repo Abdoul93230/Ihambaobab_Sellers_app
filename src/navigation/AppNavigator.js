@@ -1,25 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import { View, ActivityIndicator, Text, TouchableOpacity, StyleSheet, StatusBar } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, ActivityIndicator, Text, TouchableOpacity, StyleSheet, StatusBar, Alert } from 'react-native';
 import CachedImage from '../components/CachedImage';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createBottomTabNavigator, BottomTabBar } from '@react-navigation/bottom-tabs';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { navigationRef } from './RootNavigation';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../stores/authStore';
+import { useAgentStore } from '../stores/agentStore';
 import { useTheme } from '../context/ThemeContext';
+import { TourTabProvider, useTourTabContext } from '../context/TourTabContext';
 import { socketService } from '../services/socketService';
 import Toast from 'react-native-toast-message';
 
 import LoginScreen from '../screens/LoginScreen';
+import AgentLoginScreen from '../screens/AgentLoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import AbonnementScreen, { AbonnementWallScreen } from '../screens/AbonnementScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import VenteScreen from '../screens/VenteScreen';
 import ProduitsScreen from '../screens/ProduitsScreen';
 import ProduitUpdateScreen from '../screens/ProduitUpdateScreen';
+import ImportMasseScreen from '../screens/ImportMasseScreen';
 import CommandesScreen from '../screens/CommandesScreen';
 import PlusScreen from '../screens/PlusScreen';
 import PortefeuilleScreen from '../screens/PortefeuilleScreen';
@@ -29,6 +33,10 @@ import CarnetCreancesScreen from '../screens/CarnetCreancesScreen';
 import BilanVentesScreen from '../screens/BilanVentesScreen';
 import SellerSettingsScreen from '../screens/SellerSettingsScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
+import AgentsScreen from '../screens/AgentsScreen';
+import AgentHistoriqueScreen from '../screens/AgentHistoriqueScreen';
+import AgentsPerformanceScreen from '../screens/AgentsPerformanceScreen';
+import PerformanceProduitsScreen from '../screens/PerformanceProduitsScreen';
 import SyncIndicator from '../components/SyncIndicator';
 import PhotoProfileModal from '../components/PhotoProfileModal';
 import { useNotificationStore } from '../stores/notificationStore';
@@ -42,7 +50,7 @@ const BOTTOM_NAV = [
   { name: 'Portefeuille', label: 'Portefeuille', icon: 'wallet',     iconOut: 'wallet-outline',     component: PortefeuilleScreen,  hideHeader: false },
   { name: 'Produits',     label: 'Produits',     icon: 'cube',       iconOut: 'cube-outline',       component: ProduitsNavigator,   hideHeader: false },
   { name: 'Vente',        label: 'Caisse',       icon: 'storefront', iconOut: 'storefront-outline', component: VenteScreen,         hideHeader: false },
-  { name: 'Plus',         label: 'Paramètres',   icon: 'settings',   iconOut: 'settings-outline',   component: PlusScreen,          hideHeader: false },
+  { name: 'Plus',         label: 'Paramètres',   icon: 'settings',   iconOut: 'settings-outline',   component: PlusNavigator,       hideHeader: false },
 ];
 
 // PAGE_TITLES identiques au web
@@ -151,12 +159,12 @@ function AppHeader({ pageTitle }) {
           {/* Avatar cliquable → PhotoProfileModal (masqué si bloqué) */}
           {!isBlocked && (
             <TouchableOpacity
-              style={[styles.avatar, { backgroundColor: colors.primary }]}
+              style={[styles.avatar, { backgroundColor: seller?.logo ? colors.bgHover : colors.primary }]}
               onPress={() => setPhotoVisible(true)}
               activeOpacity={0.8}
             >
               {seller?.logo
-                ? <CachedImage uri={seller.logo} style={StyleSheet.absoluteFill} contentFit="cover" />
+                ? <CachedImage uri={seller.logo} style={StyleSheet.absoluteFill} contentFit="cover" transition={0} />
                 : <Text style={styles.avatarText}>{initial}</Text>
               }
             </TouchableOpacity>
@@ -178,7 +186,133 @@ function ProduitsNavigator() {
     <ProduitsStack.Navigator screenOptions={{ headerShown: false }}>
       <ProduitsStack.Screen name="ProduitsList" component={ProduitsScreen} />
       <ProduitsStack.Screen name="ProduitUpdate" component={ProduitUpdateScreen} />
+      <ProduitsStack.Screen name="ImportMasse" component={ImportMasseScreen} />
     </ProduitsStack.Navigator>
+  );
+}
+
+const PlusStack = createStackNavigator();
+function PlusNavigator() {
+  return (
+    <PlusStack.Navigator screenOptions={{ headerShown: false }}>
+      <PlusStack.Screen name="PlusMain" component={PlusScreen} />
+      <PlusStack.Screen
+        name="PerformanceProduits"
+        component={PerformanceProduitsScreen}
+        options={{ headerShown: true, header: () => <AppHeader pageTitle="Performance produits" /> }}
+      />
+    </PlusStack.Navigator>
+  );
+}
+
+// ─── Header simplifié pour l'agent ───────────────────────────────────────────
+function AgentHeader({ pageTitle }) {
+  const { colors, isDark, toggleTheme } = useTheme();
+  const { agent, logout } = useAgentStore();
+  return (
+    <SafeAreaView edges={['top']} style={[styles.headerSafe, { backgroundColor: colors.bgCard, borderBottomColor: colors.border }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.bgCard} />
+      <View style={styles.headerRow}>
+        <View style={styles.headerLeft}>
+          <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>{pageTitle}</Text>
+          <Text style={[styles.headerStore, { color: colors.textMuted }]} numberOfLines={1}>
+            {agent?.storeName || 'Caisse'}
+          </Text>
+        </View>
+        <View style={styles.headerRight}>
+          {/* Toggle thème */}
+          <TouchableOpacity
+            onPress={toggleTheme}
+            style={[styles.headerBtn, { backgroundColor: colors.bgHover }]}
+            activeOpacity={0.7}
+          >
+            <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={18} color={colors.textSub} />
+          </TouchableOpacity>
+          {/* Déconnexion */}
+          <TouchableOpacity
+            style={[styles.headerBtn, { backgroundColor: colors.bgDanger }]}
+            onPress={() => {
+              Alert.alert('Déconnexion', 'Quitter la session caissier ?', [
+                { text: 'Annuler', style: 'cancel' },
+                { text: 'Quitter', style: 'destructive', onPress: logout },
+              ]);
+            }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="log-out-outline" size={18} color="#EF4444" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+// ─── Navigator restreint pour l'agent (caisse + historique) ──────────────────
+function AgentTabNavigator() {
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+
+  const AGENT_TITLES = {
+    Vente:           'Caisse Physique',
+    AgentHistorique: 'Mes ventes',
+  };
+
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        header: () => <AgentHeader pageTitle={AGENT_TITLES[route.name] || route.name} />,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textMuted,
+        tabBarStyle: {
+          backgroundColor: colors.bgCard,
+          borderTopColor: colors.border,
+          borderTopWidth: 1,
+          height: 60 + insets.bottom,
+          paddingBottom: insets.bottom + 6,
+          paddingTop: 4,
+        },
+        tabBarLabelStyle: { fontSize: 9, fontWeight: '700' },
+      })}
+    >
+      <Tab.Screen
+        name="Vente"
+        component={VenteScreen}
+        options={{
+          tabBarLabel: 'Caisse',
+          tabBarIcon: ({ focused, color }) => (
+            <View style={[styles.tabIconWrap, focused && { backgroundColor: colors.primaryLight }]}>
+              <Ionicons name={focused ? 'storefront' : 'storefront-outline'} size={20} color={color} />
+            </View>
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="AgentHistorique"
+        component={AgentHistoriqueScreen}
+        options={{
+          tabBarLabel: 'Historique',
+          tabBarIcon: ({ focused, color }) => (
+            <View style={[styles.tabIconWrap, focused && { backgroundColor: colors.primaryLight }]}>
+              <Ionicons name={focused ? 'receipt' : 'receipt-outline'} size={20} color={color} />
+            </View>
+          ),
+        }}
+      />
+    </Tab.Navigator>
+  );
+}
+
+// Tab bar custom — pose un ref sur le conteneur pour mesurer sa position exacte
+function MeasurableTabBar(props) {
+  const ctx = useTourTabContext();
+  return (
+    <View
+      ref={ctx?.tabBarRef}
+      onLayout={() => setTimeout(() => ctx?.onTabBarLayout(), 200)}
+      collapsable={false}
+    >
+      <BottomTabBar {...props} />
+    </View>
   );
 }
 
@@ -188,6 +322,7 @@ function TabNavigator() {
 
   return (
     <Tab.Navigator
+      tabBar={(props) => <MeasurableTabBar {...props} />}
       screenOptions={({ route }) => {
         const tab = BOTTOM_NAV.find(t => t.name === route.name);
         return {
@@ -207,7 +342,7 @@ function TabNavigator() {
           tabBarLabelStyle: { fontSize: 9, fontWeight: '700' },
           tabBarIcon: ({ focused, color }) => (
             <View style={[styles.tabIconWrap, focused && { backgroundColor: colors.primaryLight }]}>
-              <Ionicons name={focused ? tab.icon : tab.iconOut} size={20} color={color} />
+              <Ionicons name={focused ? tab?.icon : tab?.iconOut} size={20} color={color} />
             </View>
           ),
         };
@@ -221,7 +356,6 @@ function TabNavigator() {
           options={{ tabBarLabel: tab.label }}
         />
       ))}
-      {/* Écrans dans le Tab pour avoir header + tabbar, mais sans bouton visible */}
       <Tab.Screen
         name="Abonnement"
         component={AbonnementScreen}
@@ -238,6 +372,7 @@ function TabNavigator() {
 // ─── Root Navigator ───────────────────────────────────────────────────────────
 export default function AppNavigator() {
   const { isAuthenticated, authChecked, subscription, seller, updateSubscription } = useAuthStore();
+  const { isAuthenticated: isAgentAuth, authChecked: agentAuthChecked } = useAgentStore();
   const { colors, isDark } = useTheme();
 
   const sellerId = seller?._id || seller?.id || null;
@@ -301,7 +436,8 @@ export default function AppNavigator() {
     };
   }, [isAuthenticated, sellerId]); // eslint-disable-line
 
-  if (!authChecked) {
+  // Attend que les deux stores aient vérifié leur session
+  if (!authChecked || !agentAuthChecked) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg }}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -310,6 +446,7 @@ export default function AppNavigator() {
   }
 
   return (
+    <TourTabProvider>
     <NavigationContainer
       ref={navigationRef}
       theme={{
@@ -326,9 +463,13 @@ export default function AppNavigator() {
       }}
     >
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!isAuthenticated ? (
+        {isAgentAuth ? (
+          /* ─ Session agent : accès restreint caisse seulement ─ */
+          <Stack.Screen name="AgentMain" component={AgentTabNavigator} />
+        ) : !isAuthenticated ? (
           <>
-            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="Login" component={LoginScreen} options={{ contentStyle: { backgroundColor: '#0D2218' } }} />
+            <Stack.Screen name="AgentLogin" component={AgentLoginScreen} options={{ contentStyle: { backgroundColor: '#0D2218' } }} />
             <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
           </>
         ) : isBlocked ? (
@@ -367,10 +508,21 @@ export default function AppNavigator() {
               component={NotificationsScreen}
               options={{ headerShown: true, header: () => <AppHeader pageTitle="Notifications" /> }}
             />
+            <Stack.Screen
+              name="Agents"
+              component={AgentsScreen}
+              options={{ headerShown: true, header: () => <AppHeader pageTitle="Agents caissier" /> }}
+            />
+            <Stack.Screen
+              name="AgentsPerformance"
+              component={AgentsPerformanceScreen}
+              options={{ headerShown: true, header: () => <AppHeader pageTitle="Performance agents" /> }}
+            />
           </>
         )}
       </Stack.Navigator>
     </NavigationContainer>
+    </TourTabProvider>
   );
 }
 

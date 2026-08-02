@@ -927,7 +927,7 @@ function OrderDetailModal({ order, sellerId, isOffline, onClose, colors }) {
               )}
               {localOrder.commission > 0 && (
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Text style={{ fontSize: 12, color: colors.textMuted }}>Commission ({Math.round((localOrder.tauxCommission || 0) * 100)}%)</Text>
+                  <Text style={{ fontSize: 12, color: colors.textMuted }}>Commission ({localOrder.tauxCommission || 0}%)</Text>
                   <Text style={{ fontSize: 12, fontWeight: '700', color: '#EF4444' }}>−{fmt(localOrder.commission)}</Text>
                 </View>
               )}
@@ -1385,6 +1385,7 @@ export default function PortefeuilleScreen() {
   // ── État ───────────────────────────────────────────────────────────────────
   const [periode,        setPeriode]        = useState(30);
   const [balanceVisible, setBalanceVisible] = useState(true);
+  const [currentTime,    setCurrentTime]    = useState(new Date());
   const [portfolio,      setPortfolio]      = useState(null);
   const [transactions,   setTransactions]   = useState([]);
   const [orders,         setOrders]         = useState([]);
@@ -1425,6 +1426,7 @@ export default function PortefeuilleScreen() {
 
   const pollingRef         = useRef(null);
   const dashboardLoadedRef = useRef(false);
+  const periodeInitRef     = useRef(false); // true après le montage initial, pour éviter le double-fetch
 const posOpacity         = useRef(new Animated.Value(1)).current;
   // Cache portfolio par période (hero cards)
   const periodeCache       = useRef({});
@@ -1441,6 +1443,12 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
   useEffect(() => { isOfflineRef.current  = isOffline;   }, [isOffline]);
   useEffect(() => { periodeRef.current    = periode;     }, [periode]);
   useEffect(() => { posPeriodeRef.current = posPeriode;  }, [posPeriode]);
+
+  // Timer pour le décompte "Prochaine Disponibilité"
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
   // Ref portfolio — pour lire la valeur courante dans fetchDashboard sans dépendance
   const portfolioRef  = useRef(null);
   useEffect(() => { portfolioRef.current = portfolio; }, [portfolio]);
@@ -1456,7 +1464,8 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
 
   // ─── Fetch ─────────────────────────────────────────────────────────────────
   const fetchDashboard = useCallback(async (silent = false, forPeriode = null) => {
-    const p = forPeriode ?? periode;
+    // Toujours lire la ref pour éviter les closures stales (polling, reconnexion)
+    const p = forPeriode ?? periodeRef.current;
     if (!sellerId) return;
 
     if (isOfflineRef.current) {
@@ -1495,20 +1504,29 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
     }
 
     if (silent) { setStatsLoading(true); } else { setLoading(true); }
+
+    // Capturer la période au moment du lancement — pour ignorer la réponse si
+    // l'utilisateur a changé de période pendant le vol de la requête
+    const launchPeriode = p;
     try {
       const res = await apiClient.get(`/api/financial/seller/${sellerId}/dashboard?periode=${p}`);
       const data = res.data?.data || res.data;
+      // Ignorer la réponse si la période a changé entre le lancement et la réponse
+      if (launchPeriode !== periodeRef.current) return;
       periodeCache.current[p] = data;
       setPortfolio(data);
       setMeta(`portfolio_${sellerId}_${p}`, data).catch(() => {});
     } catch (e) {
       if (!silent) Toast.show({ type: 'error', text1: 'Erreur', text2: 'Impossible de charger le portefeuille' });
     } finally {
-      setLoading(false);
-      setStatsLoading(false);
-      setRefreshing(false);
+      // Ne remettre les spinners à false que si on est toujours sur la même période
+      if (launchPeriode === periodeRef.current) {
+        setLoading(false);
+        setStatsLoading(false);
+        setRefreshing(false);
+      }
     }
-  }, [sellerId, periode]);
+  }, [sellerId]); // sellerId seulement — période lue via periodeRef pour éviter les stales
 
   const fetchTransactions = useCallback(async (page = 1) => {
     if (!sellerId) return;
@@ -1759,14 +1777,24 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
   };
 
   // ─── Effets ────────────────────────────────────────────────────────────────
+  // Charge initiale (fetchDashboard stable, ne se recréera plus à chaque période)
   useEffect(() => {
     const silent = dashboardLoadedRef.current;
     dashboardLoadedRef.current = true;
     fetchDashboard(silent);
+    // Marquer après le tick pour que l'effet [periode] ci-dessous ignore le montage
+    const t = setTimeout(() => { periodeInitRef.current = true; }, 0);
+    return () => clearTimeout(t);
   }, [fetchDashboard]);
-  // Les 4 sections réagissent au changement de période via les refs
-  // fetchTransactions/Orders/Retraits lisent periodeRef.current (pas de recréation à chaque période)
-  // → on dépend directement de `periode` et `posPeriode` pour forcer le re-déclenchement
+
+  // Changement de période → recharger le dashboard (période déjà dans periodeRef via son effet)
+  useEffect(() => {
+    if (!periodeInitRef.current) return; // ignorer l'exécution au montage
+    fetchDashboard(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [periode]);
+
+  // Les sections réagissent au changement de période via les refs
   useEffect(() => { fetchTransactions(1); }, [fetchTransactions, periode]);
   useEffect(() => { fetchOrders(1); },       [fetchOrders, periode]);
   useEffect(() => { fetchRetraits(1); },     [fetchRetraits, periode]);
@@ -2084,6 +2112,18 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
   };
 
   // ─── Données extraites ─────────────────────────────────────────────────────
+  const calculerTempsRestant = (dateDisponibilite) => {
+    if (!dateDisponibilite) return null;
+    const diff = new Date(dateDisponibilite) - currentTime;
+    if (diff <= 0) return 'Disponible maintenant';
+    const jours   = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const heures  = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    if (jours > 0)   return `${jours}j ${heures}h ${minutes}min`;
+    if (heures > 0)  return `${heures}h ${minutes}min`;
+    return `${minutes}min`;
+  };
+
   const portefeuille = portfolio?.portefeuille || {};
   const stats        = portfolio?.statistiques || {};
   const txRecentes   = portfolio?.transactionsRecentes || [];
@@ -2437,6 +2477,31 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
                 </View>
               )}
             </LinearGradient>
+
+            {/* ── Prochaine Disponibilité ────────────────────────────────────── */}
+            {stats.prochaineDisponibilite && soldeBloqueTemp > 0 && (
+              <View style={{ marginHorizontal: 14, marginTop: 12, backgroundColor: '#f0faf8', borderWidth: 1, borderColor: '#30A08B33', borderRadius: 16, padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+                  <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: '#30A08B18', alignItems: 'center', justifyContent: 'center' }}>
+                    <Ionicons name="time-outline" size={20} color="#30A08B" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#267a6b', marginBottom: 2 }}>Prochaine Disponibilité</Text>
+                    <Text style={{ fontSize: 11, color: '#30A08B' }}>
+                      {balanceVisible ? `${fmt(soldeBloqueTemp)} sera bientôt disponible` : 'Montant bloqué bientôt disponible'}
+                    </Text>
+                  </View>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={{ fontSize: 16, fontWeight: '800', color: '#267a6b' }}>
+                    {calculerTempsRestant(stats.prochaineDisponibilite) || '...'}
+                  </Text>
+                  <Text style={{ fontSize: 10, color: '#30A08B', marginTop: 2 }}>
+                    📅 {fmtDateHour(stats.prochaineDisponibilite)}
+                  </Text>
+                </View>
+              </View>
+            )}
 
             {/* ── Filtre période — s'applique aux stats, commandes, transactions ── */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 14, gap: 8, paddingTop: 14, paddingBottom: 2 }}>

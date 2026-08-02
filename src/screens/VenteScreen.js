@@ -3,6 +3,7 @@ import {
   View, Text, TextInput, FlatList, TouchableOpacity,
   StyleSheet, Modal, ScrollView, Alert, Animated, KeyboardAvoidingView,
   TouchableWithoutFeedback, Linking, Dimensions, Platform, PanResponder,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,6 +14,7 @@ import { syncService } from '../services/syncService';
 import { useSync } from '../hooks/useSync';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../stores/authStore';
+import { useAgentStore } from '../stores/agentStore';
 import { updateBilanCache, upsertMany } from '../db/database';
 import CachedImage from '../components/CachedImage';
 import Toast from 'react-native-toast-message';
@@ -146,6 +148,12 @@ function ProduitCard({ produit, qtePanier, onTap, onDecrement, colors }) {
           placeholderIcon="cube-outline" placeholderBg={colors.bgHover} />
         {enPromo && !enRupture && (
           <View style={styles.promoBadge}><Text style={styles.promoBadgeText}>PROMO</Text></View>
+        )}
+        {/* Badge quantité en stock — coin haut droit */}
+        {!enRupture && !hasVar && (
+          <View style={[styles.qteBadge, { backgroundColor: stockBas ? '#F59E0B' : 'rgba(0,0,0,0.55)' }]}>
+            <Text style={styles.qteBadgeText}>{stockTotal}</Text>
+          </View>
         )}
         {hasVar && !enRupture && !qtePanier && (
           <View style={styles.varBadge}>
@@ -381,11 +389,11 @@ function CheckoutModal({ visible, panier, total, remise, onConfirm, onClose, sav
   }, [visible]);
 
   const montantNum = Number(montantRecu) || 0;
-  // Si champ vide → on considère montant reçu = total (comme sur le web)
   const montantEffectif = montantNum > 0 ? montantNum : total;
   const monnaie    = modePaiement === 'ESPECES' && montantNum >= total ? montantNum - total : 0;
-  // Toujours confirmable — si espèces sans montant saisi, on prend total comme montant reçu
-  const canConfirm = true;
+  // Espèces : montant reçu obligatoire et doit couvrir le total
+  // Mobile Money : pas de montant à saisir
+  const canConfirm = modePaiement === 'MOBILE_MONEY' || montantNum >= total;
 
   const handlePhoneChange = (val) => {
     // Formate selon le pays — identique au web
@@ -473,16 +481,16 @@ function CheckoutModal({ visible, panier, total, remise, onConfirm, onClose, sav
                     <Text style={[styles.monnaieValue, { color: colors.primary }]}>{fmtCFA(monnaie)}</Text>
                   </View>
                 )}
-                {/* Manque — seulement informatif, ne bloque pas */}
+                {/* Montant insuffisant */}
                 {montantNum > 0 && montantNum < total && (
-                  <Text style={{ fontSize: 11, color: colors.warningText, marginTop: 4 }}>
-                    Manque {fmtCFA(total - montantNum)} — le total sera utilisé
+                  <Text style={{ fontSize: 11, color: colors.danger, marginTop: 4 }}>
+                    Montant insuffisant — manque {fmtCFA(total - montantNum)}
                   </Text>
                 )}
-                {/* Si champ vide : on prend le total exact */}
+                {/* Champ vide : invitation à saisir */}
                 {montantNum === 0 && (
                   <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 4 }}>
-                    Laissez vide pour montant exact ({fmtCFA(total)})
+                    Saisissez le montant remis par le client
                   </Text>
                 )}
               </View>
@@ -974,7 +982,11 @@ export default function VenteScreen() {
   const produits = useSyncStore((s) => s.produits) ?? [];
   const { triggerSync, isOffline } = useSync();
   const { colors } = useTheme();
-  const { seller, subscription } = useAuthStore();
+  const { seller, subscription, token: sellerToken } = useAuthStore();
+  const { agent, token: agentToken, isAuthenticated: isAgent } = useAgentStore();
+  // Lorsqu'un agent est connecté, sellerId = storeId de l'agent, sinon seller normal
+  const posToken    = isAgent ? agentToken   : sellerToken;
+  const posSellerId = isAgent ? agent?.storeId : (seller?._id || seller?.id);
   const insets = useSafeAreaInsets();
 
   const [search, setSearch]                   = useState('');
@@ -988,14 +1000,115 @@ export default function VenteScreen() {
   const [derniereVente, setDerniereVente]     = useState(null);
   const [saving, setSaving]                   = useState(false);
   const [error, setError]                     = useState('');
+  const [agentProduits, setAgentProduits]     = useState([]); // produits chargés pour l'agent
+  const [agentProduitsLoading, setAgentProduitsLoading] = useState(false);
+  const [agentPage, setAgentPage]             = useState(1);
+  const [agentHasMore, setAgentHasMore]       = useState(true);
+  const [agentLoadingMore, setAgentLoadingMore] = useState(false);
 
-  const storeName = seller?.storeName || seller?.name || 'Ma Boutique';
+  // Quand agent connecté : charge les produits depuis SQLite (cache) + rafraîchit en ligne si possible
+  useEffect(() => {
+    if (!isAgent || !posSellerId) return;
+
+    // Réinitialise la pagination à chaque changement de boutique/session
+    setAgentPage(1);
+    setAgentHasMore(true);
+    setAgentProduitsLoading(true);
+
+    const load = async () => {
+      try {
+        // 1. Charge immédiatement depuis SQLite (disponible offline)
+        const { readAll } = require('../db/database');
+        const cached = await readAll('produits').catch(() => []);
+        if (cached.length > 0) {
+          const filtered = cached
+            .filter(p => p.isPublished === 'Published' || p.isPublished === 'Attente');
+          setAgentProduits(filtered);
+        }
+
+        // 2. Tente un rafraîchissement réseau page 1 / limit 20
+        const NetInfo = require('@react-native-community/netinfo').default;
+        const { isConnected } = await NetInfo.fetch();
+        if (isConnected) {
+          const api = require('../config/api').default;
+          const res = await api.get(
+            `/searchProductBySeller/${posSellerId}?page=1&limit=20`,
+            { headers: posToken ? { Authorization: `Bearer ${posToken}` } : undefined },
+          );
+          const list  = res.data?.produits || res.data?.products || res.data?.data || [];
+          const pages = res.data?.pages ?? 1;
+          if (Array.isArray(list) && list.length > 0) {
+            const { upsertMany } = require('../db/database');
+            await upsertMany('produits', list, p => String(p._id)).catch(() => {});
+            setAgentProduits(list);
+          }
+          setAgentPage(1);
+          setAgentHasMore(pages > 1);
+        }
+      } catch (_) {
+        // Fallback silencieux — les produits SQLite ont déjà été chargés
+      } finally {
+        setAgentProduitsLoading(false);
+      }
+    };
+
+    load();
+  }, [isAgent, posToken, posSellerId]);
+
+  // Charge la page suivante de produits pour l'agent (scroll infini)
+  const loadMoreAgentProduits = useCallback(async () => {
+    if (!agentHasMore || agentLoadingMore || !posSellerId) return;
+
+    const NetInfo = require('@react-native-community/netinfo').default;
+    const { isConnected } = await NetInfo.fetch();
+    if (!isConnected) return;
+
+    setAgentLoadingMore(true);
+    try {
+      const nextPage = agentPage + 1;
+      const api = require('../config/api').default;
+      const res = await api.get(
+        `/searchProductBySeller/${posSellerId}?page=${nextPage}&limit=20`,
+        { headers: posToken ? { Authorization: `Bearer ${posToken}` } : undefined },
+      );
+      const list  = res.data?.produits || res.data?.products || res.data?.data || [];
+      const pages = res.data?.pages ?? nextPage;
+      if (Array.isArray(list) && list.length > 0) {
+        const { upsertMany } = require('../db/database');
+        await upsertMany('produits', list, p => String(p._id)).catch(() => {});
+        setAgentProduits(prev => [...prev, ...list]);
+      }
+      setAgentPage(nextPage);
+      setAgentHasMore(nextPage < pages);
+    } catch (_) {
+      // Erreur silencieuse — l'utilisateur peut réessayer en scrollant à nouveau
+    } finally {
+      setAgentLoadingMore(false);
+    }
+  }, [agentHasMore, agentLoadingMore, agentPage, posSellerId, posToken]);
+
+  // Mode agent : flush des ventes offline dès que le réseau revient
+  useEffect(() => {
+    if (!isAgent) return;
+    const NetInfo = require('@react-native-community/netinfo').default;
+    const unsub = NetInfo.addEventListener(state => {
+      if (state.isConnected) {
+        syncService.pushPendingMutations().catch(() => {});
+      }
+    });
+    return () => unsub();
+  }, [isAgent]);
+
+  // Agent connecté → sa boutique a forcément POS (vérifié au login)
+  const storeName = isAgent ? (agent?.storeName || 'Ma Boutique') : (seller?.storeName || seller?.name || 'Ma Boutique');
   const planName  = subscription?.planName || 'Starter';
-  const hasAccess = ['Pro', 'Business'].includes(planName);
+  const hasAccess = isAgent || ['Pro', 'Business'].includes(planName);
 
   // POS : affiche Published + Attente — le vendeur peut vendre ses propres produits
   // même si non encore validés par l'admin pour le marketplace
-  const produitsFiltres = produits
+  // Mode agent : utilise les produits chargés via token agent
+  const sourceProduits = isAgent ? agentProduits : produits;
+  const produitsFiltres = sourceProduits
     .filter(p => p.isPublished === 'Published' || p.isPublished === 'Attente' || p._pendingSync)
     .filter(p => !search || p.name?.toLowerCase().includes(search.toLowerCase()));
 
@@ -1115,8 +1228,8 @@ export default function VenteScreen() {
         sousTotal: l.sousTotal,
       }));
 
-      // sellerId obligatoire — le backend vérifie l'accès POS via sellerId
-      const sellerId = seller?._id || seller?.id;
+      // sellerId : depuis le store agent (storeId) ou vendeur normal
+      const sellerId = posSellerId;
 
       const payload = {
         sellerId,
@@ -1134,7 +1247,10 @@ export default function VenteScreen() {
 
       if (isConnected) {
         const apiClient = require('../config/api').default;
-        const res = await apiClient.post('/api/pos/vente', payload);
+        const res = await apiClient.post('/api/pos/vente', payload, {
+          // Token agent (12h) ou token seller — le backend sait faire la différence
+          headers: posToken ? { Authorization: `Bearer ${posToken}` } : undefined,
+        });
         if (!res.data?.success) throw new Error(res.data?.message || 'Erreur');
         // Enrichit avec montantRecu et monnaie (le backend peut ne pas les retourner)
         const vente = {
@@ -1153,8 +1269,9 @@ export default function VenteScreen() {
         const articles = panier.reduce((s, l) => s + l.quantite, 0);
         const updated = await updateBilanCache({ posTotal: total, posVentes: 1, articles, modePaiement }).catch(() => null);
         if (updated) useSyncStore.getState().setStoreData('bilanToday', updated);
-        // Invalide le cache bilan pour forcer un refetch serveur en arrière-plan
-        syncService.invalidateAndFetch('bilan').catch(() => {});
+        // Invalide le cache bilan — seulement pour le vendeur (pas pour l'agent)
+        // invalidateAndFetch utilise le token agent → 401 → déconnexion
+        if (!isAgent) syncService.invalidateAndFetch('bilan').catch(() => {});
       } else {
         // Génère une référence POS locale au même format que le backend
         // POS-{sellerId6}-{timestamp}-{rand4} → le QR code sera valide dès synchro
@@ -1163,7 +1280,13 @@ export default function VenteScreen() {
         const offlineRef = `POS-${sellerPart}-${Date.now()}-${rand}`;
 
         // La passe dans le payload → le backend l'utilise si la vente n'existe pas encore
-        await syncService.queueMutation('CREATE_VENTE', { ...payload, referenceOffline: offlineRef });
+        // En mode agent : on inclut le token agent pour que syncService l'utilise au push
+        const mutPayload = {
+          ...payload,
+          referenceOffline: offlineRef,
+          ...(isAgent && posToken ? { _agentToken: posToken } : {}),
+        };
+        await syncService.queueMutation('CREATE_VENTE', mutPayload);
 
         // Mise à jour optimiste du bilan (SQLite + store mémoire)
         const articles = panier.reduce((s, l) => s + l.quantite, 0);
@@ -1181,13 +1304,9 @@ export default function VenteScreen() {
 
       // Met à jour le stock local immédiatement — évite de resélectionner un produit épuisé
       // avant que le sync serveur ne revienne avec les vraies valeurs
-      const store = useSyncStore.getState();
-      const currentProduits = store.produits ?? [];
-      const updatedProduits = currentProduits.map(p => {
+      const decrementStock = (list) => list.map(p => {
         const lignesP = lignesPayload.filter(l => String(l.produitId) === String(p._id));
         if (!lignesP.length) return p;
-
-        // Produit avec variantes — décrémente le stock de chaque variante individuellement
         if (p.variants?.length > 0) {
           const updatedVariants = p.variants.map(v => {
             const ligneV = lignesP.find(l => l.variantId && String(l.variantId) === String(v._id));
@@ -1196,18 +1315,29 @@ export default function VenteScreen() {
           });
           return { ...p, variants: updatedVariants };
         }
-
-        // Produit sans variante — décrémente quantite
         const qteVendue = lignesP.reduce((s, l) => s + l.quantite, 0);
         return { ...p, quantite: Math.max(0, (p.quantite ?? 0) - qteVendue) };
       });
-      store.setStoreData('produits', updatedProduits);
-      // Persiste le stock décrémenté dans SQLite — survit au redémarrage offline
-      upsertMany('produits', updatedProduits.filter(p =>
-        lignesPayload.some(l => String(l.produitId) === String(p._id))
-      ), p => String(p._id)).catch(() => {});
-      // Invalide pour refetch serveur en arrière-plan
-      store.invalidate('produits').catch(() => {});
+
+      if (isAgent) {
+        // Mode agent : met à jour agentProduits (source de la liste)
+        const updated = decrementStock(agentProduits);
+        setAgentProduits(updated);
+        // Persiste aussi en SQLite
+        upsertMany('produits', updated.filter(p =>
+          lignesPayload.some(l => String(l.produitId) === String(p._id))
+        ), p => String(p._id)).catch(() => {});
+      } else {
+        const store = useSyncStore.getState();
+        const updatedProduits = decrementStock(store.produits ?? []);
+        store.setStoreData('produits', updatedProduits);
+        // Persiste le stock décrémenté dans SQLite — survit au redémarrage offline
+        upsertMany('produits', updatedProduits.filter(p =>
+          lignesPayload.some(l => String(l.produitId) === String(p._id))
+        ), p => String(p._id)).catch(() => {});
+        // Invalide pour refetch serveur — seulement pour le vendeur
+        if (!isAgent) store.invalidate('produits').catch(() => {});
+      }
     } catch (e) {
       const msg = e.response?.data?.message || e.message || 'Erreur lors de la vente';
 
@@ -1218,6 +1348,9 @@ export default function VenteScreen() {
       if (msg.toLowerCase().includes('stock') || msg.toLowerCase().includes('quantite') || msg.toLowerCase().includes('quantité')) {
         text1 = 'Stock insuffisant';
         text2 = 'Un ou plusieurs articles n\'ont plus assez de stock';
+      } else if (msg.toLowerCase().includes('désactivé') || msg.toLowerCase().includes('inactif')) {
+        text1 = 'Compte désactivé';
+        text2 = 'Votre compte agent a été désactivé. Contactez le propriétaire de la boutique.';
       } else if (msg.toLowerCase().includes('pos') || msg.toLowerCase().includes('plan') || msg.toLowerCase().includes('abonnement')) {
         text1 = 'Accès POS refusé';
         text2 = msg;
@@ -1288,6 +1421,13 @@ export default function VenteScreen() {
               colors={colors}
             />
           )}
+          onEndReached={isAgent ? loadMoreAgentProduits : undefined}
+          onEndReachedThreshold={0.3}
+          ListFooterComponent={
+            isAgent && agentLoadingMore
+              ? <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 12 }} />
+              : null
+          }
         />
       )}
     </View>
@@ -1487,8 +1627,6 @@ export default function VenteScreen() {
   );
 }
 
-const CARD_W = (W - 32) / 2;
-
 const styles = StyleSheet.create({
   screen: { flex: 1 },
 
@@ -1500,7 +1638,7 @@ const styles = StyleSheet.create({
   offlinePillText: { fontSize: 10, fontWeight: '700' },
 
   // Cartes produit
-  prodCard: { width: CARD_W, borderRadius: 16, borderWidth: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, elevation: 2 },
+  prodCard: { width: (W - 10 * 2 - 10 * 2 - 10) / 2, borderRadius: 16, borderWidth: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, elevation: 2 },
   prodImgWrap: { width: '100%', aspectRatio: 1, position: 'relative', overflow: 'hidden', borderTopLeftRadius: 15, borderTopRightRadius: 15 },
   promoBadge: { position: 'absolute', top: 6, left: 6, backgroundColor: '#EF4444', borderRadius: 20, paddingHorizontal: 6, paddingVertical: 2 },
   promoBadgeText: { fontSize: 8, fontWeight: '800', color: '#fff' },

@@ -6,18 +6,14 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "scheme": "ihambaobab-seller",
-    "splash": {
-      "image": "./assets/logo.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#000000"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.ihambaobab.seller",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -54,11 +50,26 @@
         "expo-notifications",
         {
           "color": "#30A08B",
-          "sounds": ["./assets/sounds/order_chime.wav"]
+          "sounds": [
+            "./assets/sounds/order_chime.wav"
+          ]
         }
       ],
       "expo-sqlite",
-      "expo-updates"
+      "expo-updates",
+      "expo-background-task",
+      "expo-image",
+      "expo-sharing",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/logo.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#000000"
+        }
+      ],
+      "expo-status-bar",
+      "expo-font"
     ],
     "web": {
       "favicon": "./assets/favicon.png"

@@ -8,16 +8,24 @@ import { navigationRef } from '../navigation/RootNavigation';
 import apiClient from '../config/api';
 import { useNotificationStore } from '../stores/notificationStore';
 
-// Comportement en foreground : afficher alerte + son + badge
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+// Dans Expo Go (SDK 53+) les push FCM distantes ne sont plus supportées.
+// appOwnership est déprécié en SDK 57 — utiliser executionEnvironment.
+const IS_EXPO_GO =
+  Constants.executionEnvironment === 'storeClient' ||
+  Constants.appOwnership === 'expo';
+
+if (!IS_EXPO_GO) {
+  // Comportement en foreground : afficher alerte + son + badge
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+}
 
 const PROJECT_ID = '2c86e819-5757-41b8-aeb3-667db577edca';
 
@@ -200,6 +208,7 @@ export default function PushNotificationsBridge() {
 
   // ── Notif reçue en foreground → stocker (sans naviguer) ───────────────────
   useEffect(() => {
+    if (IS_EXPO_GO) return;
     const sub = Notifications.addNotificationReceivedListener(notification => {
       const data = notification.request.content.data;
       if (!data) return;
@@ -218,6 +227,7 @@ export default function PushNotificationsBridge() {
 
   // ── Tap sur notif (foreground OU background) → naviguer ───────────────────
   useEffect(() => {
+    if (IS_EXPO_GO) return;
     const sub = Notifications.addNotificationResponseReceivedListener(response => {
       handleNotificationResponse(response);
     });
@@ -226,6 +236,7 @@ export default function PushNotificationsBridge() {
 
   // ── App lancée depuis une notif (cold start) ──────────────────────────────
   useEffect(() => {
+    if (IS_EXPO_GO) return;
     Notifications.getLastNotificationResponseAsync().then(response => {
       if (response) handleNotificationResponse(response);
     });

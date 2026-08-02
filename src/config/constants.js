@@ -1,5 +1,6 @@
 export const BACKEND_URL = 'https://ihambackend.onrender.com';
 export const STORAGE_KEY = 'userSellerH227';
+export const AGENT_STORAGE_KEY = 'agentSessionH227';
 export const SYNC_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes
 export const BACKGROUND_SYNC_TASK = 'SELLER_BACKGROUND_SYNC';
 export const MUTATION_QUEUE_KEY = 'sellerMutationQueue';

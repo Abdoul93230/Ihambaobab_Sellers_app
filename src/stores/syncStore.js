@@ -56,6 +56,12 @@ export const useSyncStore = create((set, get) => ({
   triggerSync: async () => {
     if (get().status === SyncStatus.SYNCING) return;
 
+    // Pas de sync si un agent est connecté (son token serait injecté sur des routes vendeur)
+    try {
+      const { useAgentStore } = require('./agentStore');
+      if (useAgentStore.getState().isAuthenticated) return;
+    } catch (_) {}
+
     // Pas de sync si le compte est bloqué (suspended / no_subscription)
     const { useAuthStore } = require('./authStore');
     const subStatus = useAuthStore.getState().subscription?.status;
@@ -79,6 +85,12 @@ export const useSyncStore = create((set, get) => ({
 
   triggerFullSync: async () => {
     if (get().status === SyncStatus.SYNCING) return;
+
+    // Pas de sync si un agent est connecté
+    try {
+      const { useAgentStore } = require('./agentStore');
+      if (useAgentStore.getState().isAuthenticated) return;
+    } catch (_) {}
 
     // Pas de sync si le compte est bloqué
     const { useAuthStore } = require('./authStore');
