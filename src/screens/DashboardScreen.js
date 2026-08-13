@@ -16,8 +16,9 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../stores/authStore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTutorial } from '../hooks/useTutorial';
-import DashboardTour from '../components/DashboardTour';
 import { useTourTabContext } from '../context/TourTabContext';
+import { useTourOverlayStore } from '../stores/tourOverlayStore';
+import { useFocusEffect } from '@react-navigation/native';
 
 const { width: W } = Dimensions.get('window');
 const ITEM_H = 44;
@@ -274,7 +275,8 @@ function TooltipBar({ selected, onClear, color, formatVal, colors }) {
 }
 
 // ─── Header inline (affiché dans le scroll des vues) ─────────────────────────
-function DashboardHeader({ planName, isTrial, daysLeft, mkStats, period, customFrom, customTo, onPressPeriod, loading, colors, periodBarRef, onPeriodLayout }) {
+function DashboardHeader({ planName, isTrial, daysLeft, mkStats, period, customFrom, customTo, onPressPeriod, loading, activeView, mkPeriodCount, colors, periodBarRef, onPeriodLayout }) {
+  const hasMarketplace = SUBSCRIPTION_CONFIG.hasMarketplaceAccess(planName);
   const label = period === 'custom' && customFrom && customTo
     ? `${toAxisLabel(customFrom)} → ${toAxisLabel(customTo)}`
     : period === 'today' ? "Aujourd'hui"
@@ -300,25 +302,21 @@ function DashboardHeader({ planName, isTrial, daysLeft, mkStats, period, customF
 
       {/* Quick stats catalogue */}
       <View style={styles.quickStatsRow}>
-        <View style={[styles.quickStat, { backgroundColor: colors.bgHover }]}>
-          <Ionicons name="cube-outline" size={13} color={colors.primary} />
-          <Text style={[styles.quickStatVal, { color: colors.text }]}>{mkStats.activeProducts}</Text>
-          <Text style={[styles.quickStatLabel, { color: colors.textMuted }]}>actifs</Text>
-        </View>
-        <View style={[styles.quickStat, { backgroundColor: mkStats.lowStock > 0 ? colors.bgWarning : colors.bgHover }]}>
-          <Ionicons
-            name={mkStats.lowStock > 0 ? 'warning-outline' : 'checkmark-circle-outline'}
-            size={13}
-            color={mkStats.lowStock > 0 ? colors.warningText : colors.success}
-          />
-          <Text style={[styles.quickStatVal, { color: mkStats.lowStock > 0 ? colors.warningText : colors.text }]}>
-            {mkStats.lowStock}
-          </Text>
-          <Text style={[styles.quickStatLabel, { color: mkStats.lowStock > 0 ? colors.warningText : colors.textMuted }]}>
-            stock bas
-          </Text>
-        </View>
-        {mkStats.cancelRate !== null && activeView === 'marketplace' && (
+        {hasMarketplace && (
+          <View style={[styles.quickStat, { backgroundColor: colors.bgHover }]}>
+            <Ionicons name="cube-outline" size={13} color={colors.primary} />
+            <Text style={[styles.quickStatVal, { color: colors.text }]}>{mkStats.activeProducts}</Text>
+            <Text style={[styles.quickStatLabel, { color: colors.textMuted }]}>actifs</Text>
+          </View>
+        )}
+        {mkStats.lowStock > 0 && (
+          <View style={[styles.quickStat, { backgroundColor: colors.bgWarning }]}>
+            <Ionicons name="warning-outline" size={13} color={colors.warningText} />
+            <Text style={[styles.quickStatVal, { color: colors.warningText }]}>{mkStats.lowStock}</Text>
+            <Text style={[styles.quickStatLabel, { color: colors.warningText }]}>stock bas</Text>
+          </View>
+        )}
+        {mkStats.cancelRate !== null && activeView === 'marketplace' && mkPeriodCount > 0 && (
           <View style={[styles.quickStat, { backgroundColor: mkStats.cancelRate > 15 ? colors.bgDanger : colors.bgHover }]}>
             <Ionicons name="close-circle-outline" size={13} color={mkStats.cancelRate > 15 ? colors.dangerText : colors.textMuted} />
             <Text style={[styles.quickStatVal, { color: mkStats.cancelRate > 15 ? colors.dangerText : colors.text }]}>
@@ -956,42 +954,82 @@ export default function DashboardScreen() {
     setTimeout(() => measureTarget('periodBtn', refPeriodBtn), 300);
   }, [measureTarget]);
 
+  // Refs toujours à jour pour les callbacks asynchrones (timers)
+  const handleTourDoneRef = useRef(null);
+  const doMeasureRef      = useRef(doMeasure);
+  doMeasureRef.current    = doMeasure;
+
   // Quand viewSelector est mesuré, on attend periodBtn
   useEffect(() => {
-    if (!tourDone && tourTargets.viewSelector && !tourTargets.periodBtn) {
+    if (!tourDone && !pendingTour && tourTargets.viewSelector && !tourTargets.periodBtn) {
       const t = setTimeout(() => measureTarget('periodBtn', refPeriodBtn), 400);
       return () => clearTimeout(t);
     }
-  }, [tourDone, tourTargets.viewSelector]);
+  }, [tourDone, pendingTour, tourTargets.viewSelector]);
 
-  // Déclenche le tour quand les cibles dashboard sont prêtes
+  // Déclenche le tour quand les cibles dashboard sont prêtes (premier lancement uniquement)
   useEffect(() => {
-    if (!tourDone && tourTargets.viewSelector && tourTargets.periodBtn) {
+    if (!tourDone && !pendingTour && tourTargets.viewSelector && tourTargets.periodBtn) {
       setShowTour(true);
     }
-  }, [tourDone, tourTargets.viewSelector, tourTargets.periodBtn]);
-
-  // Relance depuis PlusScreen
-  useEffect(() => {
-    if (!pendingTour) return;
-    setTourTargets({});
-    setShowTour(false);
-    let t2;
-    const t1 = setTimeout(() => {
-      measureTarget('viewSelector', refViewSelector);
-      t2 = setTimeout(() => {
-        measureTarget('periodBtn', refPeriodBtn);
-        setShowTour(true);
-      }, 400);
-    }, 600);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [pendingTour]);
+  }, [tourDone, pendingTour, tourTargets.viewSelector, tourTargets.periodBtn]);
 
   const handleTourDone = useCallback(() => {
     setShowTour(false);
+    useTourOverlayStore.getState().unmount();
     markTourDone();
     consumeTour();
   }, [markTourDone, consumeTour]);
+
+  // Toujours garder le ref à jour
+  handleTourDoneRef.current = handleTourDone;
+
+  // Synchronise le store overlay quand showTour change (premier lancement)
+  useEffect(() => {
+    if (showTour) {
+      useTourOverlayStore.getState().mount({
+        targets:      tourTargets,
+        hasPosAccess,
+        onDone:       handleTourDone,
+        onRemeasure:  doMeasure,
+      });
+    } else {
+      useTourOverlayStore.getState().unmount();
+    }
+  }, [showTour]);
+
+  // Met à jour les targets dans le store quand les mesures changent
+  useEffect(() => {
+    if (showTour) {
+      useTourOverlayStore.getState().updateTargets(tourTargets);
+    }
+  }, [tourTargets, showTour]);
+
+  // Relance depuis PlusScreen — s'exécute quand l'écran est visible (focalisé)
+  useFocusEffect(useCallback(() => {
+    if (!pendingTour) return;
+    setTourTargets({});
+    setShowTour(false);
+    useTourOverlayStore.getState().unmount();
+    let t1, t2;
+    t1 = setTimeout(() => {
+      measureTarget('viewSelector', refViewSelector);
+      tourTabCtx?.onTabBarLayout?.();
+      t2 = setTimeout(() => {
+        measureTarget('periodBtn', refPeriodBtn);
+        const sub = useAuthStore.getState().subscription;
+        const hpa = SUBSCRIPTION_CONFIG.hasPosAccess(sub?.planName || 'Starter');
+        useTourOverlayStore.getState().mount({
+          targets:      {},
+          hasPosAccess: hpa,
+          onDone:       handleTourDoneRef.current,
+          onRemeasure:  doMeasureRef.current,
+        });
+        setShowTour(true);
+      }, 300);
+    }, 200);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [pendingTour]));
 
   const commandes      = useSyncStore(s => s.commandes)      ?? [];
   const produits       = useSyncStore(s => s.produits)       ?? [];
@@ -1161,6 +1199,11 @@ export default function DashboardScreen() {
     loadData(period, customFrom, customTo, false);
   }, [period, customFrom, customTo]);
 
+  // Recharger à chaque fois que l'écran est affiché (retour depuis VenteScreen, etc.)
+  useFocusEffect(useCallback(() => {
+    loadData(period, customFrom, customTo, true);
+  }, [period, customFrom, customTo]));
+
   // Reconnexion — recharger si le cache n'a pas de données pour la période courante
   const isOfflineRef = useRef(isOffline);
   useEffect(() => {
@@ -1209,11 +1252,15 @@ export default function DashboardScreen() {
     return true;
   });
 
+  const mkPeriodCount = bilanData?.marketplace?.commandes ?? 0;
+
   const headerPropsBase = {
     planName, isTrial, daysLeft, mkStats,
     period, customFrom, customTo,
     onPressPeriod: () => setShowPeriod(true),
     loading: dataLoading,
+    activeView,
+    mkPeriodCount,
     colors,
   };
   const headerProps = {
@@ -1224,14 +1271,6 @@ export default function DashboardScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.bg }]}>
-      {showTour && (
-        <DashboardTour
-          onDone={handleTourDone}
-          targets={tourTargets}
-          onRemeasure={doMeasure}
-          hasPosAccess={hasPosAccess}
-        />
-      )}
       {/* ── Sélecteur de vue fixe — onglet POS masqué si plan sans accès ────── */}
       <View style={[styles.viewSelectorWrap, { backgroundColor: colors.bgCard, borderBottomColor: colors.border }]}>
         <View

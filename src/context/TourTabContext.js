@@ -10,10 +10,10 @@ const TAB_INDEX = {
   tabPlus:         4,
 };
 
-const TAB_CONTENT_H = 60; // hauteur icône+label, sans la safe area bottom
+const TAB_CONTENT_H = 60;
 
 export function TourTabProvider({ children }) {
-  const tabBarRef = useRef(null);
+  const tabBarRef    = useRef(null);
   const listenersRef = useRef([]);
   const measuredRef  = useRef({});
 

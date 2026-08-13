@@ -36,6 +36,6 @@ export const useTutorialStore = create((set) => ({
     set({ onboardingDone: false, tourDone: false });
   },
 
-  requestTour:  () => set({ pendingTour: true,  tourDone: false }),
+  requestTour:  () => set({ pendingTour: true, tourDone: false }),
   consumeTour:  () => set({ pendingTour: false }),
 }));

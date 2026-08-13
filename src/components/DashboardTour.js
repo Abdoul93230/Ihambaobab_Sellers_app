@@ -158,7 +158,9 @@ function Spotlight({ highlight }) {
 }
 
 // ─── Composant principal ──────────────────────────────────────────────────────
-export default function DashboardTour({ onDone, targets = {}, onRemeasure, hasPosAccess = true }) {
+// asOverlay=true : rendu direct sans Modal (à utiliser quand le composant est déjà
+// au-dessus de la tab bar dans la hiérarchie React Native)
+export default function DashboardTour({ onDone, targets = {}, onRemeasure, hasPosAccess = true, asOverlay = false }) {
   const insets          = useSafeAreaInsets();
   const { height: H } = useWindowDimensions();
 
@@ -166,17 +168,23 @@ export default function DashboardTour({ onDone, targets = {}, onRemeasure, hasPo
   const STEPS = ALL_STEPS.filter(s => !s.posOnly || hasPosAccess);
 
   const [stepIndex, setStepIndex] = useState(0);
-  const fadeAnim    = useRef(new Animated.Value(0)).current;
+  // En mode overlay (hors Modal), l'animation native peut ne pas se déclencher —
+  // on démarre directement à opacity 1 et on n'anime que la bulle.
+  const fadeAnim    = useRef(new Animated.Value(asOverlay ? 1 : 0)).current;
   const tipAnim     = useRef(new Animated.Value(20)).current;
   const hlAnim      = useRef(new Animated.Value(0)).current;
 
-
   // Entrée
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
-      Animated.spring(tipAnim,  { toValue: 0, tension: 80, friction: 14, useNativeDriver: true }),
-    ]).start();
+    if (asOverlay) {
+      // Pas de fade global — anime seulement la bulle
+      Animated.spring(tipAnim, { toValue: 0, tension: 80, friction: 14, useNativeDriver: true }).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+        Animated.spring(tipAnim,  { toValue: 0, tension: 80, friction: 14, useNativeDriver: true }),
+      ]).start();
+    }
   }, []);
 
   const animateToStep = useCallback((nextIdx) => {
@@ -218,84 +226,95 @@ export default function DashboardTour({ onDone, targets = {}, onRemeasure, hasPo
   const isLast  = stepIndex === STEPS.length - 1;
   const isFirst = stepIndex === 0;
 
-  // Les onglets (tabXxx) sont mesurés via MeasurableTabButton dans la tab bar :
-  // measureInWindow y inclut déjà la status bar → pas de correction.
-  // Les éléments du dashboard (viewSelector, periodBtn) sont dans un View normal :
-  // measureInWindow y est depuis sous la status bar → on ajoute insets.top.
+  // measureInWindow retourne des coordonnées relatives à la fenêtre de contenu
+  // (y=0 sous la status bar). Le Modal avec statusBarTranslucent commence à y=0
+  // physique (au-dessus de la status bar). On applique +insets.top à tous les targets.
   const rawHighlight = (() => {
     if (!step.targetKey) return null;
     const t = targets[step.targetKey];
     if (!t) return null;
-    if (step.targetKey.startsWith('tab')) return t;
     return { ...t, y: t.y + insets.top };
   })();
 
   const highlight = rawHighlight;
   const tipStyle = getTipStyle(highlight, step.tipPos, H);
 
-  return (
-    <Modal transparent visible animationType="none" statusBarTranslucent>
-      <Animated.View style={[StyleSheet.absoluteFillObject, { opacity: fadeAnim }]}>
+  const inner = (
+    <Animated.View style={[StyleSheet.absoluteFillObject, { opacity: fadeAnim }]}>
 
-        {/* Spotlight */}
-        <Spotlight highlight={highlight} />
+      {/* Spotlight */}
+      <Spotlight highlight={highlight} />
 
-        {/* Bulle */}
-        <Animated.View style={[styles.tip, tipStyle, { transform: [{ translateY: tipAnim }] }]}>
+      {/* Bulle */}
+      <Animated.View style={[styles.tip, tipStyle, { transform: [{ translateY: tipAnim }] }]}>
 
-          {/* Barre de progression */}
-          <View style={styles.progress}>
-            {STEPS.map((_, i) => (
-              <TouchableOpacity key={i} onPress={() => i !== stepIndex && animateToStep(i)}>
-                <View style={[
-                  styles.progressSeg,
-                  { backgroundColor: i < stepIndex ? '#30A08B' : i === stepIndex ? '#30A08B' : '#e0e0e0' },
-                  i === stepIndex && { opacity: 1 },
-                  i < stepIndex  && { opacity: 0.5 },
-                ]} />
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Header bulle */}
-          <View style={styles.tipHeader}>
-            <View style={styles.tipBadge}>
-              <Text style={styles.tipBadgeText}>{stepIndex + 1} / {STEPS.length}</Text>
-            </View>
-            <TouchableOpacity onPress={skip} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-              <Ionicons name="close" size={18} color="#bbb" />
+        {/* Barre de progression */}
+        <View style={styles.progress}>
+          {STEPS.map((_, i) => (
+            <TouchableOpacity key={i} onPress={() => i !== stepIndex && animateToStep(i)}>
+              <View style={[
+                styles.progressSeg,
+                { backgroundColor: i < stepIndex ? '#30A08B' : i === stepIndex ? '#30A08B' : '#e0e0e0' },
+                i === stepIndex && { opacity: 1 },
+                i < stepIndex  && { opacity: 0.5 },
+              ]} />
             </TouchableOpacity>
-          </View>
+          ))}
+        </View>
 
-          {/* Corps */}
-          <View style={styles.tipBody}>
-            <Text style={styles.tipIcon}>{step.icon}</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.tipTitle}>{step.title}</Text>
-              <Text style={styles.tipDesc}>{step.desc}</Text>
-            </View>
+        {/* Header bulle */}
+        <View style={styles.tipHeader}>
+          <View style={styles.tipBadge}>
+            <Text style={styles.tipBadgeText}>{stepIndex + 1} / {STEPS.length}</Text>
           </View>
+          <TouchableOpacity onPress={skip} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <Ionicons name="close" size={18} color="#bbb" />
+          </TouchableOpacity>
+        </View>
 
-          {/* Boutons */}
-          <View style={styles.tipFooter}>
-            {!isFirst && (
-              <TouchableOpacity style={styles.prevBtn} onPress={prev} activeOpacity={0.7}>
-                <Ionicons name="arrow-back" size={15} color="#666" />
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              style={[styles.nextBtn, isFirst && { flex: 1 }]}
-              onPress={next}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.nextText}>{isLast ? 'Terminer' : 'Suivant'}</Text>
-              <Ionicons name={isLast ? 'checkmark' : 'arrow-forward'} size={15} color="#fff" />
+        {/* Corps */}
+        <View style={styles.tipBody}>
+          <Text style={styles.tipIcon}>{step.icon}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.tipTitle}>{step.title}</Text>
+            <Text style={styles.tipDesc}>{step.desc}</Text>
+          </View>
+        </View>
+
+        {/* Boutons */}
+        <View style={styles.tipFooter}>
+          {!isFirst && (
+            <TouchableOpacity style={styles.prevBtn} onPress={prev} activeOpacity={0.7}>
+              <Ionicons name="arrow-back" size={15} color="#666" />
             </TouchableOpacity>
-          </View>
-
-        </Animated.View>
+          )}
+          <TouchableOpacity
+            style={[styles.nextBtn, isFirst && { flex: 1 }]}
+            onPress={next}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.nextText}>{isLast ? 'Terminer' : 'Suivant'}</Text>
+            <Ionicons name={isLast ? 'checkmark' : 'arrow-forward'} size={15} color="#fff" />
+          </TouchableOpacity>
+        </View>
 
       </Animated.View>
+
+    </Animated.View>
+  );
+
+  // Mode overlay : rendu direct, sans Modal — utilisé depuis AppNavigator au-dessus de la tabbar
+  if (asOverlay) {
+    return (
+      <View style={[StyleSheet.absoluteFillObject, { zIndex: 9999, elevation: 9999 }]} pointerEvents="box-none">
+        {inner}
+      </View>
+    );
+  }
+
+  return (
+    <Modal transparent visible animationType="none" statusBarTranslucent>
+      {inner}
     </Modal>
   );
 }

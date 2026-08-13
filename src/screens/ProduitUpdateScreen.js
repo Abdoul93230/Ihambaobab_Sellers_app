@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../stores/authStore';
+import SUBSCRIPTION_CONFIG from '../config/subscriptionConfig';
 import { useSyncStore } from '../stores/syncStore';
 import apiClient from '../config/api';
 import Toast from 'react-native-toast-message';
@@ -500,7 +501,8 @@ function generateDescription({ name, brand, typeName, prix, prixPromo, quantite,
 export default function ProduitUpdateScreen({ route, navigation }) {
   const { produit: initialProduit } = route.params || {};
   const { colors } = useTheme();
-  const { seller } = useAuthStore();
+  const { seller, subscription } = useAuthStore();
+  const hasMarketplace = SUBSCRIPTION_CONFIG.hasMarketplaceAccess(subscription?.planName || 'Starter');
   const insets = useSafeAreaInsets();
   const isEdit = !!initialProduit;
   const sellerId = seller?._id || seller?.id;
@@ -763,7 +765,7 @@ export default function ProduitUpdateScreen({ route, navigation }) {
       image1: img1?.uri || initialProduit?.image1 || null,
       image2: img2?.uri || initialProduit?.image2 || null,
       image3: img3?.uri || initialProduit?.image3 || null,
-      isPublished: initialProduit?.isPublished || 'Attente',
+      isPublished: initialProduit?.isPublished === 'Refuser' ? 'Attente' : (initialProduit?.isPublished || 'Attente'),
       _pendingSync: true, // badge "en attente de sync" possible dans la liste
     };
     await upsertMany('produits', [localProduct], p => String(p._id)).catch(() => {});
@@ -980,6 +982,28 @@ export default function ProduitUpdateScreen({ route, navigation }) {
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+
+          {/* ── Bannière refus admin ─────────────────────────────────── */}
+          {initialProduit?.isPublished === 'Refuser' && hasMarketplace && (
+            <View style={[styles.refusalBanner, { borderColor: '#FECACA' }]}>
+              <View style={styles.refusalHeaderRow}>
+                <Ionicons name="close-circle" size={16} color="#DC2626" />
+                <Text style={styles.refusalTitle}>Refusé de la marketplace</Text>
+              </View>
+              {initialProduit?.comments && initialProduit.comments !== 'Aucun commentaire' && (
+                <View style={styles.refusalReasonWrap}>
+                  <Text style={styles.refusalReasonLabel}>Raison de l'admin :</Text>
+                  <Text style={styles.refusalReason}>{initialProduit.comments}</Text>
+                </View>
+              )}
+              <View style={styles.refusalHintRow}>
+                <Ionicons name="information-circle-outline" size={13} color="#D97706" />
+                <Text style={styles.refusalHint}>
+                  Ce refus n'affecte pas votre POS. Corrigez les problèmes et enregistrez pour resoumettre sur la marketplace.
+                </Text>
+              </View>
+            </View>
+          )}
 
           {/* ── Informations de base ─────────────────────────────────── */}
           <SectionHeader icon="cube-outline" title="Informations de base" colors={colors} />
@@ -1368,6 +1392,15 @@ const styles = StyleSheet.create({
   colorGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   colorSwatch: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, justifyContent: 'center', alignItems: 'center' },
   colorSwatchSelected: { transform: [{ scale: 1.15 }], shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, elevation: 4 },
+  // Bannière refus admin
+  refusalBanner:      { borderRadius: 12, borderWidth: 1, backgroundColor: '#FEF2F2', padding: 12, gap: 8, marginBottom: 4 },
+  refusalHeaderRow:   { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  refusalTitle:       { fontSize: 13, fontWeight: '800', color: '#DC2626', flex: 1 },
+  refusalReasonWrap:  { gap: 3 },
+  refusalReasonLabel: { fontSize: 11, fontWeight: '700', color: '#B91C1C', textTransform: 'uppercase', letterSpacing: 0.4 },
+  refusalReason:      { fontSize: 13, color: '#7F1D1D', lineHeight: 18 },
+  refusalHintRow:     { flexDirection: 'row', alignItems: 'flex-start', gap: 5, backgroundColor: '#FFF7ED', borderRadius: 8, padding: 8 },
+  refusalHint:        { fontSize: 11, color: '#92400E', flex: 1, lineHeight: 16 },
 
   // Variante sheet
   chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },

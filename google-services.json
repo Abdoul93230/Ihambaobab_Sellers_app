@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "408814555603",
+    "project_id": "iham-baobab-e0508",
+    "storage_bucket": "iham-baobab-e0508.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:408814555603:android:8445fe8861bf4724bedf26",
+        "android_client_info": {
+          "package_name": "com.ihambaobab.seller"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC4vEKuqeYpp8wi-nCYyNhy5VjxYS3StHE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

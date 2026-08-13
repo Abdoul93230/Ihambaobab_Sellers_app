@@ -16,6 +16,7 @@ import { useSync } from '../hooks/useSync';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../stores/authStore';
 import { syncService } from '../services/syncService';
+import { getDB } from '../db/database';
 import apiClient from '../config/api';
 import SUBSCRIPTION_CONFIG from '../config/subscriptionConfig';
 import Toast from 'react-native-toast-message';
@@ -29,8 +30,8 @@ const STATUS = {
   Attente:     { label: 'En attente',bg: '#FFFBEB', color: '#92400E', dot: '#F59E0B' },
   Refuser:     { label: 'Refusé',    bg: '#FEF2F2', color: '#B91C1C', dot: '#EF4444' },
 };
-const STATUS_FILTERS = ['All', 'Published', 'UnPublished', 'Attente', 'Refuser'];
-const STATUS_LABELS = { All: 'Tous', Published: 'Publié', UnPublished: 'Non publié', Attente: 'En attente', Refuser: 'Refusé' };
+const STATUS_FILTERS = ['All', 'Published', 'Attente', 'Refuser'];
+const STATUS_LABELS = { All: 'Tous', Published: 'Publié', Attente: 'En attente', Refuser: 'Refusé' };
 
 function fmt(n) { return Number(n || 0).toLocaleString('fr-FR'); }
 
@@ -144,7 +145,7 @@ function ProduitRow({ produit, onPress, colors }) {
 // ─── Modal détail produit ─────────────────────────────────────────────────────
 const DETAIL_H = Dimensions.get('window').height * 0.85;
 
-function ProduitDetailModal({ produit, visible, onClose, onEdit, onEtiquette, colors }) {
+function ProduitDetailModal({ produit, visible, onClose, onEdit, onEtiquette, onDelete, colors, hasMarketplace }) {
   const slideAnim = useRef(new Animated.Value(DETAIL_H)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
   const [mounted, setMounted] = useState(false);
@@ -222,6 +223,23 @@ function ProduitDetailModal({ produit, visible, onClose, onEdit, onEtiquette, co
             <Ionicons name="qr-code-outline" size={14} color="#B45309" />
             <Text style={[styles.detailActionText, { color: '#B45309' }]}>Étiquette</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.detailActionBtn, { backgroundColor: '#FEF2F2' }]}
+            onPress={() => {
+              Alert.alert(
+                'Supprimer le produit',
+                `"${produit.name}" sera définitivement supprimé. Cette action est irréversible.`,
+                [
+                  { text: 'Annuler', style: 'cancel' },
+                  { text: 'Supprimer', style: 'destructive', onPress: () => dismiss(() => { onClose(); onDelete?.(produit); }) },
+                ]
+              );
+            }}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="trash-outline" size={14} color="#DC2626" />
+            <Text style={[styles.detailActionText, { color: '#DC2626' }]}>Supprimer</Text>
+          </TouchableOpacity>
         </View>
 
         <FlatList
@@ -269,6 +287,31 @@ function ProduitDetailModal({ produit, visible, onClose, onEdit, onEtiquette, co
                   )}
                 </View>
               </View>
+
+              {/* ── Bannière refus admin (marketplace uniquement) ─────────── */}
+              {produit.isPublished === 'Refuser' && hasMarketplace && (
+                <View style={[styles.refusalBanner, { borderColor: '#FECACA' }]}>
+                  <View style={styles.refusalHeaderRow}>
+                    <Ionicons name="close-circle" size={16} color="#DC2626" />
+                    <Text style={styles.refusalTitle}>Refusé de la marketplace</Text>
+                  </View>
+                  {produit.comments && produit.comments !== 'Aucun commentaire' && (
+                    <Text style={styles.refusalReason}>{produit.comments}</Text>
+                  )}
+                  <View style={styles.refusalHintRow}>
+                    <Ionicons name="information-circle-outline" size={13} color="#D97706" />
+                    <Text style={styles.refusalHint}>Ce refus n'affecte pas votre POS. Modifiez le produit pour le resoumettre sur la marketplace.</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.refusalBtn}
+                    onPress={() => { dismiss(() => { onClose(); onEdit(produit); }); }}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="create-outline" size={14} color="#fff" />
+                    <Text style={styles.refusalBtnText}>Modifier & resoumettre</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
 
               {/* Tabs */}
               <View style={[styles.tabRow, { borderBottomColor: colors.border }]}>
@@ -787,6 +830,21 @@ export default function ProduitsScreen({ navigation }) {
     }
   };
 
+  const handleDeleteProduit = useCallback(async (produit) => {
+    try {
+      const sellerId = seller?._id || seller?.id;
+      await apiClient.delete(`/ProductSeller/${produit._id}`, {
+        data: { sellerOrAdmin: 'seller', sellerOrAdmin_id: sellerId },
+      });
+      const current = useSyncStore.getState().produits ?? [];
+      useSyncStore.getState().setStoreData('produits', current.filter(p => String(p._id) !== String(produit._id)));
+      try { const db = getDB(); await db.runAsync('DELETE FROM produits WHERE id = ?', [String(produit._id)]); } catch {}
+      Toast.show({ type: 'success', text1: 'Produit supprimé', text2: `"${produit.name}" a été supprimé.` });
+    } catch {
+      Toast.show({ type: 'error', text1: 'Erreur', text2: 'Impossible de supprimer ce produit.' });
+    }
+  }, [seller]);
+
   const numCols = viewMode === 'grid' ? 2 : 1;
   const planName = subscription?.planName || 'Starter';
   const hasMarketplace = SUBSCRIPTION_CONFIG.hasMarketplaceAccess(planName);
@@ -1270,7 +1328,9 @@ export default function ProduitsScreen({ navigation }) {
         onClose={() => setDetailVisible(false)}
         onEdit={(p) => navigation.navigate('ProduitUpdate', { produit: p })}
         onEtiquette={(p) => { setDetailVisible(false); setTimeout(() => openEtiquette(p), 200); }}
+        onDelete={handleDeleteProduit}
         colors={colors}
+        hasMarketplace={hasMarketplace}
       />
 
       {/* Modal Étiquette */}
@@ -1458,6 +1518,15 @@ const styles = StyleSheet.create({
   detailActionsRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1 },
   detailActionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, flex: 1, justifyContent: 'center' },
   detailActionText: { fontSize: 12, fontWeight: '700' },
+  // Bannière refus
+  refusalBanner:    { marginHorizontal: 16, marginTop: 12, borderRadius: 12, borderWidth: 1, backgroundColor: '#FEF2F2', padding: 12, gap: 8 },
+  refusalHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  refusalTitle:     { fontSize: 13, fontWeight: '800', color: '#DC2626', flex: 1 },
+  refusalReason:    { fontSize: 12, color: '#7F1D1D', lineHeight: 18 },
+  refusalHintRow:   { flexDirection: 'row', alignItems: 'flex-start', gap: 5, backgroundColor: '#FFF7ED', borderRadius: 8, padding: 8 },
+  refusalHint:      { fontSize: 11, color: '#92400E', flex: 1, lineHeight: 16 },
+  refusalBtn:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#DC2626', borderRadius: 10, paddingVertical: 10 },
+  refusalBtnText:   { fontSize: 13, fontWeight: '800', color: '#fff' },
 
   // Édition Rapide modal
   erBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.55)' },

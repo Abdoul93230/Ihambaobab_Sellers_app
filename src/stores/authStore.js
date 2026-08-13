@@ -189,8 +189,13 @@ export const useAuthStore = create((set) => ({
         apiClient.get(`/getSeller/${sellerId}`)
           .then(r => {
             const fullSeller = r.data?.data || r.data?.seller || r.data;
-            if (fullSeller?.logo) {
-              const updated = { ...seller, logo: fullSeller.logo, phone: fullSeller.phone };
+            if (fullSeller) {
+              const updated = {
+                ...seller,
+                ...(fullSeller.logo      && { logo: fullSeller.logo }),
+                ...(fullSeller.phone     && { phone: fullSeller.phone }),
+                ...(fullSeller.storeName && { storeName: fullSeller.storeName }),
+              };
               saveSession({ token, seller: updated, subscription });
               set({ seller: updated });
             }

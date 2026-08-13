@@ -12,6 +12,8 @@ import { useAuthStore } from '../stores/authStore';
 import { useAgentStore } from '../stores/agentStore';
 import { useTheme } from '../context/ThemeContext';
 import { TourTabProvider, useTourTabContext } from '../context/TourTabContext';
+import { useTourOverlayStore } from '../stores/tourOverlayStore';
+import DashboardTour from '../components/DashboardTour';
 import { socketService } from '../services/socketService';
 import Toast from 'react-native-toast-message';
 
@@ -301,6 +303,22 @@ function AgentTabNavigator() {
   );
 }
 
+// Overlay du tour guidé — rendu APRÈS NavigationContainer pour s'afficher au-dessus de la tabbar
+function TourPortal() {
+  const { show, targets, hasPosAccess, onDone, onRemeasure } = useTourOverlayStore();
+  if (!show) return null;
+  // Pas de asOverlay : on utilise le Modal natif de DashboardTour.
+  // TourPortal est déjà hors NavigationContainer → le Modal passe au-dessus du tab bar.
+  return (
+    <DashboardTour
+      targets={targets}
+      hasPosAccess={hasPosAccess}
+      onDone={onDone}
+      onRemeasure={onRemeasure}
+    />
+  );
+}
+
 // Tab bar custom — pose un ref sur le conteneur pour mesurer sa position exacte
 function MeasurableTabBar(props) {
   const ctx = useTourTabContext();
@@ -532,6 +550,7 @@ export default function AppNavigator() {
         )}
       </Stack.Navigator>
     </NavigationContainer>
+    <TourPortal />
     </TourTabProvider>
   );
 }

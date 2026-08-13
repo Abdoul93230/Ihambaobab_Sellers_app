@@ -615,7 +615,7 @@ function calcReceiptHeight(vente) {
          paiement + montantRecu + monnaie + qrcode + footer + padding;
 }
 
-async function buildReceiptHtml(vente, storeName) {
+async function buildReceiptHtml(vente, storeName, pageHeight) {
   const fmt = (n) => new Intl.NumberFormat('fr-FR').format(n || 0);
   const verifyUrl = `${WEB_URL}/verifier-recu/${vente.reference}`;
   const date = new Date(vente.createdAt || Date.now()).toLocaleDateString('fr-FR', {
@@ -638,59 +638,60 @@ async function buildReceiptHtml(vente, storeName) {
   }
 
   const lignesHtml = (vente.lignes || []).map(l => `
-    <div style="margin-bottom:8px;">
-      <div style="font-size:12px;font-weight:bold;color:#111;">
-        ${l.nom}${l.varianteLabel ? ` <span style="font-weight:normal;color:#6b7280;font-size:10px;">— ${l.varianteLabel}</span>` : ''}
+    <div style="margin-bottom:7px;">
+      <div style="font-size:13px;font-weight:bold;color:#111;">
+        ${l.nom}${l.varianteLabel ? ` <span style="font-weight:normal;color:#6b7280;font-size:11px;">— ${l.varianteLabel}</span>` : ''}
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:10px;">
-        <span style="flex:2;color:#6b7280;"> </span>
-        <span style="width:52px;text-align:right;color:#374151;">${fmt(l.prixUnitaire)}</span>
-        <span style="width:28px;text-align:center;color:#374151;">×${l.quantite}</span>
-        <span style="width:64px;text-align:right;font-weight:bold;color:#111;">${fmt(l.sousTotal)}</span>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:1px;">
+        <span style="flex:3;color:#6b7280;"></span>
+        <span style="flex:1;text-align:right;color:#374151;">${fmt(l.prixUnitaire)}</span>
+        <span style="width:30px;text-align:center;color:#374151;">x${l.quantite}</span>
+        <span style="flex:1;text-align:right;font-weight:bold;color:#111;">${fmt(l.sousTotal)}</span>
       </div>
     </div>`).join('');
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8">
   <style>
-    body { font-family:'Courier New',monospace; background:#fff; color:#111; width:300px; margin:0 auto; padding:16px 18px 28px; }
-    .sep { border-top:1px dashed #d1d5db; margin:8px 0; }
-    .row { display:flex; justify-content:space-between; align-items:flex-start; font-size:11px; }
-  </style></head><body>
-    <div style="text-align:center;border-bottom:1px dashed #d1d5db;padding-bottom:10px;margin-bottom:8px;">
-      <div style="font-size:17px;font-weight:bold;letter-spacing:1px;">🌿 IHAMBAOBAB</div>
-      <div style="font-size:13px;font-weight:bold;margin-top:3px;">${storeName}</div>
-      <div style="font-size:10px;color:#6b7280;margin-top:2px;">Reçu de vente physique</div>
-      <div style="font-size:10px;color:#9ca3af;margin-top:1px;">${date}</div>
-      <div style="font-size:9px;color:#9ca3af;margin-top:1px;letter-spacing:0.5px;">${vente.reference || ''}</div>
+    @page { margin: 12px 10px; }
+    html, body { margin:0; padding:0; background:#fff; }
+    body { font-family:'Courier New',monospace; color:#111; }
+    .r { max-width:380px; margin:0 auto; }
+    .sep { border-top:1px dashed #d1d5db; margin:7px 0; }
+    .row { display:flex; justify-content:space-between; align-items:baseline; font-size:12px; margin-bottom:3px; }
+  </style></head><body><div class="r">
+    <div style="text-align:center;padding-bottom:10px;border-bottom:2px solid #111;margin-bottom:10px;">
+      <div style="font-size:10px;letter-spacing:2px;color:#9ca3af;text-transform:uppercase;margin-bottom:4px;">IHAMBAOBAB</div>
+      <div style="font-size:22px;font-weight:900;letter-spacing:2px;text-transform:uppercase;line-height:1.1;">${storeName}</div>
+      <div style="border-top:1px dashed #ccc;margin:7px 0 5px;"></div>
+      <div style="font-size:11px;color:#6b7280;">Reçu de vente physique</div>
+      <div style="font-size:11px;color:#9ca3af;margin-top:2px;">${date}</div>
+      <div style="font-size:10px;color:#aaa;margin-top:1px;letter-spacing:1px;">${vente.reference || ''}</div>
     </div>
-    <div class="row" style="color:#6b7280;margin-bottom:4px;border-bottom:1px solid #e5e7eb;padding-bottom:4px;">
-      <span style="flex:2;">Article</span>
-      <span style="width:52px;text-align:right;">P.U</span>
-      <span style="width:28px;text-align:center;">Qté</span>
-      <span style="width:64px;text-align:right;">Total</span>
+    <div class="row" style="color:#6b7280;font-size:11px;border-bottom:1px solid #e5e7eb;padding-bottom:4px;margin-bottom:5px;">
+      <span style="flex:3;">Article</span>
+      <span style="flex:1;text-align:right;">P.U</span>
+      <span style="width:30px;text-align:center;">Qté</span>
+      <span style="flex:1;text-align:right;">Total</span>
     </div>
-    <div style="margin-bottom:6px;">${lignesHtml}</div>
+    <div style="margin-bottom:8px;">${lignesHtml}</div>
     <div class="sep"></div>
-    <div style="font-size:10px;color:#6b7280;text-align:right;margin-bottom:2px;">FCFA</div>
-    ${vente.remise > 0 ? `<div class="row" style="margin-bottom:3px;"><span style="color:#6b7280;">Remise</span><span style="color:#ef4444;">-${fmt(vente.remise)}</span></div>` : ''}
-    <div class="row" style="font-size:15px;font-weight:bold;margin-bottom:6px;border-top:1px solid #111;padding-top:5px;">
+    ${vente.remise > 0 ? `<div class="row"><span style="color:#6b7280;">Remise</span><span style="color:#ef4444;">-${fmt(vente.remise)} FCFA</span></div>` : ''}
+    <div class="row" style="font-size:16px;font-weight:900;border-top:2px solid #111;padding-top:6px;margin-top:4px;">
       <span>TOTAL</span><span>${fmt(vente.total)} FCFA</span>
     </div>
     <div class="sep"></div>
-    <div class="row" style="margin-bottom:3px;">
-      <span style="color:#6b7280;">Mode paiement</span>
-      <span style="font-weight:bold;">${vente.modePaiement === 'ESPECES' ? '💵 Espèces' : '📱 Mobile Money'}</span>
-    </div>
-    ${vente.modePaiement === 'ESPECES' && vente.montantRecu > 0 ? `<div class="row" style="margin-bottom:3px;"><span style="color:#6b7280;">Montant reçu</span><span>${fmt(vente.montantRecu)} FCFA</span></div>` : ''}
-    ${vente.modePaiement === 'ESPECES' && vente.monnaie > 0 ? `<div class="row" style="margin-bottom:3px;font-weight:bold;color:#059669;"><span>Monnaie rendue</span><span>${fmt(vente.monnaie)} FCFA</span></div>` : ''}
-    <div class="sep" style="padding-top:8px;text-align:center;">
-      <div style="font-size:10px;color:#6b7280;margin-bottom:4px;">Scannez pour vérifier l'authenticité</div>
+    <div class="row"><span style="color:#6b7280;">Paiement</span><span style="font-weight:bold;">${vente.modePaiement === 'ESPECES' ? 'Especes' : 'Mobile Money'}</span></div>
+    ${vente.modePaiement === 'ESPECES' && vente.montantRecu > 0 ? `<div class="row"><span style="color:#6b7280;">Montant recu</span><span>${fmt(vente.montantRecu)} FCFA</span></div>` : ''}
+    ${vente.modePaiement === 'ESPECES' && vente.monnaie > 0 ? `<div class="row" style="font-weight:bold;color:#059669;"><span>Monnaie rendue</span><span>${fmt(vente.monnaie)} FCFA</span></div>` : ''}
+    <div class="sep" style="margin-top:10px;"></div>
+    <div style="text-align:center;padding:6px 0;">
+      <div style="font-size:10px;color:#6b7280;margin-bottom:6px;">Scannez pour verifier l'authenticite</div>
       <div style="display:flex;justify-content:center;">${qrSvg}</div>
     </div>
-    <div style="border-top:1px dashed #d1d5db;padding-top:8px;text-align:center;font-size:10px;color:#9ca3af;">
+    <div style="border-top:1px dashed #d1d5db;padding-top:8px;text-align:center;font-size:11px;color:#9ca3af;">
       Merci pour votre achat !<br/>ihambaobab.com
     </div>
-  </body></html>`;
+  </div></body></html>`;
 }
 
 // ─── Modal reçu ───────────────────────────────────────────────────────────────
@@ -704,21 +705,22 @@ function ReceiptModal({ visible, vente, storeName, onClose, onNewSale, colors })
     try {
       const Print   = require('expo-print');
       const Sharing = require('expo-sharing');
-      const html = await buildReceiptHtml(vente, storeName);
-      const height = calcReceiptHeight(vente);
-      const { uri } = await Print.printToFileAsync({ html, width: 302, height });
-      const canShare = await Sharing.isAvailableAsync();
-      if (canShare) {
-        await Sharing.shareAsync(uri, {
-          mimeType: 'application/pdf',
-          dialogTitle: `Reçu ${vente.reference}`,
-          UTI: 'com.adobe.pdf',
-        });
-      } else {
-        Toast.show({ type: 'info', text1: 'Partage non disponible sur cet appareil' });
+      const height  = calcReceiptHeight(vente);
+      const html    = await buildReceiptHtml(vente, storeName, height);
+      let shared = false;
+      try {
+        const { uri } = await Print.printToFileAsync({ html, width: 302, height });
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: `Reçu ${vente.reference}`, UTI: 'com.adobe.pdf' });
+          shared = true;
+        }
+      } catch (_) {}
+      if (!shared) {
+        await Print.printAsync({ html });
       }
     } catch (e) {
-      Toast.show({ type: 'error', text1: 'Erreur PDF', text2: e.message });
+      Toast.show({ type: 'error', text1: 'Erreur impression', text2: e.message });
     } finally {
       setGenerating(false);
     }
@@ -774,7 +776,7 @@ function ReceiptModal({ visible, vente, storeName, onClose, onNewSale, colors })
             {/* Ticket physique — toujours blanc comme un vrai reçu */}
             <View style={[styles.receiptTicket, { shadowColor: colors.text }]}>
               {/* En-tête */}
-              <Text style={styles.receiptBrand}>🌿 IHAMBAOBAB</Text>
+              <Text style={styles.receiptBrand}>IHAMBAOBAB</Text>
               <Text style={styles.receiptStoreName}>{storeName}</Text>
               <Text style={styles.receiptSubTitle}>Reçu de vente physique</Text>
               <Text style={styles.receiptDate}>
@@ -1023,7 +1025,7 @@ export default function VenteScreen() {
         const cached = await readAll('produits').catch(() => []);
         if (cached.length > 0) {
           const filtered = cached
-            .filter(p => p.isPublished === 'Published' || p.isPublished === 'Attente');
+            .filter(p => p.isPublished === 'Published' || p.isPublished === 'Attente' || p.isPublished === 'Refuser');
           setAgentProduits(filtered);
         }
 
@@ -1105,12 +1107,12 @@ export default function VenteScreen() {
   const planName  = subscription?.planName || 'Starter';
   const hasAccess = isAgent || SUBSCRIPTION_CONFIG.hasPosAccess(planName);
 
-  // POS : affiche Published + Attente — le vendeur peut vendre ses propres produits
-  // même si non encore validés par l'admin pour le marketplace
+  // POS : affiche Published + Attente + Refuser — le refus admin ne concerne que la marketplace,
+  // le vendeur peut toujours vendre ses produits refusés en POS
   // Mode agent : utilise les produits chargés via token agent
   const sourceProduits = isAgent ? agentProduits : produits;
   const produitsFiltres = sourceProduits
-    .filter(p => p.isPublished === 'Published' || p.isPublished === 'Attente' || p._pendingSync)
+    .filter(p => p.isPublished === 'Published' || p.isPublished === 'Attente' || p.isPublished === 'Refuser' || p._pendingSync)
     .filter(p => !search || p.name?.toLowerCase().includes(search.toLowerCase()));
 
   const sousTotal   = panier.reduce((s, l) => s + l.sousTotal, 0);
@@ -1757,8 +1759,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     elevation: 4,
   },
-  receiptBrand: { fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace', fontSize: 16, fontWeight: '800', letterSpacing: 1, textAlign: 'center', color: '#111' },
-  receiptStoreName: { fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace', fontSize: 13, fontWeight: '700', textAlign: 'center', color: '#111', marginTop: 2 },
+  receiptBrand: { fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace', fontSize: 10, fontWeight: '500', letterSpacing: 3, textAlign: 'center', color: '#9ca3af', textTransform: 'uppercase', marginBottom: 2 },
+  receiptStoreName: { fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace', fontSize: 18, fontWeight: '900', letterSpacing: 2, textAlign: 'center', color: '#111', textTransform: 'uppercase' },
   receiptSubTitle: { fontSize: 10, color: '#6B7280', textAlign: 'center', marginTop: 2 },
   receiptDate: { fontSize: 10, color: '#9CA3AF', textAlign: 'center', marginTop: 1 },
   receiptRef: { fontSize: 9, color: '#9CA3AF', letterSpacing: 0.5, textAlign: 'center', marginTop: 1 },
