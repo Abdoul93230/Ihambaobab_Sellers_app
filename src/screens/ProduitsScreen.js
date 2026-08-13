@@ -788,9 +788,25 @@ export default function ProduitsScreen({ navigation }) {
   };
 
   const numCols = viewMode === 'grid' ? 2 : 1;
+  const planName = subscription?.planName || 'Starter';
+  const hasMarketplace = SUBSCRIPTION_CONFIG.hasMarketplaceAccess(planName);
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.bg }]}>
+      {/* Bandeau marketplace Starter */}
+      {!hasMarketplace && (
+        <TouchableOpacity
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#FEF3C7', paddingHorizontal: 14, paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: '#FDE68A' }}
+          onPress={() => navigation.navigate('Abonnement')}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="storefront-outline" size={15} color="#92400E" />
+          <Text style={{ flex: 1, fontSize: 12, color: '#78350F', fontWeight: '600' }}>
+            Vos produits ne sont pas visibles sur la marketplace.{' '}
+            <Text style={{ fontWeight: '800', textDecorationLine: 'underline' }}>Passer au plan Pro →</Text>
+          </Text>
+        </TouchableOpacity>
+      )}
       {/* Toolbar */}
       <View style={[styles.toolbar, { backgroundColor: colors.bgCard, borderBottomColor: colors.border }]}>
 

@@ -16,6 +16,7 @@ import { useTheme } from '../context/ThemeContext';
 import { getMeta, setMeta } from '../db/database';
 import apiClient from '../config/api';
 import Toast from 'react-native-toast-message';
+import SUBSCRIPTION_CONFIG from '../config/subscriptionConfig';
 
 const { width: W } = Dimensions.get('window');
 
@@ -306,6 +307,12 @@ function VenteDetailModal({ vente, storeName, onClose, onAnnuler, annulLoading, 
                   {vente.telephoneClient ? (
                     <Text style={{ fontSize: 11, color: colors.textMuted }}>· {vente.telephoneClient}</Text>
                   ) : null}
+                  {vente.agentId?.name && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                      <Ionicons name="person-outline" size={12} color="#3B82F6" />
+                      <Text style={{ fontSize: 11, color: '#3B82F6', fontWeight: '600' }}>{vente.agentId.name}</Text>
+                    </View>
+                  )}
                 </View>
               </View>
               <View style={[styles.badge, { backgroundColor: isAnnulee ? '#FEF2F2' : '#ECFDF5' }]}>
@@ -1083,7 +1090,15 @@ function PosRow({ vente, colors, onPress }) {
         <Ionicons name={isAnnulee ? 'close-circle-outline' : 'receipt-outline'} size={16} color={isAnnulee ? '#EF4444' : '#10B981'} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={[styles.rowLabel, { color: colors.text }]}>{vente.reference}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Text style={[styles.rowLabel, { color: colors.text }]}>{vente.reference}</Text>
+          {vente.agentId?.name && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#EFF6FF', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2 }}>
+              <Ionicons name="person-outline" size={9} color="#3B82F6" />
+              <Text style={{ fontSize: 9, fontWeight: '700', color: '#3B82F6' }}>{vente.agentId.name}</Text>
+            </View>
+          )}
+        </View>
         <Text style={[styles.rowSub, { color: colors.textMuted }]}>
           {fmtDateHour(vente.createdAt)} · {vente.modePaiement === 'ESPECES' ? 'Espèces' : 'Mobile Money'}
         </Text>
@@ -1366,11 +1381,16 @@ export default function PortefeuilleScreen() {
   const storeName     = seller?.nomBoutique || seller?.nom || 'Ma Boutique';
 
   const planName   = subscription?.planName || 'Starter';
-  const hasPosAccess = ['Pro', 'Business'].includes(planName);
-  const visibleViews = VIEWS.filter(v => v.key !== 'pos' || hasPosAccess);
+  const hasPosAccess         = SUBSCRIPTION_CONFIG.hasPosAccess(planName);
+  const hasMarketplaceAccess = SUBSCRIPTION_CONFIG.hasMarketplaceAccess(planName);
+  const visibleViews = VIEWS.filter(v => {
+    if (v.key === 'pos')         return hasPosAccess;
+    if (v.key === 'marketplace') return hasMarketplaceAccess;
+    return true;
+  });
 
-  // ── Vue active — démarre sur marketplace si pas d'accès POS ──────────────
-  const defaultView = hasPosAccess ? 'pos' : 'marketplace';
+  // ── Vue active — démarre sur POS si disponible, sinon première vue visible ──
+  const defaultView = hasPosAccess ? 'pos' : (visibleViews[0]?.key || 'pos');
   const [activeView, setActiveView] = useState(defaultView);
   const pageScrollRef = useRef(null);
   const activeViewRef = useRef(defaultView);
@@ -1466,7 +1486,11 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
   const fetchDashboard = useCallback(async (silent = false, forPeriode = null) => {
     // Toujours lire la ref pour éviter les closures stales (polling, reconnexion)
     const p = forPeriode ?? periodeRef.current;
-    if (!sellerId) return;
+    if (!sellerId || !hasMarketplaceAccess) {
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
 
     if (isOfflineRef.current) {
       // Mémoire d'abord (switch de période instantané), puis SQLite en fallback
@@ -1529,7 +1553,7 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
   }, [sellerId]); // sellerId seulement — période lue via periodeRef pour éviter les stales
 
   const fetchTransactions = useCallback(async (page = 1) => {
-    if (!sellerId) return;
+    if (!sellerId || !hasMarketplaceAccess) return;
     const p   = periodeRef.current;
     const key = `${p}_${page}`;
 
@@ -1579,7 +1603,7 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
   }, [sellerId, txType, txStatut]);
 
   const fetchOrders = useCallback(async (page = 1) => {
-    if (!sellerId) return;
+    if (!sellerId || !hasMarketplaceAccess) return;
     const p   = periodeRef.current;
     const key = `${p}_${page}`;
 
@@ -1731,7 +1755,7 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
   };
 
   const fetchRetraits = useCallback(async (page = 1) => {
-    if (!sellerId) return;
+    if (!sellerId || !hasMarketplaceAccess) return;
     const p   = periodeRef.current;
     const key = `${p}_${page}`;
 
@@ -1911,7 +1935,7 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
   // Puis POS (endpoint séparé) en parallèle avec le bundle.
   // Démarre 1,5s après le montage pour ne pas concurrencer la charge initiale.
   useEffect(() => {
-    if (!sellerId || isOffline) return;
+    if (!sellerId || isOffline || !hasMarketplaceAccess) return;
 
     const run = async () => {
       // ── 1. Bundle marketplace (1 requête pour toutes les périodes) ──────────
@@ -2426,7 +2450,8 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
         </View>
         )}
 
-        {/* ════════ PAGE MARKETPLACE ════════════════════════════════════════ */}
+        {/* ════════ PAGE MARKETPLACE — Pro & Business uniquement ════════════ */}
+        {hasMarketplaceAccess && (
         <View style={styles.page}>
           <ScrollView
             showsVerticalScrollIndicator={false}
@@ -2819,6 +2844,7 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
             </View>
           </ScrollView>
         </View>
+        )}
 
       </ScrollView>
 

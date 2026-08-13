@@ -9,7 +9,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../stores/authStore';
-import ForgotPasswordSheet from './ForgotPasswordSheet';
 
 const SUPPORT_PHONE = '+22787727501';
 const SUPPORT_EMAIL = 'ihambaobab@gmail.com';
@@ -386,7 +385,7 @@ export default function LoginScreen({ navigation }) {
   const [password,      setPassword]      = useState('');
   const [showPassword,  setShowPassword]  = useState(false);
   const [showPending,   setShowPending]   = useState(false);
-  const [showForgot,    setShowForgot]    = useState(false);
+
   const { login, loading, error, clearError } = useAuthStore();
 
   // Animations d'entrée
@@ -430,7 +429,6 @@ export default function LoginScreen({ navigation }) {
     <View style={{ flex: 1, backgroundColor: '#0D2218' }}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       <PendingModal visible={showPending} onClose={() => setShowPending(false)} />
-      <ForgotPasswordSheet visible={showForgot} onClose={() => setShowForgot(false)} />
 
       {/* ── FOND DÉGRADÉ PLEIN ÉCRAN ── */}
       <LinearGradient
@@ -564,7 +562,7 @@ export default function LoginScreen({ navigation }) {
             </AnimatedField>
 
             {/* Mot de passe oublié */}
-            <TouchableOpacity style={s.forgotRow} onPress={() => setShowForgot(true)} activeOpacity={0.7}>
+            <TouchableOpacity style={s.forgotRow} onPress={() => navigation.navigate('ForgotPassword')} activeOpacity={0.7}>
               <Text style={s.forgotText}>Mot de passe oublié ?</Text>
             </TouchableOpacity>
 

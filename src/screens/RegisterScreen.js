@@ -15,7 +15,7 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Image, KeyboardAvoidingView,
   Platform, StatusBar, Modal, FlatList, Animated, Dimensions,
-  TouchableWithoutFeedback,
+  TouchableWithoutFeedback, Keyboard,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -252,55 +252,100 @@ function PhoneCountryPicker({ value, onChange }) {
 }
 
 // ─── List picker (pays / région) ─────────────────────────────────────────────
+// items : string[]  OU  { name: string, flag: string }[]
 function ListPicker({ visible, title, items, selected, onSelect, onClose }) {
-  const [search, setSearch] = useState('');
-  const [mounted, setMounted] = useState(false);
-  const slideAnim = useRef(new Animated.Value(H * 0.7)).current;
-  const bgAnim    = useRef(new Animated.Value(0)).current;
+  const [search,  setSearch]  = useState('');
+  const searchRef = useRef(null);
+  const insets    = useSafeAreaInsets();
 
-  useEffect(() => { if (visible) setMounted(true); }, [visible]);
-  useEffect(() => {
-    if (!mounted) return;
-    Animated.parallel([
-      Animated.spring(slideAnim, { toValue: 0, tension: 60, friction: 12, useNativeDriver: true }),
-      Animated.timing(bgAnim, { toValue: 1, duration: 220, useNativeDriver: true }),
-    ]).start();
-  }, [mounted]);
+  const getLabel = (i) => typeof i === 'string' ? i : i.name;
+  const getFlag  = (i) => typeof i === 'string' ? null : (i.flag ?? null);
 
-  const close = (cb) => {
-    Animated.parallel([
-      Animated.timing(slideAnim, { toValue: H * 0.7, duration: 220, useNativeDriver: true }),
-      Animated.timing(bgAnim, { toValue: 0, duration: 220, useNativeDriver: true }),
-    ]).start(() => { setMounted(false); cb?.(); });
+  useEffect(() => { if (visible) setSearch(''); }, [visible]);
+
+  const close = (selectCb) => {
+    Keyboard.dismiss();
+    selectCb?.();
+    onClose();
   };
 
-  const filtered = items.filter(i => i.toLowerCase().includes(search.toLowerCase()));
-  if (!mounted) return null;
+  const filtered = items.filter(i => getLabel(i).toLowerCase().includes(search.toLowerCase()));
 
+  // Plein écran opaque → le clavier apparaît en dessous sans déplacer la vue
   return (
-    <Modal visible={mounted} transparent animationType="none" onRequestClose={() => close(onClose)}>
-      <TouchableWithoutFeedback onPress={() => close(onClose)}>
-        <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)', opacity: bgAnim }]} />
-      </TouchableWithoutFeedback>
-      <Animated.View style={[st.pickerSheet, { position: 'absolute', bottom: 0, left: 0, right: 0, maxHeight: H * 0.7, transform: [{ translateY: slideAnim }] }]}>
-        <View style={st.sheetHandle}><View style={st.handle} /></View>
-        <Text style={st.sheetTitle}>{title}</Text>
-        <View style={st.searchWrap}>
-          <Ionicons name="search-outline" size={16} color={MUTED} />
-          <TextInput style={st.searchInput} placeholder="Rechercher..." value={search} onChangeText={setSearch} autoFocus />
+    <Modal
+      visible={visible}
+      transparent={false}
+      animationType="slide"
+      statusBarTranslucent
+      onRequestClose={() => close()}
+    >
+      <View style={{ flex: 1, backgroundColor: '#fff', paddingTop: insets.top }}>
+
+        {/* Header */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' }}>
+          <TouchableOpacity onPress={() => close()} style={{ padding: 4, marginRight: 8 }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="arrow-back" size={22} color="#111" />
+          </TouchableOpacity>
+          <Text style={{ fontSize: 17, fontWeight: '800', color: '#111', flex: 1 }}>{title}</Text>
         </View>
+
+        {/* Barre de recherche */}
+        <View style={{ paddingHorizontal: 14, paddingVertical: 10 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F4F6', borderRadius: 12, paddingHorizontal: 12, gap: 8 }}>
+            <Ionicons name="search-outline" size={16} color={MUTED} />
+            <TextInput
+              ref={searchRef}
+              style={{ flex: 1, fontSize: 15, color: '#111', paddingVertical: 11 }}
+              placeholder="Rechercher..."
+              placeholderTextColor={MUTED}
+              value={search}
+              onChangeText={setSearch}
+              returnKeyType="search"
+            />
+            {search.length > 0 && (
+              <TouchableOpacity onPress={() => { setSearch(''); searchRef.current?.focus(); }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name="close-circle" size={17} color={MUTED} />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
+        {/* Liste */}
         <FlatList
           data={filtered}
-          keyExtractor={i => i}
-          renderItem={({ item }) => (
-            <TouchableOpacity style={[st.sheetRow, item === selected && { backgroundColor: `${PRIMARY}10` }]}
-              onPress={() => { close(() => onSelect(item)); setSearch(''); }} activeOpacity={0.7}>
-              <Text style={[st.sheetRowLabel, item === selected && { color: PRIMARY, fontWeight: '800' }]}>{item}</Text>
-              {item === selected && <Ionicons name="checkmark" size={18} color={PRIMARY} />}
-            </TouchableOpacity>
-          )}
+          keyExtractor={i => getLabel(i)}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
+          renderItem={({ item }) => {
+            const label = getLabel(item);
+            const flag  = getFlag(item);
+            const isSel = label === selected;
+            return (
+              <TouchableOpacity
+                style={[st.sheetRow, isSel && { backgroundColor: `${PRIMARY}12` }]}
+                onPress={() => close(() => onSelect(label))}
+                activeOpacity={0.65}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1 }}>
+                  {flag != null
+                    ? <Text style={{ fontSize: 26, lineHeight: 32 }}>{flag}</Text>
+                    : <View style={{ width: 26 }} />
+                  }
+                  <Text style={[st.sheetRowLabel, isSel && { color: PRIMARY, fontWeight: '800' }]}>{label}</Text>
+                </View>
+                {isSel && <Ionicons name="checkmark" size={20} color={PRIMARY} />}
+              </TouchableOpacity>
+            );
+          }}
+          ListEmptyComponent={
+            <View style={{ paddingVertical: 48, alignItems: 'center' }}>
+              <Ionicons name="search-outline" size={32} color={MUTED} />
+              <Text style={{ color: MUTED, marginTop: 10, fontSize: 14 }}>Aucun résultat</Text>
+            </View>
+          }
         />
-      </Animated.View>
+      </View>
     </Modal>
   );
 }
@@ -795,7 +840,7 @@ function Step3({ form, setField, errors }) {
         <FieldError msg={errors.region} />
       </View>
 
-      <ListPicker visible={paysOpen} title="Sélectionner un pays" items={paysList} selected={form.pays}
+      <ListPicker visible={paysOpen} title="Sélectionner un pays" items={PAYS_DATA} selected={form.pays}
         onSelect={v => { setField('pays', v); setField('region', ''); }} onClose={() => setPaysOpen(false)} />
       <ListPicker visible={regionOpen} title="Sélectionner une région" items={regionList} selected={form.region}
         onSelect={v => setField('region', v)} onClose={() => setRegionOpen(false)} />

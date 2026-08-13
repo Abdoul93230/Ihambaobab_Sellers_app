@@ -18,6 +18,7 @@ import Toast from 'react-native-toast-message';
 import LoginScreen from '../screens/LoginScreen';
 import AgentLoginScreen from '../screens/AgentLoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
+import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import AbonnementScreen, { AbonnementWallScreen } from '../screens/AbonnementScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import VenteScreen from '../screens/VenteScreen';
@@ -37,6 +38,7 @@ import AgentsScreen from '../screens/AgentsScreen';
 import AgentHistoriqueScreen from '../screens/AgentHistoriqueScreen';
 import AgentsPerformanceScreen from '../screens/AgentsPerformanceScreen';
 import PerformanceProduitsScreen from '../screens/PerformanceProduitsScreen';
+import AlertesStockScreen from '../screens/AlertesStockScreen';
 import SyncIndicator from '../components/SyncIndicator';
 import PhotoProfileModal from '../components/PhotoProfileModal';
 import { useNotificationStore } from '../stores/notificationStore';
@@ -64,7 +66,9 @@ export const PAGE_TITLES = {
   Inventaire:   'Inventaire',
   Bannières:       'Bannières',
   CarnetCreances:  'Carnet de créances',
-  BilanVentes:     'Bilan des ventes',
+  BilanVentes:        'Bilan des ventes',
+  AlertesStock:       'Alertes stock',
+  PerformanceProduits:'Performance produits',
 };
 
 // ─── Mur abonnement (suspended / no_subscription) ────────────────────────────
@@ -196,11 +200,6 @@ function PlusNavigator() {
   return (
     <PlusStack.Navigator screenOptions={{ headerShown: false }}>
       <PlusStack.Screen name="PlusMain" component={PlusScreen} />
-      <PlusStack.Screen
-        name="PerformanceProduits"
-        component={PerformanceProduitsScreen}
-        options={{ headerShown: true, header: () => <AppHeader pageTitle="Performance produits" /> }}
-      />
     </PlusStack.Navigator>
   );
 }
@@ -471,6 +470,7 @@ export default function AppNavigator() {
             <Stack.Screen name="Login" component={LoginScreen} options={{ contentStyle: { backgroundColor: '#0D2218' } }} />
             <Stack.Screen name="AgentLogin" component={AgentLoginScreen} options={{ contentStyle: { backgroundColor: '#0D2218' } }} />
             <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ headerShown: false }} />
           </>
         ) : isBlocked ? (
           <Stack.Screen name="SubscriptionWall" component={SubscriptionWall} />
@@ -517,6 +517,16 @@ export default function AppNavigator() {
               name="AgentsPerformance"
               component={AgentsPerformanceScreen}
               options={{ headerShown: true, header: () => <AppHeader pageTitle="Performance agents" /> }}
+            />
+            <Stack.Screen
+              name="PerformanceProduits"
+              component={PerformanceProduitsScreen}
+              options={{ headerShown: true, header: () => <AppHeader pageTitle="Performance produits" /> }}
+            />
+            <Stack.Screen
+              name="AlertesStock"
+              component={AlertesStockScreen}
+              options={{ headerShown: true, header: () => <AppHeader pageTitle="Alertes stock" /> }}
             />
           </>
         )}

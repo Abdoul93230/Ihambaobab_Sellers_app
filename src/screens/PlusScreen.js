@@ -9,6 +9,7 @@ import { useTheme } from '../context/ThemeContext';
 import PhotoProfileModal from '../components/PhotoProfileModal';
 import { useNavigation } from '@react-navigation/native';
 import { useTutorial } from '../hooks/useTutorial';
+import SUBSCRIPTION_CONFIG from '../config/subscriptionConfig';
 
 function MenuSection({ title, items, colors }) {
   return (
@@ -78,9 +79,10 @@ export default function PlusScreen() {
     },
   ];
 
-  const planName   = subscription?.planName || 'Starter';
-  const hasAgents  = planName === 'Pro' || planName === 'Business';
-  const hasPerfProd = has('performanceProduits') && (planName === 'Pro' || planName === 'Business');
+  const planName             = subscription?.planName || 'Starter';
+  const hasAgents            = planName === 'Pro' || planName === 'Business';
+  const hasMarketplaceAccess = SUBSCRIPTION_CONFIG.hasMarketplaceAccess(planName);
+  const hasPerfProd          = has('performanceProduits') && (planName === 'Pro' || planName === 'Business');
 
   const analyticsItems = [
     // { label: 'Mes Commandes',         icon: 'cart-outline',         color: '#10B981', disabled: false,                      onPress: () => navigation.navigate('Commandes') },
@@ -91,9 +93,9 @@ export default function PlusScreen() {
 
   const gestionItems = [
     { label: 'Inventaire',         icon: 'cube-outline',         color: '#30A08B', disabled: false,                  onPress: () => navigation.navigate('Inventaire') },
-    { label: 'Bannières',          icon: 'images-outline',       color: '#B17236', disabled: false,                  onPress: () => navigation.navigate('Bannières') },
+    { label: 'Bannières',          icon: 'images-outline',       color: '#B17236', disabled: !hasMarketplaceAccess,  onPress: () => hasMarketplaceAccess && navigation.navigate('Bannières') },
     { label: 'Carnet de créances', icon: 'book-outline',         color: '#EF4444', disabled: !has('carnetCreances'), onPress: () => navigation.navigate('CarnetCreances') },
-    { label: 'Alertes stock',      icon: 'alert-circle-outline', color: '#F59E0B', disabled: !has('alertesStock'),   onPress: () => {} },
+    { label: 'Alertes stock',      icon: 'alert-circle-outline', color: '#F59E0B', disabled: !has('alertesStock'),   onPress: () => has('alertesStock') && navigation.navigate('AlertesStock') },
     { label: 'Agents caissier',    icon: 'people-outline',       color: '#6366F1', disabled: !hasAgents,             onPress: () => hasAgents && navigation.navigate('Agents') },
     { label: 'Performance agents', icon: 'stats-chart-outline',  color: '#30A08B', disabled: !hasAgents,             onPress: () => hasAgents && navigation.navigate('AgentsPerformance') },
   ];

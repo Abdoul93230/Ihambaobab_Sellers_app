@@ -14,6 +14,7 @@ const SUBSCRIPTION_CONFIG = {
     Starter: {
       name: 'Starter',
       description: "Idéal pour débuter. 2 mois d'essai gratuit, aucun paiement requis.",
+      agentQuota: 0,
       pricing: {
         monthly: 2000,
         annual: 21600,      // 2000 * 12 - 10%
@@ -23,7 +24,8 @@ const SUBSCRIPTION_CONFIG = {
       commission: 3.0,
       productLimit: 20,
       features: {
-        pos: false,
+        pos: true,
+        marketplace: false,
         productManagement: {
           maxProducts: 20,
           maxVariants: 3,
@@ -53,6 +55,7 @@ const SUBSCRIPTION_CONFIG = {
     Pro: {
       name: 'Pro',
       description: "Pour les vendeurs réguliers. 1 mois d'essai gratuit, aucun paiement requis.",
+      agentQuota: 2,
       pricing: {
         monthly: 5000,
         annual: 54000,      // 5000 * 12 - 10%
@@ -63,6 +66,7 @@ const SUBSCRIPTION_CONFIG = {
       productLimit: -1,
       features: {
         pos: true,
+        marketplace: true,
         productManagement: {
           maxProducts: -1,
           maxVariants: 10,
@@ -92,6 +96,7 @@ const SUBSCRIPTION_CONFIG = {
     Business: {
       name: 'Business',
       description: "Pour les vendeurs établis à fort volume. 1 mois d'essai gratuit, aucun paiement requis.",
+      agentQuota: 6,
       pricing: {
         monthly: 10000,
         annual: 108000,     // 10000 * 12 - 10%
@@ -102,6 +107,7 @@ const SUBSCRIPTION_CONFIG = {
       productLimit: -1,
       features: {
         pos: true,
+        marketplace: true,
         productManagement: {
           maxProducts: -1,
           maxVariants: -1,
@@ -193,6 +199,16 @@ const SUBSCRIPTION_CONFIG = {
     return plan ? plan.features.pos === true : false;
   },
 
+  hasMarketplaceAccess(planName) {
+    const plan = SUBSCRIPTION_CONFIG.PLANS[planName];
+    return plan ? plan.features.marketplace === true : false;
+  },
+
+  getAgentQuota(planName) {
+    const plan = SUBSCRIPTION_CONFIG.PLANS[planName];
+    return plan ? plan.agentQuota : 0;
+  },
+
   toPlanDefaults(planName) {
     const plan = SUBSCRIPTION_CONFIG.PLANS[planName];
     if (!plan) return null;
@@ -243,23 +259,30 @@ const SUBSCRIPTION_CONFIG = {
       list.push({ name: 'Paiement manuel uniquement', included: true });
     }
 
-    // Caisse POS
-    if (f.pos) {
-      list.push({ name: 'Caisse POS — 0% commission ventes physiques', included: true, highlight: true });
+    // Caisse POS — disponible sur tous les plans
+    list.push({ name: 'Caisse POS — 0% commission ventes physiques', included: true, highlight: planName === 'Starter' });
+
+    // Marketplace
+    if (f.marketplace) {
+      list.push({ name: 'Visibilité sur la marketplace IhamBaobab', included: true, highlight: true });
     } else {
-      list.push({ name: 'Caisse POS (ventes physiques)', included: false });
+      list.push({ name: 'Visibilité sur la marketplace IhamBaobab', included: false });
     }
 
-    // Commission marketplace
-    list.push({ name: `Commission marketplace : ${plan.commission}% par vente`, included: true });
-
-    // Marketing
-    if (mkt.marketplaceVisibility === 'prioritaire') {
-      list.push({ name: 'Visibilité prioritaire marketplace', included: true });
-    } else if (mkt.marketplaceVisibility === 'premium') {
-      list.push({ name: 'Visibilité premium + sponsoring boutique', included: true, highlight: true });
+    // Commission marketplace — seulement si le plan inclut la marketplace
+    if (f.marketplace) {
+      list.push({ name: `Commission marketplace : ${plan.commission}% par vente`, included: true });
     } else {
-      list.push({ name: 'Visibilité standard marketplace', included: true });
+      list.push({ name: 'Ventes marketplace non incluses (plan Pro requis)', included: false });
+    }
+
+    // Visibilité marketing — seulement si marketplace activée
+    if (f.marketplace) {
+      if (mkt.marketplaceVisibility === 'prioritaire') {
+        list.push({ name: 'Visibilité prioritaire marketplace', included: true });
+      } else if (mkt.marketplaceVisibility === 'premium') {
+        list.push({ name: 'Visibilité premium + sponsoring boutique', included: true, highlight: true });
+      }
     }
 
     if (mkt.maxActiveCoupons === -1) {

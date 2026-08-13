@@ -12,6 +12,7 @@ import { syncService } from '../services/syncService';
 import { useSyncStore } from '../stores/syncStore';
 import { useSync } from '../hooks/useSync';
 import { useAuthStore } from '../stores/authStore';
+import SUBSCRIPTION_CONFIG from '../config/subscriptionConfig';
 import CachedImage from '../components/CachedImage';
 
 const { width: W } = Dimensions.get('window');
@@ -325,7 +326,8 @@ export default function BilanVentesScreen() {
   const { triggerSync, isSyncing, isOffline } = useSync();
   const { seller, subscription } = useAuthStore();
   const storeName    = seller?.nomBoutique || seller?.nom || seller?.storeName || seller?.name || 'Ma Boutique';
-  const hasPosAccess = ['Pro', 'Business'].includes(subscription?.planName || 'Starter');
+  const hasPosAccess         = SUBSCRIPTION_CONFIG.hasPosAccess(subscription?.planName || 'Starter');
+  const hasMarketplaceAccess = SUBSCRIPTION_CONFIG.hasMarketplaceAccess(subscription?.planName || 'Starter');
 
   // ── Store Zustand — bilanToday réactif (mis à jour par VenteScreen) ────────
   const bilanToday = useSyncStore(s => s.bilanToday);
@@ -572,7 +574,7 @@ export default function BilanVentesScreen() {
               <View style={styles.heroStatRow}>
                 {[
                   ...(hasPosAccess ? [{ val: fmt(todayData?.pos?.total ?? histPos), label: 'POS', icon: 'storefront-outline' }] : []),
-                  { val: fmt(todayData?.marketplace?.total ?? histCmd),  label: 'Marketplace', icon: 'globe-outline' },
+                  ...(hasMarketplaceAccess ? [{ val: fmt(todayData?.marketplace?.total ?? histCmd), label: 'Marketplace', icon: 'globe-outline' }] : []),
                   { val: String(todayData?.articlesVendus ?? histArticles ?? 0), label: 'Articles', icon: 'cube-outline' },
                 ].map((s, i, arr) => (
                   <React.Fragment key={s.label}>
@@ -670,12 +672,14 @@ export default function BilanVentesScreen() {
                       iconBg={INDIGO + '15'} colors={colors}
                     />
                   )}
-                  <StatCard
-                    icon={<Ionicons name="globe-outline" size={18} color={ORANGE} />}
-                    label="Marketplace" value={fmt(todayData.marketplace?.total)}
-                    sub={`${todayData.marketplace?.commandes ?? 0} cmd`}
-                    iconBg={ORANGE + '15'} colors={colors}
-                  />
+                  {hasMarketplaceAccess && (
+                    <StatCard
+                      icon={<Ionicons name="globe-outline" size={18} color={ORANGE} />}
+                      label="Marketplace" value={fmt(todayData.marketplace?.total)}
+                      sub={`${todayData.marketplace?.commandes ?? 0} cmd`}
+                      iconBg={ORANGE + '15'} colors={colors}
+                    />
+                  )}
                   <StatCard
                     icon={<Ionicons name="star-outline" size={18} color={AMBER} />}
                     label="Articles" value={String(todayData.articlesVendus ?? 0)}
@@ -723,11 +727,13 @@ export default function BilanVentesScreen() {
                         iconBg={INDIGO + '15'} colors={colors}
                       />
                     )}
-                    <StatCard
-                      icon={<Ionicons name="globe-outline" size={18} color={ORANGE} />}
-                      label="Marketplace" value={fmt(histCmd)}
-                      iconBg={ORANGE + '15'} colors={colors}
-                    />
+                    {hasMarketplaceAccess && (
+                      <StatCard
+                        icon={<Ionicons name="globe-outline" size={18} color={ORANGE} />}
+                        label="Marketplace" value={fmt(histCmd)}
+                        iconBg={ORANGE + '15'} colors={colors}
+                      />
+                    )}
                     <StatCard
                       icon={<Ionicons name="star-outline" size={18} color={AMBER} />}
                       label="Articles" value={String(histArticles)}
@@ -752,7 +758,7 @@ export default function BilanVentesScreen() {
                       <View style={[styles.tableHead, { backgroundColor: colors.bgHover, borderBottomColor: colors.border }]}>
                         <Text style={[styles.thDate, { color: colors.textDisabled }]}>Date</Text>
                         {hasPosAccess && <Text style={[styles.thNum, { color: INDIGO }]}>POS</Text>}
-                        <Text style={[styles.thNum, { color: ORANGE }]}>Marché</Text>
+                        {hasMarketplaceAccess && <Text style={[styles.thNum, { color: ORANGE }]}>Marché</Text>}
                         <Text style={[styles.thTotal, { color: colors.text }]}>Total</Text>
                         <Text style={[styles.thArticles, { color: colors.textDisabled }]}>Art.</Text>
                       </View>
@@ -769,7 +775,7 @@ export default function BilanVentesScreen() {
                         >
                           <Text style={[styles.tdDate, { color: colors.textSub }]} numberOfLines={1}>{formatDate(d.date)}</Text>
                           {hasPosAccess && <Text style={[styles.tdNum, { color: INDIGO }]}>{fmtNum(d.posTotal)}</Text>}
-                          <Text style={[styles.tdNum, { color: ORANGE }]}>{fmtNum(d.commandeTotal)}</Text>
+                          {hasMarketplaceAccess && <Text style={[styles.tdNum, { color: ORANGE }]}>{fmtNum(d.commandeTotal)}</Text>}
                           <Text style={[styles.tdTotal, { color: colors.text }]}>{fmtNum(d.totalGeneral)}</Text>
                           <Text style={[styles.tdArticles, { color: colors.textDisabled }]}>{d.articlesVendus}</Text>
                         </View>

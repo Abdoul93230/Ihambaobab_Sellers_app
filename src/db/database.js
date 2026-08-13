@@ -657,6 +657,8 @@ export async function clearDB() {
       DELETE FROM categories;
       DELETE FROM meta;
       DELETE FROM notifications;
+      DELETE FROM agent_ventes;
+      DELETE FROM agent_stats_cache;
     `);
   });
 }

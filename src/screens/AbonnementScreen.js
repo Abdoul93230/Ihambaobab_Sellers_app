@@ -244,14 +244,14 @@ function StatusCard({ subData, statusInfo, subscription, productCount, queuedSub
             <Text style={[s.infoBoxLine, { color: '#C2410C' }]}>Renouvelez maintenant pour éviter toute interruption de service.</Text>
           </View>
         )}
-        {/* Bannière POS upgrade Starter */}
+        {/* Bannière marketplace upgrade Starter */}
         {planName === 'Starter' && (
-          <View style={[s.posBanner, { backgroundColor: '#F0FDF4', borderColor: '#A7F3D0' }]}>
-            <Ionicons name="storefront-outline" size={16} color="#059669" />
+          <View style={[s.posBanner, { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' }]}>
+            <Ionicons name="globe-outline" size={16} color="#2563EB" />
             <View style={{ flex: 1 }}>
-              <Text style={[s.posBannerTitle, { color: '#065F46' }]}>Activez la Caisse POS avec le plan Pro</Text>
-              <Text style={[s.posBannerSub, { color: '#047857' }]}>
-                Plan Pro (5 000 ₣/mois) — caisse physique avec 0% de commission sur vos ventes en boutique.
+              <Text style={[s.posBannerTitle, { color: '#1E3A8A' }]}>Publiez vos produits sur la marketplace</Text>
+              <Text style={[s.posBannerSub, { color: '#1D4ED8' }]}>
+                Plan Pro (5 000 ₣/mois) — vos produits visibles par tous les acheteurs sur IhamBaobab.
               </Text>
             </View>
           </View>

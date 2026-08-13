@@ -10,6 +10,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { LineChart, BarChart } from 'react-native-gifted-charts';
 import { useSyncStore } from '../stores/syncStore';
 import { useSync } from '../hooks/useSync';
+import SUBSCRIPTION_CONFIG from '../config/subscriptionConfig';
 import { useModules } from '../hooks/useModules';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../stores/authStore';
@@ -44,7 +45,7 @@ function deriveAggregate(history) {
   const posVentes  = history.reduce((s, d) => s + (d.posVentes  ?? 0), 0);
   const mkTotal    = history.reduce((s, d) => s + (d.commandeTotal ?? 0), 0);
   const mkCount    = history.reduce((s, d) => s + (d.commandeCount ?? 0), 0);
-  const articles   = history.reduce((s, d) => s + (d.articlesVendus ?? 0), 0);
+  const articles   = history.reduce((s, d) => s + (d.mkArticlesVendus ?? 0), 0);
   return {
     totalGeneral: posTotal + mkTotal,
     pos: {
@@ -317,7 +318,7 @@ function DashboardHeader({ planName, isTrial, daysLeft, mkStats, period, customF
             stock bas
           </Text>
         </View>
-        {mkStats.cancelRate !== null && (
+        {mkStats.cancelRate !== null && activeView === 'marketplace' && (
           <View style={[styles.quickStat, { backgroundColor: mkStats.cancelRate > 15 ? colors.bgDanger : colors.bgHover }]}>
             <Ionicons name="close-circle-outline" size={13} color={mkStats.cancelRate > 15 ? colors.dangerText : colors.textMuted} />
             <Text style={[styles.quickStatVal, { color: mkStats.cancelRate > 15 ? colors.dangerText : colors.text }]}>
@@ -654,7 +655,7 @@ function ViewMarketplace({ bilanData, historyData, commandesLocal, cancelRate, l
   const mkTotal  = bilanData?.marketplace?.total              ?? 0;
   const mkCount  = bilanData?.marketplace?.commandes          ?? 0;
   // Utilise les articles spécifiques marketplace (pas le total qui inclut le POS)
-  const articles = bilanData?.marketplace?.articlesVendus     ?? bilanData?.articlesVendus ?? 0;
+  const articles = bilanData?.marketplace?.articlesVendus ?? 0;
 
   // ── Données graphique ──────────────────────────────────────────────────────
   // Le graphe nécessite une série temporelle (7j, 30j, ou custom avec dates)
@@ -725,7 +726,7 @@ function ViewMarketplace({ bilanData, historyData, commandesLocal, cancelRate, l
             { icon: 'cart-outline',        val: String(mkCount),   label: 'Commandes' },
             { icon: 'cube-outline',        val: String(articles),  label: 'Articles vendus' },
             { icon: 'trending-up-outline', val: mkCount > 0 ? `${fmtShort(Math.round(mkTotal / mkCount))} ₣` : '—', label: 'Panier moy.' },
-            ...(cancelRate !== null ? [{ icon: 'close-circle-outline', val: `${cancelRate}%`, label: 'Annulées' }] : []),
+            ...(cancelRate !== null && mkCount > 0 ? [{ icon: 'close-circle-outline', val: `${cancelRate}%`, label: 'Annulées' }] : []),
           ].map((s, i, arr) => (
             <React.Fragment key={s.label}>
               <View style={styles.heroStat}>
@@ -1005,7 +1006,7 @@ export default function DashboardScreen() {
   // hasPosAccess est calculé plus bas mais useState/useRef s'initialisent une seule fois
   // On lit directement subscription ici pour éviter la dépendance de l'ordre
   const _planNameInit   = subscription?.planName || 'Starter';
-  const _hasPosInit     = ['Pro', 'Business'].includes(_planNameInit);
+  const _hasPosInit     = SUBSCRIPTION_CONFIG.hasPosAccess(_planNameInit);
   const defaultView     = _hasPosInit ? 'pos' : 'marketplace';
   const [activeView, setActiveView] = useState(defaultView);
   // Sans accès POS, il n'y a qu'une seule vue (marketplace à 0) — pas besoin de slide
@@ -1200,8 +1201,13 @@ export default function DashboardScreen() {
   const planName     = subscription?.planName || 'Starter';
   const isTrial      = subscription?.status === 'trial';
   const daysLeft     = subscription?.daysRemaining;
-  const hasPosAccess = ['Pro', 'Business'].includes(planName);
-  const visibleViews = VIEWS.filter(v => v.key !== 'pos' || hasPosAccess);
+  const hasPosAccess         = SUBSCRIPTION_CONFIG.hasPosAccess(planName);
+  const hasMarketplaceAccess = SUBSCRIPTION_CONFIG.hasMarketplaceAccess(planName);
+  const visibleViews = VIEWS.filter(v => {
+    if (v.key === 'pos')         return hasPosAccess;
+    if (v.key === 'marketplace') return hasMarketplaceAccess;
+    return true;
+  });
 
   const headerPropsBase = {
     planName, isTrial, daysLeft, mkStats,
@@ -1323,7 +1329,8 @@ export default function DashboardScreen() {
             </View>
             )}
 
-            {/* Vue Marketplace */}
+            {/* Vue Marketplace — Pro & Business uniquement */}
+            {hasMarketplaceAccess && (
             <View style={styles.viewPane}>
               <ScrollView
                 showsVerticalScrollIndicator={false}
@@ -1336,7 +1343,7 @@ export default function DashboardScreen() {
                 }
                 contentContainerStyle={styles.viewScroll}
               >
-                <DashboardHeader {...(hasPosAccess ? headerPropsBase : headerProps)} />
+                <DashboardHeader {...headerPropsBase} />
                 <ViewMarketplace
                   bilanData={bilanData}
                   historyData={historyData}
@@ -1349,6 +1356,7 @@ export default function DashboardScreen() {
                 />
               </ScrollView>
             </View>
+            )}
           </Animated.View>
         )}
       </View>

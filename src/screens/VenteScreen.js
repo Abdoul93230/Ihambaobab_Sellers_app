@@ -18,6 +18,7 @@ import { useAgentStore } from '../stores/agentStore';
 import { updateBilanCache, upsertMany } from '../db/database';
 import CachedImage from '../components/CachedImage';
 import Toast from 'react-native-toast-message';
+import SUBSCRIPTION_CONFIG from '../config/subscriptionConfig';
 
 const W = Dimensions.get('window').width;
 const WEB_URL = 'https://ihambaobab.com';
@@ -1102,7 +1103,7 @@ export default function VenteScreen() {
   // Agent connecté → sa boutique a forcément POS (vérifié au login)
   const storeName = isAgent ? (agent?.storeName || 'Ma Boutique') : (seller?.storeName || seller?.name || 'Ma Boutique');
   const planName  = subscription?.planName || 'Starter';
-  const hasAccess = isAgent || ['Pro', 'Business'].includes(planName);
+  const hasAccess = isAgent || SUBSCRIPTION_CONFIG.hasPosAccess(planName);
 
   // POS : affiche Published + Attente — le vendeur peut vendre ses propres produits
   // même si non encore validés par l'admin pour le marketplace

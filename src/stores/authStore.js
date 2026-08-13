@@ -18,13 +18,12 @@ const clearSession = async () => {
   try { await SecureStore.deleteItemAsync('sellerToken'); } catch (_) {}
 };
 
-const resetSyncStore = () => {
+const resetSyncStore = async () => {
   try {
     const { useSyncStore } = require('./syncStore');
     useSyncStore.getState().reset();
-    // Purge SQLite
     const { syncService } = require('../services/syncService');
-    syncService.reset().catch(() => {});
+    await syncService.reset();
   } catch (_) {}
 };
 
@@ -237,7 +236,7 @@ export const useAuthStore = create((set) => ({
   // ─── Déconnexion ──────────────────────────────────────────────────────────
   logout: async () => {
     await clearSession();
-    resetSyncStore();
+    await resetSyncStore();
     try {
       const { mutationQueue } = require('../services/mutationQueue');
       mutationQueue.reset();
@@ -248,7 +247,7 @@ export const useAuthStore = create((set) => ({
   // Logout forcé (401 intercepté par axios)
   forceLogout: async () => {
     await clearSession();
-    resetSyncStore();
+    await resetSyncStore();
     set({ seller: null, token: null, isAuthenticated: false, authChecked: true, isResubscriptionToken: false });
   },
 
