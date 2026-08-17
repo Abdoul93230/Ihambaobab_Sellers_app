@@ -12,7 +12,7 @@
  * - Modal détail avec lignes produits (CachedImage)
  * - Annulation de vente < 24h avec confirmation Alert
  */
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList,
   Modal, Alert, ActivityIndicator, ScrollView,
@@ -730,6 +730,23 @@ const rStyles = StyleSheet.create({
   pdfBtnText:        { color: '#fff', fontSize: 14, fontWeight: '800' },
 });
 
+// ─── Stats des ventes offline pour la période affichée ───────────────────────
+function calcOfflineStats(offlineVentes, nbJours) {
+  const { dateStart, dateEnd } = getPeriodeDates(nbJours);
+  const start = new Date(dateStart);
+  const end   = new Date(dateEnd);
+  const inPeriod = offlineVentes.filter(v => {
+    const d = new Date(v.createdAt);
+    return d >= start && d <= end && v.statut === 'COMPLETEE';
+  });
+  const totalCA      = inPeriod.reduce((s, v) => s + (v.total || 0), 0);
+  const totalEspeces = inPeriod.filter(v => v.modePaiement === 'ESPECES')
+                               .reduce((s, v) => s + (v.total || 0), 0);
+  const totalMobile  = inPeriod.filter(v => v.modePaiement === 'MOBILE_MONEY')
+                               .reduce((s, v) => s + (v.total || 0), 0);
+  return { count: inPeriod.length, totalCA, totalEspeces, totalMobile };
+}
+
 // ─── Composant principal ──────────────────────────────────────────────────────
 export default function AgentHistoriqueScreen() {
   const { colors } = useTheme();
@@ -760,6 +777,23 @@ export default function AgentHistoriqueScreen() {
   // ── Confirmation annulation ────────────────────────────────────────────────
   const [confirmOpen,   setConfirmOpen]   = useState(false);
   const [venteToCancel, setVenteToCancel] = useState(null);
+
+  // ── Stats fusionnées serveur + offline ────────────────────────────────────
+  const displayStats = useMemo(() => {
+    const off = calcOfflineStats(offlineVentes, periode);
+    if (off.count === 0) return stats; // rien à fusionner
+    const base = stats || { totalCA: 0, nombreVentes: 0, nombreAnnulations: 0, totalEspeces: 0, totalMobile: 0 };
+    const totalCA      = (base.totalCA      || 0) + off.totalCA;
+    const nombreVentes = (base.nombreVentes || 0) + off.count;
+    return {
+      ...base,
+      totalCA,
+      nombreVentes,
+      totalEspeces: (base.totalEspeces || 0) + off.totalEspeces,
+      totalMobile:  (base.totalMobile  || 0) + off.totalMobile,
+      panierMoyen:  nombreVentes > 0 ? Math.round(totalCA / nombreVentes) : 0,
+    };
+  }, [stats, offlineVentes, periode]);
 
   // Snapshot pour l'annulation (mise à jour lors du fetch)
   const ventesSnapshotRef = useRef([]);
@@ -997,22 +1031,22 @@ export default function AgentHistoriqueScreen() {
       </View>
 
       {/* ── Stats ── */}
-      {stats ? (
+      {displayStats ? (
         <View style={[styles.statsBlock, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
           {/* Ligne 1 : CA total en grand */}
           <View style={styles.statsMain}>
             <View style={{ flex: 1 }}>
               <Text style={[styles.statsMainLabel, { color: colors.textMuted }]}>CA TOTAL</Text>
-              <Text style={[styles.statsMainValue, { color: PRIMARY }]}>{fmtMoney(stats.totalCA)}</Text>
+              <Text style={[styles.statsMainValue, { color: PRIMARY }]}>{fmtMoney(displayStats.totalCA)}</Text>
             </View>
             <View style={styles.statsMainRight}>
               <View style={[styles.statsVenteBadge, { backgroundColor: '#2563EB' + '18' }]}>
-                <Text style={[styles.statsVenteNum, { color: '#2563EB' }]}>{stats.nombreVentes}</Text>
+                <Text style={[styles.statsVenteNum, { color: '#2563EB' }]}>{displayStats.nombreVentes}</Text>
                 <Text style={[styles.statsVenteLabel, { color: '#2563EB' }]}>ventes</Text>
               </View>
-              {stats.nombreAnnulations > 0 && (
+              {displayStats.nombreAnnulations > 0 && (
                 <View style={[styles.statsVenteBadge, { backgroundColor: DANGER + '18' }]}>
-                  <Text style={[styles.statsVenteNum, { color: DANGER }]}>{stats.nombreAnnulations}</Text>
+                  <Text style={[styles.statsVenteNum, { color: DANGER }]}>{displayStats.nombreAnnulations}</Text>
                   <Text style={[styles.statsVenteLabel, { color: DANGER }]}>annulées</Text>
                 </View>
               )}
@@ -1022,9 +1056,9 @@ export default function AgentHistoriqueScreen() {
           <View style={[styles.statsDivider, { backgroundColor: colors.border }]} />
           {/* Ligne 2 : panier moyen + répartition paiements */}
           <View style={styles.statsRow}>
-            <StatCard label="Panier moy."   value={fmtMoney(stats.panierMoyen)}     color={SECONDARY} colors={colors} />
-            <StatCard label="Espèces"       value={fmtMoney(stats.totalEspeces)}    color={WARN}      colors={colors} />
-            <StatCard label="Mobile Money"  value={fmtMoney(stats.totalMobile)}     color={PRIMARY}   colors={colors} />
+            <StatCard label="Panier moy."   value={fmtMoney(displayStats.panierMoyen)}     color={SECONDARY} colors={colors} />
+            <StatCard label="Espèces"       value={fmtMoney(displayStats.totalEspeces)}    color={WARN}      colors={colors} />
+            <StatCard label="Mobile Money"  value={fmtMoney(displayStats.totalMobile)}     color={PRIMARY}   colors={colors} />
           </View>
         </View>
       ) : (

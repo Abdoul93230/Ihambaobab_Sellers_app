@@ -88,7 +88,6 @@ export default function PlusScreen() {
     // { label: 'Mes Commandes',         icon: 'cart-outline',         color: '#10B981', disabled: false,                      onPress: () => navigation.navigate('Commandes') },
     { label: 'Bilan des ventes',      icon: 'bar-chart-outline',    color: '#30A08B', disabled: !has('bilanJournalier'),    onPress: () => navigation.navigate('BilanVentes') },
     { label: 'Performance produits',  icon: 'trending-up-outline',  color: '#6366F1', disabled: !hasPerfProd,               onPress: () => hasPerfProd && navigation.navigate('PerformanceProduits') },
-    { label: 'Rapport mensuel',       icon: 'document-text-outline',color: '#F59E0B', disabled: !has('rapportPeriodique'),  onPress: () => {} },
   ];
 
   const gestionItems = [
@@ -188,15 +187,21 @@ export default function PlusScreen() {
         />
         <MenuSection
           title="AIDE"
-          items={[{
-            label: 'Revoir le tutoriel',
-            icon: 'help-circle-outline',
-            color: '#6366F1',
-            onPress: () => {
-              requestTour();
-              navigation.navigate('Dashboard');
+          items={[
+            // TODO: réactiver quand le tutoriel est validé sur tous les écrans
+            // {
+            //   label: 'Revoir le tutoriel',
+            //   icon: 'help-circle-outline',
+            //   color: '#6366F1',
+            //   onPress: () => { requestTour(); navigation.navigate('Dashboard'); },
+            // },
+            {
+              label: 'À propos',
+              icon: 'information-circle-outline',
+              color: '#30A08B',
+              onPress: () => navigation.navigate('APropos'),
             },
-          }]}
+          ]}
           colors={colors}
         />
 

@@ -7,10 +7,11 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRoute } from '@react-navigation/native';
+import { useRoute, useFocusEffect } from '@react-navigation/native';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { useAuthStore } from '../stores/authStore';
+import { useSyncStore } from '../stores/syncStore';
 import { useSync } from '../hooks/useSync';
 import { useTheme } from '../context/ThemeContext';
 import { getMeta, setMeta } from '../db/database';
@@ -1381,6 +1382,8 @@ function WithdrawModal({ visible, soldeDisponible, onClose, onConfirm, sending, 
 export default function PortefeuilleScreen() {
   const { seller, subscription } = useAuthStore();
   const { isOffline } = useSync();
+  const portfolioUpdatedAt = useSyncStore((s) => s.portfolioUpdatedAt);
+  const ordersUpdatedAt    = useSyncStore((s) => s.ordersUpdatedAt);
   const { colors }    = useTheme();
   const route         = useRoute();
   const sellerId      = seller?._id || seller?.id;
@@ -1398,14 +1401,42 @@ export default function PortefeuilleScreen() {
   // ── Vue active — démarre sur POS si disponible, sinon première vue visible ──
   const defaultView = hasPosAccess ? 'pos' : (visibleViews[0]?.key || 'pos');
   const [activeView, setActiveView] = useState(defaultView);
-  const pageScrollRef = useRef(null);
-  const activeViewRef = useRef(defaultView);
+  const pageScrollRef   = useRef(null);
+  const activeViewRef   = useRef(defaultView);
+  const userInteracted  = useRef(false);
+  const didInitialScroll = useRef(false);
 
   const switchView = useCallback((key) => {
+    userInteracted.current = true;
     const idx = visibleViews.findIndex(v => v.key === key);
     pageScrollRef.current?.scrollTo({ x: idx * W, animated: true });
     setActiveView(key);
     activeViewRef.current = key;
+  }, [visibleViews]);
+
+  // Correction désync subscription : si subscription charge après le montage et révèle
+  // un accès POS, corriger activeView sans animation (l'user n'a pas encore interagi)
+  useEffect(() => {
+    if (userInteracted.current) return;
+    const hasPOS = SUBSCRIPTION_CONFIG.hasPosAccess(subscription?.planName || 'Starter');
+    if (!hasPOS) return;
+    if (activeViewRef.current !== 'pos') {
+      setActiveView('pos');
+      activeViewRef.current = 'pos';
+      pageScrollRef.current?.scrollTo({ x: 0, animated: false });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subscription?.planName]);
+
+  // Sync position initiale du ScrollView : si switchView est appelé avant que
+  // la ref soit prête (ex: ouverture via notification), resynchroniser au layout
+  const onPageScrollLayout = useCallback(() => {
+    if (didInitialScroll.current) return;
+    didInitialScroll.current = true;
+    const idx = visibleViews.findIndex(v => v.key === activeViewRef.current);
+    if (idx > 0) {
+      pageScrollRef.current?.scrollTo({ x: idx * W, animated: false });
+    }
   }, [visibleViews]);
 
   // ── État ───────────────────────────────────────────────────────────────────
@@ -1450,7 +1481,6 @@ export default function PortefeuilleScreen() {
   const [showWithdraw,    setShowWithdraw]    = useState(false);
   const [sendingRetrait,  setSendingRetrait]  = useState(false);
 
-  const pollingRef         = useRef(null);
   const dashboardLoadedRef = useRef(false);
   const periodeInitRef     = useRef(false); // true après le montage initial, pour éviter le double-fetch
 const posOpacity         = useRef(new Animated.Value(1)).current;
@@ -1867,10 +1897,11 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
         setSelectedOrder(inCurrentPage);
         return;
       }
-      // 3. Fallback : fetch direct par ID (commande hors période courante, très ancienne, etc.)
+      // 3. Fallback : fetch enrichi par commandeId (données financières complètes)
       try {
-        const res = await apiClient.get(`/getCommandesById/${openOrderId}`);
-        const order = res.data?.commande || res.data;
+        const res = await apiClient.get(`/api/financial/seller/${sellerId}/orders-financial?commandeId=${openOrderId}`);
+        const d = res.data?.data || res.data;
+        const order = (d?.orders || [])[0];
         if (order) {
           pendingOpenOrderId.current = null;
           setSelectedOrder(order);
@@ -2099,11 +2130,9 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
   // Reconnexion : déverouiller les spinners bloqués + recharger toutes les sections
   useEffect(() => {
     if (isOffline) {
-      // Couper tous les spinners si la connexion tombe en pleine charge
       setLoading(false);
       setStatsLoading(false);
       setRefreshing(false);
-      clearInterval(pollingRef.current);
       return;
     }
     // Connexion rétablie — vider les caches mémoire pour forcer des données fraîches
@@ -2117,9 +2146,26 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
     fetchRetraits(1);
     fetchPos(1);
     fetchDashboard(false);
-    pollingRef.current = setInterval(() => fetchDashboard(true), 30_000);
-    return () => clearInterval(pollingRef.current);
   }, [isOffline]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Suivi du focus — nécessaire pour le signal socket ci-dessous
+  const isFocusedRef = useRef(false);
+  useFocusEffect(useCallback(() => {
+    isFocusedRef.current = true;
+    return () => { isFocusedRef.current = false; };
+  }, []));
+
+  // Mise à jour immédiate déclenchée par socket bilan_updated (via syncStore)
+  useEffect(() => {
+    if (!portfolioUpdatedAt || !isFocusedRef.current || isOffline) return;
+    fetchDashboard(true);
+  }, [portfolioUpdatedAt]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Mise à jour de la liste des commandes déclenchée par order_status_updated
+  useEffect(() => {
+    if (!ordersUpdatedAt || !isFocusedRef.current || isOffline) return;
+    fetchOrders(1);
+  }, [ordersUpdatedAt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onRefresh = () => {
     if (isOffline) {
@@ -2232,7 +2278,9 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
         showsHorizontalScrollIndicator={false}
         scrollEventThrottle={16}
         directionalLockEnabled
+        onLayout={onPageScrollLayout}
         onMomentumScrollEnd={e => {
+          userInteracted.current = true;
           const idx = Math.round(e.nativeEvent.contentOffset.x / W);
           const key = visibleViews[idx]?.key || visibleViews[0]?.key;
           if (key) { setActiveView(key); activeViewRef.current = key; }

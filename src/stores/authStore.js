@@ -91,6 +91,7 @@ export const useAuthStore = create((set) => ({
               const freshSubscription = {
                 planName:     data.activeSubscription?.planType || stored.subscription?.planName || 'Starter',
                 status:       data.statusInfo?.status || stored.subscription?.status || 'active',
+                endDate:      data.activeSubscription?.endDate || null,
                 daysRemaining: (data.statusInfo?.status === 'trial' || data.statusInfo?.status === 'active') && data.activeSubscription?.endDate
                   ? Math.ceil((new Date(data.activeSubscription.endDate) - new Date()) / (1000 * 60 * 60 * 24))
                   : null,
@@ -100,16 +101,21 @@ export const useAuthStore = create((set) => ({
               set({ subscription: freshSubscription });
             }),
 
-            // Logo si absent
-            !updatedSeller.logo
+            // Logo et businessProfile si absents
+            (!updatedSeller.logo || !updatedSeller.businessProfile)
               ? apiClient.get(`/getSeller/${sellerId}`, {
                   headers: { Authorization: `Bearer ${stored.token}` },
                 }).then(r => {
                   const full = r.data?.data || r.data?.seller || r.data;
-                  if (full?.logo) {
-                    const withLogo = { ...updatedSeller, logo: full.logo, phone: full.phone };
-                    saveSession({ token: stored.token, seller: withLogo, subscription: stored.subscription });
-                    set({ seller: withLogo });
+                  if (full) {
+                    const withExtras = {
+                      ...updatedSeller,
+                      ...(full.logo            && { logo: full.logo }),
+                      ...(full.phone           && { phone: full.phone }),
+                      ...(full.businessProfile && { businessProfile: full.businessProfile }),
+                    };
+                    saveSession({ token: stored.token, seller: withExtras, subscription: stored.subscription });
+                    set({ seller: withExtras });
                   }
                 })
               : Promise.resolve(),
@@ -167,6 +173,7 @@ export const useAuthStore = create((set) => ({
       const subscription = {
         planName: data.subscription?.current?.planType || 'Starter',
         status: data.subscription?.statusInfo?.status || seller.subscriptionStatus || 'active',
+        endDate: data.subscription?.current?.endDate || null,
         daysRemaining: data.subscription?.daysRemaining ?? null,
         commission: data.subscription?.current?.commission ?? 5,
       };
@@ -183,6 +190,13 @@ export const useAuthStore = create((set) => ({
         }
       } catch (_) {}
 
+      // Warm cache — précharge toutes les entités en arrière-plan (fire-and-forget)
+      // Garantit que les pages jamais visitées ont des données offline dès la 1ère session
+      try {
+        const mod = require('../services/syncService');
+        (mod.syncService || mod.default || mod).pullAll().catch(() => {});
+      } catch (_) {}
+
       // Le login ne retourne pas logo — on le charge en arrière-plan
       const sellerId = seller?.id || seller?._id;
       if (sellerId) {
@@ -192,9 +206,10 @@ export const useAuthStore = create((set) => ({
             if (fullSeller) {
               const updated = {
                 ...seller,
-                ...(fullSeller.logo      && { logo: fullSeller.logo }),
-                ...(fullSeller.phone     && { phone: fullSeller.phone }),
-                ...(fullSeller.storeName && { storeName: fullSeller.storeName }),
+                ...(fullSeller.logo            && { logo: fullSeller.logo }),
+                ...(fullSeller.phone           && { phone: fullSeller.phone }),
+                ...(fullSeller.storeName       && { storeName: fullSeller.storeName }),
+                ...(fullSeller.businessProfile && { businessProfile: fullSeller.businessProfile }),
               };
               saveSession({ token, seller: updated, subscription });
               set({ seller: updated });

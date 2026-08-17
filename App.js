@@ -14,7 +14,6 @@ import { useAuthStore } from './src/stores/authStore';
 import { useAgentStore } from './src/stores/agentStore';
 import { useSyncStore } from './src/stores/syncStore';
 import { useNotificationStore } from './src/stores/notificationStore';
-import { socketService } from './src/services/socketService';
 import { registerBackgroundSync } from './src/services/backgroundSync';
 import { initDB } from './src/db/database';
 import { syncService } from './src/services/syncService';
@@ -53,17 +52,12 @@ export default function App() {
     boot().catch((e) => console.error('[BOOT CRASH]', e?.message, e?.stack));
   }, []);
 
-  // ── Connexion socket + sync complète au login ──────────────────────────────
+  // ── Sync complète au login (socket géré dans AppNavigator) ────────────────
   useEffect(() => {
     if (!isAuthenticated || !sellerId || !token) return;
-    socketService.connect(sellerId, token);
+    lastForegroundSync.current = Date.now();
     triggerFullSync();
     useNotificationStore.getState().fetchFromAPI(sellerId);
-    const offNewOrder    = socketService.on('new_order',         () => useSyncStore.getState().invalidate('commandes', 'bilan'));
-    const offBilanUpdated= socketService.on('bilan_updated',     () => useSyncStore.getState().invalidate('bilan'));
-    const offSuspended   = socketService.on('account_suspended', () => { useAuthStore.getState().forceLogout(); Toast.show({ type: 'error', text1: 'Compte suspendu', text2: 'Contactez le support.' }); });
-    const offReactivated = socketService.on('account_reactivated',() => { Toast.show({ type: 'success', text1: 'Compte réactivé !' }); triggerFullSync(); });
-    return () => { offNewOrder(); offBilanUpdated(); offSuspended(); offReactivated(); socketService.disconnect(); };
   }, [isAuthenticated, sellerId, token]);
 
   // ── AppState : sync sélective au retour en foreground ─────────────────────
@@ -71,7 +65,7 @@ export default function App() {
     const sub = AppState.addEventListener('change', (nextState) => {
       if (appState.current.match(/inactive|background/) && nextState === 'active' && isAuthenticated) {
         const now = Date.now();
-        if (now - lastForegroundSync.current > 30_000) {
+        if (now - lastForegroundSync.current > 60_000) {
           lastForegroundSync.current = now;
           triggerSync();
           const { seller: s } = useAuthStore.getState();

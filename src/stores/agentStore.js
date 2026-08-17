@@ -43,7 +43,7 @@ async function cacheAgentProduits(storeId, token) {
 }
 
 export const useAgentStore = create((set) => ({
-  agent:           null,   // { id, name, role, storeId, storeName, storeLogo }
+  agent:           null,   // { id, name, role, storeId, storeName, storeLogo, photo }
   token:           null,
   isAuthenticated: false,
   authChecked:     false,
@@ -139,4 +139,44 @@ export const useAgentStore = create((set) => ({
   },
 
   clearError: () => set({ error: null }),
+
+  // ─── Mise à jour du nom ───────────────────────────────────────────────────
+  updateName: async (name) => {
+    const { agent, token } = useAgentStore.getState();
+    if (!agent || !token) return { success: false };
+    try {
+      const res = await apiClient.patch('/api/agents/me/name', { name }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const newName = res.data?.data?.name;
+      if (newName) {
+        const updated = { ...agent, name: newName };
+        set({ agent: updated });
+        await saveAgentSession({ token, agent: updated });
+      }
+      return { success: true, name: newName };
+    } catch (e) {
+      return { success: false, error: e.response?.data?.message || 'Erreur mise à jour nom' };
+    }
+  },
+
+  // ─── Mise à jour photo de profil ─────────────────────────────────────────
+  updatePhoto: async (photoBase64) => {
+    const { agent, token } = useAgentStore.getState();
+    if (!agent || !token) return { success: false };
+    try {
+      const res = await apiClient.patch('/api/agents/me/photo', { photo: photoBase64 }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const newPhoto = res.data?.data?.photo;
+      if (newPhoto) {
+        const updated = { ...agent, photo: newPhoto };
+        set({ agent: updated });
+        await saveAgentSession({ token, agent: updated });
+      }
+      return { success: true, photo: newPhoto };
+    } catch (e) {
+      return { success: false, error: e.response?.data?.message || 'Erreur upload photo' };
+    }
+  },
 }));

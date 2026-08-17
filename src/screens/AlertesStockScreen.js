@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList,
   RefreshControl, Modal, TextInput, KeyboardAvoidingView,
@@ -10,6 +10,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useSync } from '../hooks/useSync';
 import CachedImage from '../components/CachedImage';
 import apiClient from '../config/api';
+import { getMeta, setMeta } from '../db/database';
 
 const AMBER  = '#F59E0B';
 const DANGER = '#EF4444';
@@ -55,9 +56,13 @@ export default function AlertesStockScreen() {
   const { isOffline } = useSync();
 
   const [data, setData]             = useState(null);
-  const [loading, setLoading]       = useState(true);
+  const [loading, setLoading]       = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError]           = useState(null);
+
+  // Ref stable pour isOffline — évite les closures périmées dans fetchAlerts
+  const isOfflineRef = useRef(isOffline);
+  useEffect(() => { isOfflineRef.current = isOffline; }, [isOffline]);
 
   // Modale seuil global
   const [seuilModal, setSeuilModal] = useState(false);
@@ -66,25 +71,61 @@ export default function AlertesStockScreen() {
 
   // ─── Fetch ───────────────────────────────────────────────────────────────────
   const fetchAlerts = useCallback(async (silent = false) => {
+    // Ne pas faire de requête réseau si hors ligne
+    if (isOfflineRef.current) {
+      if (!silent) setLoading(false);
+      setRefreshing(false);
+      return;
+    }
     if (!silent) setLoading(true);
     setError(null);
     try {
       const res = await apiClient.get('/api/modules/stock/alerts');
-      setData(res.data?.data ?? null);
+      const fresh = res.data?.data ?? null;
+      setData(fresh);
+      setMeta('alerts_cache', fresh).catch(() => {});
     } catch {
-      setError('Impossible de charger les alertes. Vérifiez votre connexion.');
+      if (!silent) setError('Impossible de charger les alertes. Vérifiez votre connexion.');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   }, []);
 
-  useEffect(() => { fetchAlerts(); }, [fetchAlerts]);
+  useEffect(() => {
+    getMeta('alerts_cache').then(cached => {
+      if (cached !== null) {
+        // Cache dispo → affichage immédiat, pas de spinner
+        setData(cached);
+        setLoading(false);
+        // Fetch réseau en arrière-plan seulement si connecté
+        if (!isOfflineRef.current) fetchAlerts(true);
+      } else if (!isOfflineRef.current) {
+        // Pas de cache + connecté → fetch bloquant
+        setLoading(true);
+        fetchAlerts(false);
+      } else {
+        // Hors ligne sans cache
+        setLoading(false);
+      }
+    }).catch(() => {
+      if (!isOfflineRef.current) fetchAlerts(false);
+      else setLoading(false);
+    });
+  }, [fetchAlerts]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchAlerts(true);
   }, [fetchAlerts]);
+
+  // Recharge automatiquement quand la connexion revient
+  const wasOfflineRef = useRef(isOffline);
+  useEffect(() => {
+    const wasOffline = wasOfflineRef.current;
+    wasOfflineRef.current = isOffline;
+    if (wasOffline && !isOffline) fetchAlerts(!!data); // silent si cache dispo
+  }, [isOffline]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Seuil global ────────────────────────────────────────────────────────────
   const openSeuilModal = () => {
@@ -216,6 +257,17 @@ export default function AlertesStockScreen() {
       {loading && !refreshing ? (
         <View style={{ paddingTop: 8 }}>
           {[0, 1, 2, 3].map(i => <SkeletonRow key={i} colors={colors} />)}
+        </View>
+
+      ) : isOffline && !data ? (
+        <View style={s.empty}>
+          <View style={[s.emptyIcon, { backgroundColor: '#6B728018' }]}>
+            <Ionicons name="cloud-offline-outline" size={40} color="#6B7280" />
+          </View>
+          <Text style={[s.emptyTitle, { color: colors.text }]}>Hors ligne</Text>
+          <Text style={[s.emptySub, { color: colors.textMuted }]}>
+            Reconnectez-vous pour charger les alertes stock.
+          </Text>
         </View>
 
       ) : error ? (

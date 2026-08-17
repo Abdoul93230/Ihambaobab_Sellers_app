@@ -18,6 +18,7 @@ import { useAuthStore } from '../stores/authStore';
 import { syncService } from '../services/syncService';
 import { getDB } from '../db/database';
 import apiClient from '../config/api';
+import { mutationQueue } from '../services/mutationQueue';
 import SUBSCRIPTION_CONFIG from '../config/subscriptionConfig';
 import Toast from 'react-native-toast-message';
 
@@ -831,19 +832,30 @@ export default function ProduitsScreen({ navigation }) {
   };
 
   const handleDeleteProduit = useCallback(async (produit) => {
+    const sellerId = seller?._id || seller?.id;
+    const removeLocal = async () => {
+      const current = useSyncStore.getState().produits ?? [];
+      useSyncStore.getState().setStoreData('produits', current.filter(p => String(p._id) !== String(produit._id)));
+      try { const db = getDB(); await db.runAsync('DELETE FROM produits WHERE id = ?', [String(produit._id)]); } catch (_) {}
+    };
+
+    if (isOffline) {
+      await removeLocal();
+      await mutationQueue.push('delete_produit', { productId: produit._id, sellerOrAdmin_id: sellerId });
+      Toast.show({ type: 'info', text1: 'Suppression différée', text2: 'Sera appliquée à la reconnexion.' });
+      return;
+    }
+
     try {
-      const sellerId = seller?._id || seller?.id;
       await apiClient.delete(`/ProductSeller/${produit._id}`, {
         data: { sellerOrAdmin: 'seller', sellerOrAdmin_id: sellerId },
       });
-      const current = useSyncStore.getState().produits ?? [];
-      useSyncStore.getState().setStoreData('produits', current.filter(p => String(p._id) !== String(produit._id)));
-      try { const db = getDB(); await db.runAsync('DELETE FROM produits WHERE id = ?', [String(produit._id)]); } catch {}
+      await removeLocal();
       Toast.show({ type: 'success', text1: 'Produit supprimé', text2: `"${produit.name}" a été supprimé.` });
     } catch {
       Toast.show({ type: 'error', text1: 'Erreur', text2: 'Impossible de supprimer ce produit.' });
     }
-  }, [seller]);
+  }, [seller, isOffline]);
 
   const numCols = viewMode === 'grid' ? 2 : 1;
   const planName = subscription?.planName || 'Starter';

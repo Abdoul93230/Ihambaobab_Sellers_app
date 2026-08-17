@@ -249,11 +249,15 @@ export default function ImportMasseScreen({ navigation }) {
     if (!sellerId) { setLoadingProfile(false); return; }
     const p1 = storeTypes.length === 0 ? syncService.fetchOne('types').catch(() => {}) : Promise.resolve();
     if (storeCategories.length === 0) syncService.fetchOne('categories').catch(() => {});
-    const p2 = apiClient.get(`/getSeller/${sellerId}`).catch(() => ({ data: {} }));
+    // Si businessProfile déjà en session (chargé par authStore), on évite le fetch réseau
+    const cachedProfile = seller?.businessProfile;
+    const p2 = cachedProfile
+      ? Promise.resolve(null)
+      : apiClient.get(`/getSeller/${sellerId}`).catch(() => ({ data: {} }));
     // Charge tous les noms depuis SQLite — couvre les produits au-delà de la page 1
     const p3 = getLocalProductNames().then(names => setExistingNames(names)).catch(() => {});
     Promise.all([p1, p2, p3]).then(([, res]) => {
-      const prof = res?.data?.businessProfile || res?.data?.data?.businessProfile || 'hybride';
+      const prof = cachedProfile || res?.data?.businessProfile || res?.data?.data?.businessProfile || 'hybride';
       setBusinessProfile(TEMPLATES[prof] ? prof : 'hybride');
     }).finally(() => setLoadingProfile(false));
   }, [sellerId]);

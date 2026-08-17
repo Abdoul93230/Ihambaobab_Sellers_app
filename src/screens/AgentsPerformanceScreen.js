@@ -17,6 +17,7 @@ import {
   ScrollView,
   ActivityIndicator,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -108,9 +109,13 @@ function AgentCard({ agent, globalCA, colors }) {
       {/* Header card */}
       <View style={styles.agentCardHeader}>
         <View style={[styles.agentAvatar, { backgroundColor: isActive ? PRIMARY + '18' : '#6B728018' }]}>
-          <Text style={[styles.agentAvatarText, { color: isActive ? PRIMARY : '#6B7280' }]}>
-            {(agent.nom || '?')[0].toUpperCase()}
-          </Text>
+          {agent.photo ? (
+            <Image source={{ uri: agent.photo }} style={{ width: 44, height: 44, borderRadius: 14 }} />
+          ) : (
+            <Text style={[styles.agentAvatarText, { color: isActive ? PRIMARY : '#6B7280' }]}>
+              {(agent.nom || '?')[0].toUpperCase()}
+            </Text>
+          )}
         </View>
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={[styles.agentNom, { color: colors.text }]} numberOfLines={1}>

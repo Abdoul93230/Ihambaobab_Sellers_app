@@ -19,6 +19,7 @@ export const useSyncStore = create((set, get) => ({
   pendingCount: 0,
   lastFetchAt: {},
   lastSyncAt: null,
+  portfolioUpdatedAt: 0,
 
   // ── Données en mémoire (chargées depuis SQLite au démarrage) ─────────────────
   produits:       [],
@@ -103,6 +104,8 @@ export const useSyncStore = create((set, get) => ({
     set({ status: SyncStatus.SYNCING, syncError: null });
     try {
       const { syncService } = require('../services/syncService');
+      // pullAll au lieu de pullStale : fetch TOUT (modules, types, catégories inclus)
+      // nécessaire pour les entités à STALE_AFTER=Infinity qui ne passent jamais par le heartbeat
       await syncService.pullAll();
       await syncService.pushPendingMutations();
       set({ status: SyncStatus.IDLE, lastSyncAt: Date.now() });
@@ -117,6 +120,13 @@ export const useSyncStore = create((set, get) => ({
     await syncService.invalidateAndFetch(...entities).catch(() => {});
   },
 
+  // Signal pour PortefeuilleScreen : déclenché par socket bilan_updated / order_status_updated
+  notifyPortfolioUpdate: () => set({ portfolioUpdatedAt: Date.now() }),
+
+  // Signal commandes-financières : déclenché par order_status_updated uniquement
+  ordersUpdatedAt: 0,
+  notifyOrdersUpdate: () => set({ ordersUpdatedAt: Date.now() }),
+
   stopAutoSync: () => {},
 
   reset: () => {
@@ -126,6 +136,7 @@ export const useSyncStore = create((set, get) => ({
       produitsStats: null, commandesStats: null,
       lastFetchAt: {}, status: SyncStatus.IDLE,
       pendingCount: 0, syncError: null, lastSyncAt: null,
+      portfolioUpdatedAt: 0, ordersUpdatedAt: 0,
     });
   },
 }));

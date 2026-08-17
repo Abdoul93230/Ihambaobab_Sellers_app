@@ -342,8 +342,18 @@ export async function getPendingMutations() {
       [now, now - 2 * 60 * 1000]
     );
   } catch (_) {}
+  // Exclut les mutations 'error' encore dans leur fenêtre de backoff :
+  // retries=1 → 1min, retries=2 → 5min, retries≥3 → 15min
   const rows = await db.getAllAsync(
-    `SELECT * FROM mutations WHERE status IN ('pending', 'error') ORDER BY created_at ASC`
+    `SELECT * FROM mutations
+     WHERE status = 'pending'
+        OR (status = 'error' AND updated_at + (
+              CASE WHEN retries <= 1 THEN 60000
+                   WHEN retries = 2  THEN 300000
+                   ELSE 900000 END
+            ) <= ?)
+     ORDER BY created_at ASC`,
+    [now]
   ).catch(() => []);
   return rows.map(r => {
     try { return { ...r, payload: JSON.parse(r.payload) }; }
@@ -380,7 +390,7 @@ export async function markMutationError(id) {
     await db.runAsync(
       `UPDATE mutations SET
          retries = retries + 1,
-         status = CASE WHEN retries + 1 >= 3 THEN 'failed' ELSE 'error' END,
+         status = CASE WHEN retries + 1 >= 5 THEN 'failed' ELSE 'error' END,
          updated_at = ?
        WHERE id = ?`,
       [Date.now(), id]

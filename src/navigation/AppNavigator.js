@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, ActivityIndicator, Text, TouchableOpacity, StyleSheet, StatusBar, Alert } from 'react-native';
+import { View, ActivityIndicator, Text, TouchableOpacity, StyleSheet, StatusBar, Alert, Image, Modal, TextInput } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { checkImageSize } from '../utils/imageUtils';
 import CachedImage from '../components/CachedImage';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -15,6 +17,7 @@ import { TourTabProvider, useTourTabContext } from '../context/TourTabContext';
 import { useTourOverlayStore } from '../stores/tourOverlayStore';
 import DashboardTour from '../components/DashboardTour';
 import { socketService } from '../services/socketService';
+import { useSyncStore } from '../stores/syncStore';
 import Toast from 'react-native-toast-message';
 
 import LoginScreen from '../screens/LoginScreen';
@@ -41,6 +44,8 @@ import AgentHistoriqueScreen from '../screens/AgentHistoriqueScreen';
 import AgentsPerformanceScreen from '../screens/AgentsPerformanceScreen';
 import PerformanceProduitsScreen from '../screens/PerformanceProduitsScreen';
 import AlertesStockScreen from '../screens/AlertesStockScreen';
+import AProposScreen from '../screens/AProposScreen';
+import LegalScreen from '../screens/LegalScreen';
 import SyncIndicator from '../components/SyncIndicator';
 import PhotoProfileModal from '../components/PhotoProfileModal';
 import { useNotificationStore } from '../stores/notificationStore';
@@ -209,17 +214,89 @@ function PlusNavigator() {
 // ─── Header simplifié pour l'agent ───────────────────────────────────────────
 function AgentHeader({ pageTitle }) {
   const { colors, isDark, toggleTheme } = useTheme();
-  const { agent, logout } = useAgentStore();
+  const { agent, logout, updatePhoto, updateName } = useAgentStore();
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [editingName,    setEditingName]    = useState(false);
+  const [nameInput,      setNameInput]      = useState('');
+  const [savingName,     setSavingName]     = useState(false);
+
+  const handlePickPhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission requise', 'Autorisez l\'accès à la galerie pour changer votre photo.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.6,
+        base64: true,
+      });
+      if (result.canceled || !result.assets?.[0]?.base64) return;
+      if (!checkImageSize(result.assets[0])) return;
+      setUploadingPhoto(true);
+      const base64 = `data:image/jpeg;base64,${result.assets[0].base64}`;
+      const res = await updatePhoto(base64);
+      if (!res.success) Alert.alert('Erreur', res.error || 'Impossible d\'enregistrer la photo.');
+    } catch (_) {
+      Alert.alert('Erreur', 'Impossible de charger l\'image.');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleSaveName = async () => {
+    if (!nameInput.trim()) return;
+    setSavingName(true);
+    const res = await updateName(nameInput.trim());
+    setSavingName(false);
+    if (res.success) {
+      setEditingName(false);
+    } else {
+      Alert.alert('Erreur', res.error || 'Impossible de mettre à jour le nom.');
+    }
+  };
+
   return (
     <SafeAreaView edges={['top']} style={[styles.headerSafe, { backgroundColor: colors.bgCard, borderBottomColor: colors.border }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.bgCard} />
       <View style={styles.headerRow}>
-        <View style={styles.headerLeft}>
-          <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>{pageTitle}</Text>
+        {/* Avatar agent (tap pour changer la photo) */}
+        <TouchableOpacity onPress={handlePickPhoto} activeOpacity={0.8} style={styles.agentAvatarWrap}>
+          {uploadingPhoto ? (
+            <View style={[styles.agentAvatarCircle, { backgroundColor: colors.bgHover }]}>
+              <ActivityIndicator size="small" color={colors.primary} />
+            </View>
+          ) : agent?.photo ? (
+            <Image source={{ uri: agent.photo }} style={styles.agentAvatarCircle} />
+          ) : (
+            <View style={[styles.agentAvatarCircle, { backgroundColor: colors.primary + '22' }]}>
+              <Text style={[styles.agentAvatarLetter, { color: colors.primary }]}>
+                {(agent?.name || '?')[0].toUpperCase()}
+              </Text>
+            </View>
+          )}
+          <View style={[styles.agentAvatarEditDot, { backgroundColor: colors.primary }]}>
+            <Ionicons name="camera" size={8} color="#fff" />
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.headerLeft, { flex: 1 }]}
+          onPress={() => { setNameInput(agent?.name || ''); setEditingName(true); }}
+          activeOpacity={0.7}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>{agent?.name || pageTitle}</Text>
+            <Ionicons name="pencil-outline" size={12} color={colors.textMuted} />
+          </View>
           <Text style={[styles.headerStore, { color: colors.textMuted }]} numberOfLines={1}>
             {agent?.storeName || 'Caisse'}
           </Text>
-        </View>
+        </TouchableOpacity>
+
         <View style={styles.headerRight}>
           {/* Toggle thème */}
           <TouchableOpacity
@@ -244,6 +321,47 @@ function AgentHeader({ pageTitle }) {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Modal édition nom */}
+      <Modal visible={editingName} transparent animationType="fade" onRequestClose={() => setEditingName(false)}>
+        <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center' }} activeOpacity={1} onPress={() => setEditingName(false)}>
+          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+            <View style={[styles.nameModal, { backgroundColor: colors.bgCard }]}>
+              <Text style={[styles.nameModalTitle, { color: colors.text }]}>Modifier mon nom</Text>
+              <View style={[styles.nameInputWrap, { backgroundColor: colors.bg, borderColor: colors.border }]}>
+                <TextInput
+                  style={[styles.nameInput, { color: colors.text }]}
+                  value={nameInput}
+                  onChangeText={setNameInput}
+                  placeholder="Votre nom"
+                  placeholderTextColor={colors.textDisabled}
+                  autoFocus
+                  returnKeyType="done"
+                  onSubmitEditing={handleSaveName}
+                />
+              </View>
+              <View style={styles.nameModalBtns}>
+                <TouchableOpacity
+                  style={[styles.nameModalBtn, { backgroundColor: colors.bgHover }]}
+                  onPress={() => setEditingName(false)}
+                >
+                  <Text style={[styles.nameModalBtnText, { color: colors.textMuted }]}>Annuler</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.nameModalBtn, { backgroundColor: colors.primary }]}
+                  onPress={handleSaveName}
+                  disabled={savingName}
+                >
+                  {savingName
+                    ? <ActivityIndicator size="small" color="#fff" />
+                    : <Text style={[styles.nameModalBtnText, { color: '#fff' }]}>Enregistrer</Text>
+                  }
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -407,6 +525,27 @@ export default function AppNavigator() {
 
     socketService.connect(sellerId, useAuthStore.getState().token);
 
+    const offNewOrder = socketService.on('new_order', (payload) => {
+      useSyncStore.getState().invalidate('commandes', 'bilan');
+      if (payload?.notif) {
+        // Notification inline dans le payload — pas besoin de fetch réseau
+        useNotificationStore.getState().addNotification(payload.notif);
+      } else {
+        // Fallback : fetch complet si le backend n'a pas envoyé le notif
+        useNotificationStore.getState().fetchFromAPI(sellerId);
+      }
+    });
+    const offBilanUpdated = socketService.on('bilan_updated', () => {
+      useSyncStore.getState().invalidate('bilan');
+      useSyncStore.getState().notifyPortfolioUpdate();
+    });
+
+    const offOrderStatus = socketService.on('order_status_updated', () => {
+      useSyncStore.getState().invalidate('commandes', 'bilan');
+      useSyncStore.getState().notifyPortfolioUpdate();
+      useSyncStore.getState().notifyOrdersUpdate();
+    });
+
     const offSuspended = socketService.on('account_suspended', ({ suspensionReason }) => {
       updateSubscription({ status: 'suspended' });
       Toast.show({
@@ -415,6 +554,11 @@ export default function AppNavigator() {
         text2: suspensionReason || 'Contactez le support.',
         visibilityTime: 4000,
       });
+    });
+
+    const offReconnect = socketService.on('reconnect', () => {
+      useSyncStore.getState().triggerSync();
+      useSyncStore.getState().notifyPortfolioUpdate();
     });
 
     const offReactivated = socketService.on('account_reactivated', () => {
@@ -444,10 +588,15 @@ export default function AppNavigator() {
           visibilityTime: 3000,
         });
         useAuthStore.getState().verifyAuth();
+        useSyncStore.getState().triggerSync();
       }
     });
 
     return () => {
+      offNewOrder();
+      offBilanUpdated();
+      offOrderStatus();
+      offReconnect();
       offSuspended();
       offReactivated();
     };
@@ -522,6 +671,19 @@ export default function AppNavigator() {
               options={{ headerShown: true, header: () => <AppHeader pageTitle="Paramètres du compte" /> }}
             />
             <Stack.Screen
+              name="APropos"
+              component={AProposScreen}
+              options={{ headerShown: true, header: () => <AppHeader pageTitle="À propos" /> }}
+            />
+            <Stack.Screen
+              name="Legal"
+              component={LegalScreen}
+              options={({ route }) => ({
+                headerShown: true,
+                header: () => <AppHeader pageTitle={route.params?.type === 'privacy' ? 'Confidentialité' : 'CGU'} />,
+              })}
+            />
+            <Stack.Screen
               name="Notifications"
               component={NotificationsScreen}
               options={{ headerShown: true, header: () => <AppHeader pageTitle="Notifications" /> }}
@@ -586,6 +748,35 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   avatarText: { fontSize: 13, fontWeight: '800', color: '#fff' },
+  agentAvatarWrap: { marginRight: 10, position: 'relative' },
+  agentAvatarCircle: {
+    width: 36, height: 36, borderRadius: 18,
+    justifyContent: 'center', alignItems: 'center',
+    overflow: 'hidden',
+  },
+  agentAvatarLetter: { fontSize: 16, fontWeight: '900' },
+  agentAvatarEditDot: {
+    position: 'absolute', bottom: 0, right: -2,
+    width: 14, height: 14, borderRadius: 7,
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1.5, borderColor: '#fff',
+  },
+  nameModal: {
+    width: 300, borderRadius: 18, padding: 20, gap: 14,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18, shadowRadius: 20, elevation: 12,
+  },
+  nameModalTitle: { fontSize: 16, fontWeight: '800', textAlign: 'center' },
+  nameInputWrap: {
+    borderRadius: 10, borderWidth: 1, paddingHorizontal: 12,
+  },
+  nameInput: { fontSize: 15, paddingVertical: 11 },
+  nameModalBtns: { flexDirection: 'row', gap: 10 },
+  nameModalBtn: {
+    flex: 1, borderRadius: 10, paddingVertical: 11,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  nameModalBtnText: { fontSize: 14, fontWeight: '700' },
 
   // Badge notifications
   notifBadge: {

@@ -787,13 +787,7 @@ export default function CarnetCreancesScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.bg }]}>
-      {/* Offline banner */}
-      {isOffline && (
-        <View style={styles.offlineBanner}>
-          <Ionicons name="cloud-offline-outline" size={14} color="#fff" />
-          <Text style={styles.offlineBannerText}>Mode hors ligne — actions en attente de sync</Text>
-        </View>
-      )}
+
 
       {/* ── Header sticky ── */}
       <View style={[styles.stickyHeader, { backgroundColor: colors.bgCard + 'F5', borderBottomColor: colors.border }]}>
@@ -1207,12 +1201,6 @@ export default function CarnetCreancesScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  offlineBanner: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 6, backgroundColor: AMBER, paddingVertical: 7, paddingHorizontal: 16,
-  },
-  offlineBannerText: { fontSize: 12, fontWeight: '700', color: '#fff' },
-
   // Header
   stickyHeader: { borderBottomWidth: 1, paddingTop: 12, paddingBottom: 8, gap: 10 },
   headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16 },

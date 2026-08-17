@@ -100,7 +100,7 @@ export default function PerformanceProduitsScreen() {
   const [period, setPeriod]         = useState('30d');
   const [mode, setMode]             = useState('ventes_qte');
   const [data, setData]             = useState(null);
-  const [loading, setLoading]       = useState(false);
+  const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError]           = useState(null);
 
@@ -144,9 +144,9 @@ export default function PerformanceProduitsScreen() {
       // 2. Afficher la période active depuis le cache si dispo
       if (dataCache.current[period]) {
         setData(dataCache.current[period]);
-      } else {
-        setLoading(true);
+        setLoading(false); // cache dispo → on libère le skeleton immédiatement
       }
+      // Sinon loading reste true → skeleton jusqu'à la réponse réseau
 
       // 3. Un seul appel réseau pour toutes les périodes
       try {

@@ -10,6 +10,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../stores/authStore';
 import apiClient from '../config/api';
+import { getMeta, setMeta } from '../db/database';
 
 const { width: W, height: H } = Dimensions.get('window');
 
@@ -392,7 +393,11 @@ export default function BannièresScreen() {
     if (!silent) setLoading(true);
     try {
       const res = await apiClient.get('/api/marketing/banners');
-      if (res.data?.success) setBanners(res.data.data || []);
+      if (res.data?.success) {
+        const list = res.data.data || [];
+        setBanners(list);
+        setMeta('banners_cache', list).catch(() => {});
+      }
     } catch {
       if (!silent) notify('Erreur de connexion', 'error');
     } finally {
@@ -401,7 +406,16 @@ export default function BannièresScreen() {
     }
   }, []);
 
-  useEffect(() => { fetchBanners(); }, []);
+  useEffect(() => {
+    getMeta('banners_cache').then(cached => {
+      if (cached) {
+        setBanners(cached);
+        fetchBanners(true);
+      } else {
+        fetchBanners(false);
+      }
+    }).catch(() => fetchBanners(false));
+  }, [fetchBanners]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);

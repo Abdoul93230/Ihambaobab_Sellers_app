@@ -187,16 +187,7 @@ export default function PushNotificationsBridge() {
 
     doRegister();
 
-    // Re-enregistrement à chaque retour en foreground (token peut avoir changé)
     const sub = AppState.addEventListener('change', nextState => {
-      if (
-        appStateRef.current.match(/inactive|background/) &&
-        nextState === 'active' &&
-        !cancelled
-      ) {
-        tokenRegistered.current = false;
-        doRegister();
-      }
       appStateRef.current = nextState;
     });
 

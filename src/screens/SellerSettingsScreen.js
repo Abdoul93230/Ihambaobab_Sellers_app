@@ -467,11 +467,12 @@ export default function SellerSettingsScreen() {
     const sellerId = seller?.id || seller?._id;
     if (!sellerId) { setLoading(false); return; }
     populate(seller);
-    if (isOffline) { setLoading(false); return; }
+    setLoading(false); // affichage immédiat depuis le cache authStore
+    if (isOffline) return;
+    // Rafraîchissement silencieux en arrière-plan
     apiClient.get(`/getSeller/${sellerId}`)
       .then(r => { if (r.data?.data) populate(r.data.data); })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []); // eslint-disable-line
 
   // ── Pickers image ─────────────────────────────────────────────────────────

@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import CachedImage from '../components/CachedImage';
 import * as ImagePicker from 'expo-image-picker';
+import { checkImageSize } from '../utils/imageUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
@@ -633,6 +634,7 @@ export default function ProduitUpdateScreen({ route, navigation }) {
         const r = await ImagePicker.launchImageLibraryAsync(opts);
         if (!r.canceled) {
           const a = r.assets[0];
+          if (!checkImageSize(a)) return;
           const ext = a.uri.split('.').pop()?.toLowerCase() || 'jpg';
           setters[slot]({ uri: a.uri, base64: a.base64, ext, isNew: true });
         }
@@ -641,6 +643,7 @@ export default function ProduitUpdateScreen({ route, navigation }) {
         const r = await ImagePicker.launchCameraAsync(opts);
         if (!r.canceled) {
           const a = r.assets[0];
+          if (!checkImageSize(a)) return;
           const ext = a.uri.split('.').pop()?.toLowerCase() || 'jpg';
           setters[slot]({ uri: a.uri, base64: a.base64, ext, isNew: true });
         }

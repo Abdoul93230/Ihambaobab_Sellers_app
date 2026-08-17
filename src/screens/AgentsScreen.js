@@ -8,7 +8,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList,
   Modal, TextInput, Alert, ActivityIndicator, KeyboardAvoidingView,
-  Platform, ScrollView, Animated, TouchableWithoutFeedback, Dimensions,
+  Platform, ScrollView, Animated, TouchableWithoutFeedback, Dimensions, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,6 +16,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../stores/authStore';
 import apiClient from '../config/api';
+import { getMeta, setMeta } from '../db/database';
+import { mutationQueue } from '../services/mutationQueue';
+import { useSync } from '../hooks/useSync';
+import Toast from 'react-native-toast-message';
 
 const { height: H } = Dimensions.get('window');
 
@@ -142,11 +146,15 @@ function CountryPicker({ value, onChange, colors }) {
 }
 
 // ─── Carte d'un agent ─────────────────────────────────────────────────────────
-function AgentCard({ agent, onToggle, onDelete, colors }) {
+function AgentCard({ agent, onToggle, onDelete, onResetPin, colors }) {
   return (
     <View style={[styles.card, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
       <View style={[styles.agentAvatar, { backgroundColor: colors.primary + '18' }]}>
-        <Ionicons name="person-outline" size={20} color={colors.primary} />
+        {agent.photo ? (
+          <Image source={{ uri: agent.photo }} style={{ width: 44, height: 44, borderRadius: 12 }} />
+        ) : (
+          <Ionicons name="person-outline" size={20} color={colors.primary} />
+        )}
       </View>
       <View style={styles.agentInfo}>
         <Text style={[styles.agentName, { color: colors.text }]}>{agent.name}</Text>
@@ -161,6 +169,13 @@ function AgentCard({ agent, onToggle, onDelete, colors }) {
         </View>
       </View>
       <View style={styles.agentActions}>
+        <TouchableOpacity
+          style={[styles.actionBtn, { backgroundColor: '#F59E0B18' }]}
+          onPress={() => onResetPin(agent)}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="key-outline" size={18} color="#F59E0B" />
+        </TouchableOpacity>
         <TouchableOpacity
           style={[styles.actionBtn, { backgroundColor: agent.isActive ? '#EF444418' : '#10B98118' }]}
           onPress={() => onToggle(agent)}
@@ -188,6 +203,7 @@ function AgentCard({ agent, onToggle, onDelete, colors }) {
 export default function AgentsScreen() {
   const { colors }     = useTheme();
   const { token, subscription } = useAuthStore();
+  const { isOffline }  = useSync();
 
   const planType = subscription?.planName || 'Starter';
   const quota    = PLAN_QUOTA[planType] ?? 0;
@@ -206,8 +222,8 @@ export default function AgentsScreen() {
   const [newPin,     setNewPin]     = useState('');
   const [pinConfirm, setPinConfirm] = useState('');
 
-  const fetchAgents = useCallback(async () => {
-    setLoading(true);
+  const fetchAgents = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await apiClient.get('/api/agents', {
         headers: { Authorization: `Bearer ${token}` },
@@ -215,14 +231,25 @@ export default function AgentsScreen() {
       const { agents: list, activeCount: ac } = res.data.data;
       setAgents(list);
       setActiveCount(ac);
+      setMeta('agents_cache', { agents: list, activeCount: ac }).catch(() => {});
     } catch (e) {
-      console.error('Agents fetch error:', e.response?.data || e.message);
+      if (!silent) console.error('Agents fetch error:', e.response?.data || e.message);
     } finally {
       setLoading(false);
     }
   }, [token]);
 
-  useEffect(() => { fetchAgents(); }, []);
+  useEffect(() => {
+    getMeta('agents_cache').then(cached => {
+      if (cached) {
+        setAgents(cached.agents);
+        setActiveCount(cached.activeCount);
+        fetchAgents(true);
+      } else {
+        fetchAgents(false);
+      }
+    }).catch(() => fetchAgents(false));
+  }, []);
 
   const resetForm = () => {
     setNewName(''); setPhoneRaw(''); setCountry(COUNTRIES[0]);
@@ -312,6 +339,44 @@ export default function AgentsScreen() {
     );
   };
 
+  const [resetPinAgent, setResetPinAgent] = useState(null);
+  const [newPinReset,   setNewPinReset]   = useState('');
+  const [pinResetConfirm, setPinResetConfirm] = useState('');
+  const [resetPinError,   setResetPinError]   = useState('');
+  const [resetPinSaving,  setResetPinSaving]  = useState(false);
+
+  const handleResetPin = async () => {
+    setResetPinError('');
+    if (!/^\d{4}$/.test(newPinReset)) return setResetPinError('Le PIN doit être 4 chiffres');
+    if (newPinReset !== pinResetConfirm) return setResetPinError('Les deux PIN ne correspondent pas');
+    setResetPinSaving(true);
+    const agentName = resetPinAgent.name;
+    const agentId   = String(resetPinAgent._id || resetPinAgent.id);
+    try {
+      if (isOffline) throw Object.assign(new Error('offline'), { isOffline: true });
+      await apiClient.patch(`/api/agents/${agentId}/reset-pin`, { pin: newPinReset }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setResetPinAgent(null);
+      setNewPinReset('');
+      setPinResetConfirm('');
+      Toast.show({ type: 'success', text1: 'PIN réinitialisé', text2: `Nouveau PIN de ${agentName} enregistré.` });
+    } catch (e) {
+      if (e.isOffline || !e.response) {
+        // Offline : enfile dans la mutation queue, sera appliqué à la reconnexion
+        await mutationQueue.push('RESET_AGENT_PIN', { agentId, pin: newPinReset });
+        setResetPinAgent(null);
+        setNewPinReset('');
+        setPinResetConfirm('');
+        Toast.show({ type: 'info', text1: 'Hors ligne', text2: `PIN de ${agentName} sera mis à jour à la reconnexion.` });
+      } else {
+        setResetPinError(e.response?.data?.message || 'Erreur lors de la réinitialisation');
+      }
+    } finally {
+      setResetPinSaving(false);
+    }
+  };
+
   const canAdd = activeCount < quota;
 
   return (
@@ -360,12 +425,98 @@ export default function AgentsScreen() {
               agent={item}
               onToggle={handleToggle}
               onDelete={handleDelete}
+              onResetPin={(a) => { setResetPinAgent(a); setNewPinReset(''); setPinResetConfirm(''); setResetPinError(''); }}
               colors={colors}
             />
           )}
           showsVerticalScrollIndicator={false}
         />
       )}
+
+      {/* Modal reset PIN */}
+      <Modal
+        visible={!!resetPinAgent}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setResetPinAgent(null)}
+      >
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={styles.modalOverlay}>
+            <TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={() => setResetPinAgent(null)} />
+            <View style={[styles.modalContent, { backgroundColor: colors.bgCard }]}>
+              <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#F59E0B18', justifyContent: 'center', alignItems: 'center' }}>
+                  <Ionicons name="key-outline" size={18} color="#F59E0B" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.modalTitle, { textAlign: 'left', marginBottom: 0, fontSize: 16 }]}>Réinitialiser le PIN</Text>
+                  <Text style={{ color: colors.textMuted, fontSize: 12 }}>{resetPinAgent?.name}</Text>
+                </View>
+              </View>
+
+              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                <View style={[styles.modalForm, { marginTop: 10 }]}>
+                  <View style={styles.field}>
+                    <Text style={[styles.fieldLabel, { color: colors.textSub }]}>Nouveau PIN (4 chiffres)</Text>
+                    <View style={[styles.inputWrap, { backgroundColor: colors.bg, borderColor: colors.border }]}>
+                      <Ionicons name="lock-closed-outline" size={16} color={colors.textMuted} style={styles.inputIcon} />
+                      <TextInput
+                        style={[styles.input, { color: colors.text }]}
+                        placeholder="XXXX"
+                        placeholderTextColor={colors.textDisabled}
+                        value={newPinReset}
+                        onChangeText={v => setNewPinReset(v.replace(/\D/g, '').slice(0, 4))}
+                        keyboardType="number-pad"
+                        secureTextEntry
+                        maxLength={4}
+                      />
+                    </View>
+                  </View>
+                  <View style={styles.field}>
+                    <Text style={[styles.fieldLabel, { color: colors.textSub }]}>Confirmer le nouveau PIN</Text>
+                    <View style={[styles.inputWrap, { backgroundColor: colors.bg, borderColor: colors.border }]}>
+                      <Ionicons name="lock-closed-outline" size={16} color={colors.textMuted} style={styles.inputIcon} />
+                      <TextInput
+                        style={[styles.input, { color: colors.text }]}
+                        placeholder="XXXX"
+                        placeholderTextColor={colors.textDisabled}
+                        value={pinResetConfirm}
+                        onChangeText={v => setPinResetConfirm(v.replace(/\D/g, '').slice(0, 4))}
+                        keyboardType="number-pad"
+                        secureTextEntry
+                        maxLength={4}
+                      />
+                    </View>
+                  </View>
+
+                  {resetPinError ? (
+                    <View style={styles.errorRow}>
+                      <Ionicons name="alert-circle-outline" size={14} color={colors.danger || '#EF4444'} />
+                      <Text style={[styles.formError, { color: colors.danger || '#EF4444' }]}>{resetPinError}</Text>
+                    </View>
+                  ) : null}
+
+                  <TouchableOpacity
+                    style={[styles.saveBtn, { backgroundColor: resetPinSaving ? colors.bgHover : '#F59E0B' }]}
+                    onPress={handleResetPin}
+                    disabled={resetPinSaving}
+                    activeOpacity={0.85}
+                  >
+                    {resetPinSaving
+                      ? <ActivityIndicator size="small" color="#fff" />
+                      : <>
+                          <Ionicons name="key-outline" size={16} color="#fff" />
+                          <Text style={styles.saveBtnText}>Réinitialiser le PIN</Text>
+                        </>
+                    }
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {/* Modal création */}
       <Modal

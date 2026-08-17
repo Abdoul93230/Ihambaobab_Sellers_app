@@ -365,7 +365,7 @@ function ViewPOS({ bilanData, historyData, loading, hasBilan, period, colors }) 
   const posCount = pos.ventes ?? 0;
   const totalGen = bilanData?.totalGeneral ?? 0;
   const modeP    = pos.modePaiement ?? {};
-  const topProds = bilanData?.topProduits ?? [];
+  const topProds = bilanData?.topProduitsPOS ?? [];
 
   const totalPaid = (modeP.ESPECES || 0) + (modeP.MOBILE_MONEY || 0) + (modeP.AUTRE || 0);
   const modes = [
@@ -515,8 +515,8 @@ function ViewPOS({ bilanData, historyData, loading, hasBilan, period, colors }) 
         </View>
       )}
 
-      {/* Top produits POS */}
-      {topProds.length > 0 && (
+      {/* Top produits POS — seulement si des ventes POS existent */}
+      {topProds.length > 0 && posCount > 0 && (
         <View style={[styles.card, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
           <View style={styles.cardHead}>
             <Ionicons name="podium-outline" size={15} color="#F59E0B" />
@@ -854,6 +854,45 @@ function ViewMarketplace({ bilanData, historyData, commandesLocal, cancelRate, l
         )}
       </View>
 
+      {/* Top produits Marketplace */}
+      {(() => {
+        const mkTopProds = bilanData?.topProduitsMarketplace ?? [];
+        if (mkTopProds.length === 0) return null;
+        return (
+          <View style={[styles.card, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+            <View style={styles.cardHead}>
+              <Ionicons name="podium-outline" size={15} color="#F59E0B" />
+              <Text style={[styles.cardTitle, { color: colors.text }]}>Top produits vendus</Text>
+            </View>
+            {mkTopProds.slice(0, 5).map((prod, i) => (
+              <View key={String(prod.id || i)} style={[styles.topRow, { borderBottomColor: colors.border }]}>
+                <View style={styles.topImgWrap}>
+                  {prod.image ? (
+                    <>
+                      <CachedImage uri={prod.image} style={styles.topImg} contentFit="cover" />
+                      <View style={[styles.topRankBadge, { backgroundColor: i === 0 ? '#F59E0B' : '#6B7280' }]}>
+                        <Text style={styles.topRankBadgeText}>{i+1}</Text>
+                      </View>
+                    </>
+                  ) : (
+                    <View style={[styles.topImg, styles.topImgFallback, { backgroundColor: i === 0 ? '#FCD34D30' : colors.bgHover }]}>
+                      <Text style={[styles.topRankText, { color: i === 0 ? '#D97706' : colors.textMuted }]}>#{i+1}</Text>
+                    </View>
+                  )}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.topName, { color: colors.text }]} numberOfLines={1}>{prod.nom}</Text>
+                  <Text style={[styles.topSub, { color: colors.textMuted }]}>{fmtShort(prod.total)} ₣ de CA</Text>
+                </View>
+                <View style={[styles.topBadge, { backgroundColor: '#30A08B20' }]}>
+                  <Text style={styles.topBadgeText}>{prod.quantite} vdu</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        );
+      })()}
+
       {/* Commandes récentes */}
       <View style={[styles.card, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
         <View style={styles.cardHead}>
@@ -968,11 +1007,12 @@ export default function DashboardScreen() {
   }, [tourDone, pendingTour, tourTargets.viewSelector]);
 
   // Déclenche le tour quand les cibles dashboard sont prêtes (premier lancement uniquement)
-  useEffect(() => {
-    if (!tourDone && !pendingTour && tourTargets.viewSelector && tourTargets.periodBtn) {
-      setShowTour(true);
-    }
-  }, [tourDone, pendingTour, tourTargets.viewSelector, tourTargets.periodBtn]);
+  // TODO: réactiver quand le tutoriel est validé sur tous les écrans
+  // useEffect(() => {
+  //   if (!tourDone && !pendingTour && tourTargets.viewSelector && tourTargets.periodBtn) {
+  //     setShowTour(true);
+  //   }
+  // }, [tourDone, pendingTour, tourTargets.viewSelector, tourTargets.periodBtn]);
 
   const handleTourDone = useCallback(() => {
     setShowTour(false);
@@ -1050,8 +1090,11 @@ export default function DashboardScreen() {
   // Sans accès POS, il n'y a qu'une seule vue (marketplace à 0) — pas besoin de slide
   const slideAnim = useRef(new Animated.Value(0)).current;
 
-  const activeViewRef = useRef(defaultView);
+  const activeViewRef   = useRef(defaultView);
+  const userInteracted  = useRef(false); // l'user a-t-il manuellement changé de vue ?
+
   const switchView = (key) => {
+    userInteracted.current = true;
     // pos=0, marketplace=-W (seulement si les deux vues sont présentes)
     const toX = _hasPosInit ? (key === 'pos' ? 0 : -W) : 0;
     Animated.spring(slideAnim, { toValue: toX, tension: 70, friction: 14, useNativeDriver: true }).start();
@@ -1059,11 +1102,27 @@ export default function DashboardScreen() {
     activeViewRef.current = key;
   };
 
+  // Correction de la désync quand subscription charge après le montage :
+  // useState(defaultView) n'est évalué qu'une fois. Si subscription était null au montage,
+  // activeView peut être 'marketplace' alors que l'accès POS vient d'être confirmé.
+  useEffect(() => {
+    if (userInteracted.current) return;
+    const hasPOS = SUBSCRIPTION_CONFIG.hasPosAccess(subscription?.planName || 'Starter');
+    if (!hasPOS) return; // pas d'accès POS — marketplace est correct
+    if (activeView !== 'pos') {
+      setActiveView('pos');
+      activeViewRef.current = 'pos';
+      slideAnim.setValue(0);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subscription?.planName]);
+
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, g) =>
         _hasPosInit && Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
       onPanResponderGrant: () => {
+        userInteracted.current = true;
         slideAnim.stopAnimation();
       },
       onPanResponderMove: (_, g) => {
@@ -1199,8 +1258,12 @@ export default function DashboardScreen() {
     loadData(period, customFrom, customTo, false);
   }, [period, customFrom, customTo]);
 
-  // Recharger à chaque fois que l'écran est affiché (retour depuis VenteScreen, etc.)
+  // Recharger à chaque focus, mais pas plus d'une fois toutes les 30s (évite les refetch inutiles)
+  const lastFocusFetch = useRef(0);
   useFocusEffect(useCallback(() => {
+    const now = Date.now();
+    if (now - lastFocusFetch.current < 30_000) return;
+    lastFocusFetch.current = now;
     loadData(period, customFrom, customTo, true);
   }, [period, customFrom, customTo]));
 
@@ -1243,7 +1306,11 @@ export default function DashboardScreen() {
   const hasBilan     = hasModule('bilanJournalier');
   const planName     = subscription?.planName || 'Starter';
   const isTrial      = subscription?.status === 'trial';
-  const daysLeft     = subscription?.daysRemaining;
+  const daysLeft = (() => {
+    const end = subscription?.endDate;
+    if (end) return Math.ceil((new Date(end) - new Date()) / (1000 * 60 * 60 * 24));
+    return subscription?.daysRemaining ?? null;
+  })();
   const hasPosAccess         = SUBSCRIPTION_CONFIG.hasPosAccess(planName);
   const hasMarketplaceAccess = SUBSCRIPTION_CONFIG.hasMarketplaceAccess(planName);
   const visibleViews = VIEWS.filter(v => {

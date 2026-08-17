@@ -6,6 +6,7 @@ import { useAuthStore } from '../stores/authStore';
 import {
   getDB, upsertMany, readAll, readWhere, count, getMeta, setMeta,
   getBilanCache, setBilanCache, getBilanCacheOffline, clearDB,
+  setAgentStatsCache,
 } from '../db/database';
 import { prefetchProductImages } from '../utils/imagePrefetch';
 
@@ -16,8 +17,8 @@ const STALE_AFTER = {
   categories: Infinity,           // jamais (admin crée les catégories)
   produits:   30 * 60 * 1000,
   creances:   15 * 60 * 1000,
-  commandes:   5 * 60 * 1000,
-  bilan:       3 * 60 * 1000,
+  commandes:  10 * 60 * 1000,  // socket new_order invalide instantanément → 10min est safe
+  bilan:       5 * 60 * 1000,  // socket new_order + bilan_updated invalident en temps réel
 };
 
 function getSellerId() {
@@ -183,6 +184,50 @@ const fetchers = {
     await upsertMany('categories', items, c => String(c._id));
     useSyncStore.getState().setStoreData('categories', items);
     await markFetched('categories');
+  },
+
+  alertesStock: async () => {
+    const res = await apiClient.get('/api/modules/stock/alerts');
+    const data = res.data?.data ?? null;
+    if (data !== null) await setMeta('alerts_cache', data);
+  },
+
+  performanceProduits: async () => {
+    const sellerId = getSellerId();
+    if (!sellerId) return;
+    const res = await apiClient.get('/api/modules/performance/products/all-periods');
+    const byPeriod = res.data?.data ?? {};
+    for (const [key, d] of Object.entries(byPeriod)) {
+      if (d) await setAgentStatsCache(`perf_prod_${sellerId}_${key}`, d);
+    }
+  },
+
+  agents: async () => {
+    const res = await apiClient.get('/api/agents');
+    const { agents: list, activeCount } = res.data?.data ?? {};
+    if (list) await setMeta('agents_cache', { agents: list, activeCount: activeCount ?? 0 });
+  },
+
+  portefeuille: async () => {
+    const sellerId = getSellerId();
+    if (!sellerId) return;
+    // Chauffe le cache de la période par défaut (30j) — suffit pour lever le blocage offline
+    const res = await apiClient.get(`/api/financial/seller/${sellerId}/dashboard?periode=30`);
+    const data = res.data?.data || res.data;
+    if (data) await setMeta(`portfolio_${sellerId}_30`, data);
+  },
+
+  agentsStats: async () => {
+    const sellerId = getSellerId();
+    if (!sellerId) return;
+    const res = await apiClient.get('/api/pos/seller/agents-stats/all-periods');
+    const byPeriod = res.data?.data;
+    if (!byPeriod) return;
+    for (const nbJours of [1, 7, 30, 90]) {
+      if (byPeriod[nbJours]) {
+        await setAgentStatsCache(`seller_agents_${sellerId}_${nbJours}`, byPeriod[nbJours]);
+      }
+    }
   },
 };
 
@@ -422,6 +467,9 @@ export const syncService = {
         apiClient.patch(`/api/modules/creances/${creanceId}/statut`, { statut }),
       SEND_RAPPEL_CREANCE: ({ creanceId, canal }) =>
         apiClient.post(`/api/modules/creances/${creanceId}/rappel`, { canal }),
+      RESET_AGENT_PIN: ({ agentId, pin }) =>
+        apiClient.patch(`/api/agents/${agentId}/reset-pin`, { pin }),
+
       UPDATE_STOCK_PRODUIT: ({ produitId, quantite }) =>
         apiClient.put(`/Products/${produitId}`, { quantite }),
 
@@ -503,6 +551,11 @@ export const syncService = {
         await cleanupDrafts(allDraftKeys);
         return res;
       },
+
+      delete_produit: ({ productId, sellerOrAdmin_id }) =>
+        apiClient.delete(`/ProductSeller/${productId}`, {
+          data: { sellerOrAdmin: 'seller', sellerOrAdmin_id },
+        }),
 
       // Import en masse hors ligne — envoyé quand la connexion revient
       // Retourne les noms rejetés par le serveur pour nettoyage ciblé des local_*
@@ -610,11 +663,13 @@ export const syncService = {
           DELETE_CREANCE:        ['creances'],
           CHANGE_STATUT_CREANCE:  ['creances'],
           SEND_RAPPEL_CREANCE:    ['creances'],
+          RESET_AGENT_PIN:       [],
           UPDATE_STOCK_PRODUIT:  ['produits'],
           ADJUST_STOCK:          ['produits'],
           UPDATE_PRODUCT:           ['produits'],
           CREATE_PRODUCT:           ['produits'],
           BULK_IMPORT_PRODUCTS:     ['produits'],
+          delete_produit:           ['produits'],
         };
         const toInvalidate = entityMap[mutation.type];
         if (toInvalidate) {
