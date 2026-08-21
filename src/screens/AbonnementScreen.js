@@ -351,7 +351,7 @@ function ReconnectBanner({ colors }) {
 }
 
 // ─── Carte compte suspendu (avec input code) ──────────────────────────────────
-function SuspendedCard({ code, setCode, onActivate, loading, isOffline, colors }) {
+function SuspendedCard({ code, setCode, onActivate, loading, isOffline, colors, onReturnToLogin }) {
   return (
     <View style={[s.statusCard, { backgroundColor: '#FEF2F2', borderColor: '#EF4444', borderWidth: 2 }]}>
       <View style={s.statusCardHeader}>
@@ -394,6 +394,14 @@ function SuspendedCard({ code, setCode, onActivate, loading, isOffline, colors }
             📞 Besoin d'aide ? Contactez l'administration pour obtenir votre code de réactivation.
           </Text>
         </View>
+        <TouchableOpacity
+          style={[s.returnLoginBtn]}
+          onPress={onReturnToLogin}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="log-in-outline" size={15} color="#6B7280" />
+          <Text style={s.returnLoginText}>Retour à la connexion</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -1756,6 +1764,7 @@ export default function AbonnementScreen() {
             loading={reactivating}
             isOffline={isOffline}
             colors={colors}
+            onReturnToLogin={() => useAuthStore.getState().forceLogout()}
           />
         ) : (
           <StatusCard
@@ -1904,6 +1913,12 @@ const s = StyleSheet.create({
     borderRadius: 10, paddingVertical: 10, paddingHorizontal: 14,
   },
   reconnectBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  returnLoginBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    marginTop: 12, paddingVertical: 11, borderRadius: 10,
+    borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#F9FAFB',
+  },
+  returnLoginText: { fontSize: 13, fontWeight: '600', color: '#6B7280' },
 
   // Status card
   statusCard:       { borderRadius: 16, borderWidth: 2, padding: 16, gap: 12 },

@@ -1,5 +1,5 @@
-export const BACKEND_URL = 'https://ihambackend.onrender.com';
-// export const BACKEND_URL = 'https://ihambackend.bonto.run';
+// export const BACKEND_URL = 'https://ihambackend.onrender.com';
+export const BACKEND_URL = 'https://api.ihambaobab.com';
 // export const BACKEND_URL = 'http://localhost:8083';
 export const STORAGE_KEY = 'userSellerH227';
 export const AGENT_STORAGE_KEY = 'agentSessionH227';
