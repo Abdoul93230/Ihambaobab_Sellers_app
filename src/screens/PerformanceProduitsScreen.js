@@ -17,35 +17,35 @@ import { useSync } from '../hooks/useSync';
 import { setAgentStatsCache, getAgentStatsCache } from '../db/database';
 import apiClient from '../config/api';
 
-const PRIMARY   = '#30A08B';
-const BLUE      = '#3B82F6';
-const ROSE      = '#F43F5E';
-const AMBER     = '#B17236';
+const PRIMARY = '#30A08B';
+const BLUE = '#3B82F6';
+const ROSE = '#F43F5E';
+const AMBER = '#B17236';
 
 const PERIODES = [
-  { label: "Auj.",  value: '1d'  },
-  { label: '7 j',  value: '7d'  },
+  { label: "Auj.", value: '1d' },
+  { label: '7 j', value: '7d' },
   { label: '30 j', value: '30d' },
   { label: '90 j', value: '90d' },
 ];
 
 const MODES = [
-  { key: 'ventes_qte', label: 'Quantité', icon: 'bag-outline',   color: PRIMARY },
-  { key: 'ventes_ca',  label: 'CA',       icon: 'cash-outline',  color: AMBER  },
-  { key: 'vues',       label: 'Vues',     icon: 'eye-outline',   color: BLUE   },
-  { key: 'favoris',    label: 'Favoris',  icon: 'heart-outline', color: ROSE   },
+  { key: 'ventes_qte', label: 'Quantité', icon: 'bag-outline', color: PRIMARY },
+  { key: 'ventes_ca', label: 'CA', icon: 'cash-outline', color: AMBER },
+  { key: 'vues', label: 'Vues', icon: 'eye-outline', color: BLUE },
+  { key: 'favoris', label: 'Favoris', icon: 'heart-outline', color: ROSE },
 ];
 
 function fmtMoney(n) {
   const v = n ?? 0;
-  if (v >= 1_000_000) return (v / 1_000_000).toFixed(1).replace('.', ',') + ' M₣';
-  if (v >= 1_000)     return (v / 1_000).toFixed(0) + ' k₣';
-  return new Intl.NumberFormat('fr-FR').format(v) + ' ₣';
+  if (v >= 1_000_000) return (v / 1_000_000).toFixed(1).replace('.', ',') + ' MFCFA';
+  if (v >= 1_000) return (v / 1_000).toFixed(0) + ' kFCFA';
+  return new Intl.NumberFormat('fr-FR').format(v) + ' FCFA';
 }
 function fmtNum(n) {
   const v = n ?? 0;
   if (v >= 1_000_000) return (v / 1_000_000).toFixed(1).replace('.', ',') + 'M';
-  if (v >= 1_000)     return (v / 1_000).toFixed(0) + 'k';
+  if (v >= 1_000) return (v / 1_000).toFixed(0) + 'k';
   return String(v);
 }
 
@@ -53,12 +53,13 @@ function fmtNum(n) {
 function RankRow({ rank, produit, mode, colors }) {
   const medals = ['🥇', '🥈', '🥉'];
   const m = MODES.find(x => x.key === mode);
+  const [imgErr, setImgErr] = useState(false);
 
   let main, sub;
   if (mode === 'ventes_qte') { main = `${fmtNum(produit.quantite)} vendus`; sub = fmtMoney(produit.chiffre); }
   else if (mode === 'ventes_ca') { main = fmtMoney(produit.chiffre); sub = `${fmtNum(produit.quantite)} unités`; }
-  else if (mode === 'vues')    { main = `${fmtNum(produit.views)} vues`;    sub = `${fmtNum(produit.favorites)} favoris`; }
-  else                          { main = `${fmtNum(produit.favorites)} favoris`; sub = `${fmtNum(produit.views)} vues`; }
+  else if (mode === 'vues') { main = `${fmtNum(produit.views)} vues`; sub = `${fmtNum(produit.favorites)} favoris`; }
+  else { main = `${fmtNum(produit.favorites)} favoris`; sub = `${fmtNum(produit.views)} vues`; }
 
   const isTop3 = rank <= 3;
 
@@ -70,11 +71,11 @@ function RankRow({ rank, produit, mode, colors }) {
           : <Text style={[s.rankNum, { color: colors.textDisabled }]}>#{rank}</Text>
         }
       </View>
-      {produit.image
-        ? <Image source={{ uri: produit.image }} style={[s.thumb, isTop3 && { width: 46, height: 46 }]} />
+      {produit.image && !imgErr
+        ? <Image source={{ uri: produit.image }} style={[s.thumb, isTop3 && { width: 46, height: 46 }]} onError={() => setImgErr(true)} />
         : <View style={[s.thumbEmpty, { backgroundColor: colors.bgHover }, isTop3 && { width: 46, height: 46 }]}>
-            <Ionicons name="cube-outline" size={16} color={colors.textDisabled} />
-          </View>
+          <Ionicons name="cube-outline" size={16} color={colors.textDisabled} />
+        </View>
       }
       <View style={s.rankInfo}>
         <Text style={[s.rankNom, { color: colors.text }, isTop3 && { fontWeight: '700' }]} numberOfLines={1}>
@@ -89,20 +90,36 @@ function RankRow({ rank, produit, mode, colors }) {
   );
 }
 
+// ─── Item produit dormant ─────────────────────────────────────────────────────
+function DormItem({ p, colors }) {
+  const [imgErr, setImgErr] = useState(false);
+  return (
+    <View style={[s.dormItem, { backgroundColor: colors.bgHover }]}>
+      {p.image && !imgErr
+        ? <Image source={{ uri: p.image }} style={s.dormThumb} onError={() => setImgErr(true)} />
+        : <View style={[s.dormThumb, { alignItems: 'center', justifyContent: 'center' }]}>
+          <Ionicons name="cube-outline" size={14} color={colors.textDisabled} />
+        </View>
+      }
+      <Text style={[s.dormName, { color: colors.textMuted }]} numberOfLines={2}>{p.nom}</Text>
+    </View>
+  );
+}
+
 // ─── Écran principal ──────────────────────────────────────────────────────────
 export default function PerformanceProduitsScreen() {
-  const insets       = useSafeAreaInsets();
-  const { colors }   = useTheme();
-  const { seller }   = useAuthStore();
-  const sellerId     = seller?._id ?? seller?.id;
+  const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const { seller } = useAuthStore();
+  const sellerId = seller?._id ?? seller?.id;
   const { isOffline } = useSync();
 
-  const [period, setPeriod]         = useState('30d');
-  const [mode, setMode]             = useState('ventes_qte');
-  const [data, setData]             = useState(null);
-  const [loading, setLoading]       = useState(true);
+  const [period, setPeriod] = useState('30d');
+  const [mode, setMode] = useState('ventes_qte');
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError]           = useState(null);
+  const [error, setError] = useState(null);
 
   // Cache mémoire par période — accès instantané au switch
   const dataCache = useRef({});
@@ -201,8 +218,8 @@ export default function PerformanceProduitsScreen() {
   const rankList = (() => {
     if (!data) return [];
     if (mode === 'ventes_qte') return data.topVentes ?? [];
-    if (mode === 'ventes_ca')  return data.topChiffre ?? [];
-    if (mode === 'vues')       return data.topVues ?? [];
+    if (mode === 'ventes_ca') return data.topChiffre ?? [];
+    if (mode === 'vues') return data.topVues ?? [];
     return data.topFavoris ?? [];
   })();
 
@@ -225,8 +242,10 @@ export default function PerformanceProduitsScreen() {
               onPress={() => handlePeriodChange(p.value)}
               style={[
                 s.periodPill,
-                { borderColor: period === p.value ? colors.border : 'transparent',
-                  backgroundColor: period === p.value ? colors.bgCard : 'transparent' },
+                {
+                  borderColor: period === p.value ? colors.border : 'transparent',
+                  backgroundColor: period === p.value ? colors.bgCard : 'transparent'
+                },
               ]}
             >
               <Text style={[s.periodText, { color: period === p.value ? colors.text : colors.textMuted }]}>
@@ -338,8 +357,10 @@ export default function PerformanceProduitsScreen() {
                   onPress={() => setMode(m2.key)}
                   style={[
                     s.modePill,
-                    { borderColor: active ? m2.color : colors.border,
-                      backgroundColor: active ? m2.color : colors.bgHover },
+                    {
+                      borderColor: active ? m2.color : colors.border,
+                      backgroundColor: active ? m2.color : colors.bgHover
+                    },
                   ]}
                 >
                   <Ionicons name={m2.icon} size={13} color={active ? '#fff' : colors.textMuted} />
@@ -354,8 +375,8 @@ export default function PerformanceProduitsScreen() {
           {/* Liste */}
           {loading
             ? [1, 2, 3, 4, 5].map(i => (
-                <View key={i} style={[s.skeletonRow, { backgroundColor: colors.bgHover }]} />
-              ))
+              <View key={i} style={[s.skeletonRow, { backgroundColor: colors.bgHover }]} />
+            ))
             : rankList.length === 0
               ? (
                 <View style={s.emptyWrap}>
@@ -366,8 +387,8 @@ export default function PerformanceProduitsScreen() {
                 </View>
               )
               : rankList.map((p, i) => (
-                  <RankRow key={String(p.id ?? i)} rank={i + 1} produit={p} mode={mode} colors={colors} />
-                ))
+                <RankRow key={String(p.id ?? i)} rank={i + 1} produit={p} mode={mode} colors={colors} />
+              ))
           }
         </View>
 
@@ -382,15 +403,7 @@ export default function PerformanceProduitsScreen() {
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.dormRow}>
               {data.dormants.slice(0, 10).map(p => (
-                <View key={String(p.id)} style={[s.dormItem, { backgroundColor: colors.bgHover }]}>
-                  {p.image
-                    ? <Image source={{ uri: p.image }} style={s.dormThumb} />
-                    : <View style={[s.dormThumb, { alignItems: 'center', justifyContent: 'center' }]}>
-                        <Ionicons name="cube-outline" size={14} color={colors.textDisabled} />
-                      </View>
-                  }
-                  <Text style={[s.dormName, { color: colors.textMuted }]} numberOfLines={2}>{p.nom}</Text>
-                </View>
+                <DormItem key={String(p.id)} p={p} colors={colors} />
               ))}
             </ScrollView>
           </View>
@@ -404,31 +417,31 @@ const s = StyleSheet.create({
   root: { flex: 1 },
 
   // Hero — même design que DashboardScreen
-  heroWrap:     { paddingHorizontal: 16, paddingTop: 16, marginBottom: 16 },
-  periodRow:       { flexDirection: 'row', gap: 6, marginBottom: 14, alignItems: 'center' },
-  periodPill:      { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
-  periodText:      { fontSize: 13, fontWeight: '700' },
-  offlineBadge:    { marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#6B7280', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
-  offlineBadgeText:{ fontSize: 10, fontWeight: '700', color: '#fff' },
-  heroSkel:        { height: 180, borderRadius: 18 },
-  heroCard:     { borderRadius: 18, padding: 18, gap: 14 },
-  heroRow:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  heroCaption:  { fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: '600', marginBottom: 4 },
-  heroTotal:    { fontSize: 28, fontWeight: '800', color: '#fff' },
-  heroIcon:     { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-  heroDivider:  { height: 1, backgroundColor: 'rgba(255,255,255,0.2)' },
-  heroSub:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
+  heroWrap: { paddingHorizontal: 16, paddingTop: 16, marginBottom: 16 },
+  periodRow: { flexDirection: 'row', gap: 6, marginBottom: 14, alignItems: 'center' },
+  periodPill: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
+  periodText: { fontSize: 13, fontWeight: '700' },
+  offlineBadge: { marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#6B7280', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
+  offlineBadgeText: { fontSize: 10, fontWeight: '700', color: '#fff' },
+  heroSkel: { height: 180, borderRadius: 18 },
+  heroCard: { borderRadius: 18, padding: 18, gap: 14 },
+  heroRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  heroCaption: { fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: '600', marginBottom: 4 },
+  heroTotal: { fontSize: 28, fontWeight: '800', color: '#fff' },
+  heroIcon: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+  heroDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.2)' },
+  heroSub: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   heroSubLabel: { fontSize: 11, color: 'rgba(255,255,255,0.7)' },
-  heroSubVal:   { fontSize: 18, fontWeight: '800', color: '#fff', marginTop: 2 },
+  heroSubVal: { fontSize: 18, fontWeight: '800', color: '#fff', marginTop: 2 },
   heroSubRight: { alignItems: 'flex-end', gap: 4 },
-  heroChip:     { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  heroChip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
   heroChipText: { fontSize: 11, color: '#fff', fontWeight: '700' },
-  heroPanier:   { fontSize: 11, color: 'rgba(255,255,255,0.7)' },
-  heroStatRow:  { flexDirection: 'row', alignItems: 'center' },
-  heroStat:     { flex: 1, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 10, paddingVertical: 8 },
-  heroStatSep:  { width: 6 },
-  heroStatVal:  { fontSize: 14, fontWeight: '800', color: '#fff' },
-  heroStatLabel:{ fontSize: 9, color: 'rgba(255,255,255,0.7)', fontWeight: '600', marginTop: 2 },
+  heroPanier: { fontSize: 11, color: 'rgba(255,255,255,0.7)' },
+  heroStatRow: { flexDirection: 'row', alignItems: 'center' },
+  heroStat: { flex: 1, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 10, paddingVertical: 8 },
+  heroStatSep: { width: 6 },
+  heroStatVal: { fontSize: 14, fontWeight: '800', color: '#fff' },
+  heroStatLabel: { fontSize: 9, color: 'rgba(255,255,255,0.7)', fontWeight: '600', marginTop: 2 },
 
   // Error
   errorBox: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 10, borderWidth: 1, padding: 12, marginBottom: 14, backgroundColor: '#FEF2F2' },

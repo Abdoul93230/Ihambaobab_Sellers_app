@@ -6,6 +6,7 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useSyncStore } from '../stores/syncStore';
 import { syncService } from '../services/syncService';
@@ -13,30 +14,30 @@ import { useSync } from '../hooks/useSync';
 import { upsertMany, getDB } from '../db/database';
 
 const { width: W, height: H } = Dimensions.get('window');
-const PRIMARY  = '#30A08B';
-const DANGER   = '#EF4444';
-const AMBER    = '#F59E0B';
-const LITIGE   = '#8B5CF6';
-const EMERALD  = '#10B981';
+const PRIMARY = '#30A08B';
+const DANGER = '#EF4444';
+const AMBER = '#F59E0B';
+const LITIGE = '#8B5CF6';
+const EMERALD = '#10B981';
 
 // ─── Pays sous-région ────────────────────────────────────────────────────────
 const PAYS = [
-  { code: '+227', flag: '🇳🇪', nom: 'Niger',        digits: 8 },
-  { code: '+223', flag: '🇲🇱', nom: 'Mali',         digits: 8 },
+  { code: '+227', flag: '🇳🇪', nom: 'Niger', digits: 8 },
+  { code: '+223', flag: '🇲🇱', nom: 'Mali', digits: 8 },
   { code: '+226', flag: '🇧🇫', nom: 'Burkina Faso', digits: 8 },
-  { code: '+229', flag: '🇧🇯', nom: 'Bénin',        digits: 8 },
-  { code: '+228', flag: '🇹🇬', nom: 'Togo',         digits: 8 },
-  { code: '+225', flag: '🇨🇮', nom: "Côte d'Ivoire",digits: 10 },
-  { code: '+221', flag: '🇸🇳', nom: 'Sénégal',      digits: 9 },
-  { code: '+224', flag: '🇬🇳', nom: 'Guinée',       digits: 9 },
-  { code: '+33',  flag: '🇫🇷', nom: 'France',       digits: 9 },
+  { code: '+229', flag: '🇧🇯', nom: 'Bénin', digits: 8 },
+  { code: '+228', flag: '🇹🇬', nom: 'Togo', digits: 8 },
+  { code: '+225', flag: '🇨🇮', nom: "Côte d'Ivoire", digits: 10 },
+  { code: '+221', flag: '🇸🇳', nom: 'Sénégal', digits: 9 },
+  { code: '+224', flag: '🇬🇳', nom: 'Guinée', digits: 9 },
+  { code: '+33', flag: '🇫🇷', nom: 'France', digits: 9 },
 ];
 
 const STATUT_FILTERS = [
   { value: '', label: 'Tous' },
-  { value: 'en_cours',  label: 'En cours' },
+  { value: 'en_cours', label: 'En cours' },
   { value: 'rembourse', label: 'Remboursés' },
-  { value: 'litige',    label: 'Litiges' },
+  { value: 'litige', label: 'Litiges' },
 ];
 
 const MONTHS_FR = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
@@ -71,10 +72,10 @@ function WheelPicker({ items, selectedIndex, onChange, colors }) {
 
 function DateWheelPicker({ label, value, onChange, colors }) {
   const today = new Date();
-  const cur   = value ? new Date(value + 'T12:00:00') : today;
-  const maxY  = today.getFullYear() + 5;
+  const cur = value ? new Date(value + 'T12:00:00') : today;
+  const maxY = today.getFullYear() + 5;
   const years = Array.from({ length: maxY - 2020 + 1 }, (_, i) => String(2020 + i));
-  const [selYear,  setSelYear]  = useState(Math.max(0, years.indexOf(String(cur.getFullYear()))));
+  const [selYear, setSelYear] = useState(Math.max(0, years.indexOf(String(cur.getFullYear()))));
   const [selMonth, setSelMonth] = useState(cur.getMonth());
   const daysInMonth = new Date(parseInt(years[selYear] || today.getFullYear()), selMonth + 1, 0).getDate();
   const days = Array.from({ length: daysInMonth }, (_, i) => String(i + 1).padStart(2, '0'));
@@ -85,11 +86,11 @@ function DateWheelPicker({ label, value, onChange, colors }) {
     <View style={{ gap: 6 }}>
       <Text style={[wStyles.label, { color: colors.textMuted }]}>{label}</Text>
       <View style={[wStyles.row, { backgroundColor: colors.bgHover }]}>
-        <WheelPicker items={days}      selectedIndex={selDay}   onChange={setSelDay}   colors={colors} />
+        <WheelPicker items={days} selectedIndex={selDay} onChange={setSelDay} colors={colors} />
         <Text style={[wStyles.sep, { color: colors.border }]}>|</Text>
         <WheelPicker items={MONTHS_FR} selectedIndex={selMonth} onChange={setSelMonth} colors={colors} />
         <Text style={[wStyles.sep, { color: colors.border }]}>|</Text>
-        <WheelPicker items={years}     selectedIndex={selYear}  onChange={setSelYear}  colors={colors} />
+        <WheelPicker items={years} selectedIndex={selYear} onChange={setSelYear} colors={colors} />
       </View>
     </View>
   );
@@ -98,7 +99,7 @@ function DateWheelPicker({ label, value, onChange, colors }) {
 // ─── Modal sélecteur de date ──────────────────────────────────────────────────
 function DatePickerModal({ visible, value, onConfirm, onClose, label, colors }) {
   const [picked, setPicked] = useState(value || new Date().toISOString().split('T')[0]);
-  const slideAnim    = useRef(new Animated.Value(500)).current;
+  const slideAnim = useRef(new Animated.Value(500)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (visible) {
@@ -143,8 +144,8 @@ const wStyles = StyleSheet.create({
   band: { position: 'absolute', left: 4, right: 4, height: ITEM_H, borderTopWidth: 1, borderBottomWidth: 1 },
   cell: { height: ITEM_H, justifyContent: 'center', alignItems: 'center' },
   label: { fontSize: 12, fontWeight: '600' },
-  row:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderRadius: 14, paddingHorizontal: 8, paddingVertical: 6 },
-  sep:   { fontSize: 18, marginHorizontal: 4 },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderRadius: 14, paddingHorizontal: 8, paddingVertical: 6 },
+  sep: { fontSize: 18, marginHorizontal: 4 },
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
   sheet: { position: 'absolute', bottom: 0, left: 0, right: 0, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 40, gap: 16 },
   handle: { alignItems: 'center', paddingTop: 12, paddingBottom: 4 },
@@ -201,8 +202,8 @@ function Toast({ msg, visible, type }) {
 // ─── PhoneInput avec sélecteur de pays ───────────────────────────────────────
 function PhoneInput({ value, onChange, colors }) {
   const [showCountry, setShowCountry] = useState(false);
-  const [country, setCountry]         = useState(PAYS[0]);
-  const [local, setLocal]             = useState('');
+  const [country, setCountry] = useState(PAYS[0]);
+  const [local, setLocal] = useState('');
 
   useEffect(() => {
     if (!local) { onChange(''); return; }
@@ -286,9 +287,9 @@ function PhoneInput({ value, onChange, colors }) {
 // ─── Badge statut ─────────────────────────────────────────────────────────────
 function StatutBadge({ statut }) {
   const MAP = {
-    en_cours:  { bg: '#FEF3C7', color: '#92400E', dot: AMBER,   label: 'En cours' },
+    en_cours: { bg: '#FEF3C7', color: '#92400E', dot: AMBER, label: 'En cours' },
     rembourse: { bg: '#D1FAE5', color: '#065F46', dot: EMERALD, label: 'Remboursé' },
-    litige:    { bg: '#EDE9FE', color: '#5B21B6', dot: LITIGE,  label: 'Litige' },
+    litige: { bg: '#EDE9FE', color: '#5B21B6', dot: LITIGE, label: 'Litige' },
   };
   const s = MAP[statut] || MAP.en_cours;
   return (
@@ -302,6 +303,7 @@ function StatutBadge({ statut }) {
 // ─── Bottom Sheet ─────────────────────────────────────────────────────────────
 function BottomSheet({ visible, onClose, title, colors, children }) {
   const anim = useRef(new Animated.Value(H)).current;
+  const insets = useSafeAreaInsets();
   useEffect(() => {
     Animated.spring(anim, { toValue: visible ? 0 : H, useNativeDriver: true, tension: 65, friction: 11 }).start();
   }, [visible]);
@@ -309,7 +311,7 @@ function BottomSheet({ visible, onClose, title, colors, children }) {
   return (
     <Modal visible transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
       <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={onClose} />
-      <Animated.View style={[styles.sheet, { backgroundColor: colors.bgCard, transform: [{ translateY: anim }] }]}>
+      <Animated.View style={[styles.sheet, { backgroundColor: colors.bgCard, transform: [{ translateY: anim }], paddingBottom: insets.bottom }]}>
         <View style={styles.sheetHandle}>
           <View style={[styles.sheetHandleBar, { backgroundColor: colors.border }]} />
         </View>
@@ -387,8 +389,8 @@ function CreditCard({ credit, onPressEncaisser, onPressRappel, onPressEdit, onPr
             {
               color: credit.statut === 'rembourse' ? EMERALD
                 : credit.statut === 'litige' ? DANGER
-                : overdue ? AMBER
-                : colors.text,
+                  : overdue ? AMBER
+                    : colors.text,
             },
           ]}>
             {fmt(credit.montantDu)} F
@@ -492,24 +494,24 @@ export default function CarnetCreancesScreen() {
 
   // ── Sheets ────────────────────────────────────────────────────────────────
   // "create" | "edit" | "encaisser" | "rappel" | "statut"
-  const [sheet, setSheet]     = useState(null);
+  const [sheet, setSheet] = useState(null);
   const [selected, setSelected] = useState(null);
 
   // Formulaire crédit
-  const [fNom, setFNom]         = useState('');
-  const [fTel, setFTel]         = useState('');
+  const [fNom, setFNom] = useState('');
+  const [fTel, setFTel] = useState('');
   const [fMontant, setFMontant] = useState('');
   const [fDejaPaye, setFDejaPaye] = useState('');
   const [fProduit, setFProduit] = useState('');
-  const [fNote, setFNote]       = useState('');
+  const [fNote, setFNote] = useState('');
   const [fEcheance, setFEcheance] = useState('');
 
   // Formulaire encaissement
   const [eMontant, setEMontant] = useState('');
-  const [eNote, setENote]       = useState('');
+  const [eNote, setENote] = useState('');
 
   // Sélecteurs de date
-  const [showDatePicker, setShowDatePicker]     = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [datepickerTarget, setDatepickerTarget] = useState(null); // 'echeance'
 
   const [saving, setSaving] = useState(false);
@@ -517,7 +519,7 @@ export default function CarnetCreancesScreen() {
   // ── Fetch initial si le store est vide ────────────────────────────────────
   useEffect(() => {
     if (creances.length === 0) {
-      syncService.invalidateAndFetch('creances').catch(() => {});
+      syncService.invalidateAndFetch('creances').catch(() => { });
     }
   }, []); // eslint-disable-line
 
@@ -525,16 +527,16 @@ export default function CarnetCreancesScreen() {
   useEffect(() => {
     const wasOffline = prevOfflineRef.current;
     if (!isOffline && wasOffline) {
-      syncService.invalidateAndFetch('creances').catch(() => {});
+      syncService.invalidateAndFetch('creances').catch(() => { });
     }
     prevOfflineRef.current = isOffline;
   }, [isOffline]);
 
   const localStats = useMemo(() => ({
-    totalDu:   creances.filter(c => c.statut === 'en_cours').reduce((s, c) => s + (c.montantDu || 0), 0),
-    enCours:   creances.filter(c => c.statut === 'en_cours').length,
+    totalDu: creances.filter(c => c.statut === 'en_cours').reduce((s, c) => s + (c.montantDu || 0), 0),
+    enCours: creances.filter(c => c.statut === 'en_cours').length,
     rembourse: creances.filter(c => c.statut === 'rembourse').length,
-    litige:    creances.filter(c => c.statut === 'litige').length,
+    litige: creances.filter(c => c.statut === 'litige').length,
   }), [creances]);
 
   // ── Filtrés ────────────────────────────────────────────────────────────────
@@ -547,7 +549,7 @@ export default function CarnetCreancesScreen() {
   // ── Refresh — identique Dashboard : triggerSync + invalidate ciblé ────────
   const onRefresh = useCallback(() => {
     triggerSync();
-    syncService.invalidateAndFetch('creances').catch(() => {});
+    syncService.invalidateAndFetch('creances').catch(() => { });
   }, [triggerSync]);
 
   // ── Helpers form ──────────────────────────────────────────────────────────
@@ -583,7 +585,7 @@ export default function CarnetCreancesScreen() {
 
   function queueAndFlush(type, payload) {
     syncService.queueMutation(type, payload);
-    if (!isOffline) syncService.pushPendingMutations().catch(() => {});
+    if (!isOffline) syncService.pushPendingMutations().catch(() => { });
   }
 
   function optimisticUpdate(updater) {
@@ -626,7 +628,7 @@ export default function CarnetCreancesScreen() {
     optimisticUpdate(list => [localEntry, ...list]);
 
     // Persistance SQLite — survit à un redémarrage offline
-    upsertMany('creances', [localEntry], () => tempId).catch(() => {});
+    upsertMany('creances', [localEntry], () => tempId).catch(() => { });
 
     // Queue mutation (payload propre sans _id ni _pendingSync)
     queueAndFlush('CREATE_CREANCE', payload);
@@ -655,7 +657,7 @@ export default function CarnetCreancesScreen() {
 
     // Mise à jour optimiste store + SQLite
     optimisticUpdate(list => list.map(c => c._id === selected._id ? { ...c, ...updated } : c));
-    upsertMany('creances', [{ ...selected, ...updated }], c => String(c._id)).catch(() => {});
+    upsertMany('creances', [{ ...selected, ...updated }], c => String(c._id)).catch(() => { });
 
     if (!isLocal) {
       // Seulement si l'ID est réel — sinon le backend ne connaît pas encore cette créance
@@ -681,7 +683,7 @@ export default function CarnetCreancesScreen() {
           onPress: async () => {
             // Suppression optimiste store + SQLite
             optimisticUpdate(list => list.filter(c => c._id !== selected._id));
-            getDB().runAsync(`DELETE FROM creances WHERE id = ?`, [selected._id]).catch(() => {});
+            getDB().runAsync(`DELETE FROM creances WHERE id = ?`, [selected._id]).catch(() => { });
             if (!isLocal) {
               // Si local, on supprime juste la mutation CREATE en queue aussi
               queueAndFlush('DELETE_CREANCE', { creanceId: selected._id });
@@ -717,7 +719,7 @@ export default function CarnetCreancesScreen() {
     };
 
     optimisticUpdate(list => list.map(c => c._id === selected._id ? newEntry : c));
-    upsertMany('creances', [newEntry], c => String(c._id)).catch(() => {});
+    upsertMany('creances', [newEntry], c => String(c._id)).catch(() => { });
     queueAndFlush('ADD_PAIEMENT_CREANCE', { creanceId: selected._id, montant, note: eNote });
     notify(`Paiement de ${fmt(montant)} F enregistré` + (!isOffline ? ' ✓' : ' (offline)'));
     closeSheet();
@@ -735,7 +737,7 @@ export default function CarnetCreancesScreen() {
       rappels: [...(selected.rappels || []), { canal, date: new Date().toISOString() }],
     };
     optimisticUpdate(list => list.map(c => c._id === selected._id ? newEntry : c));
-    upsertMany('creances', [newEntry], c => String(c._id)).catch(() => {});
+    upsertMany('creances', [newEntry], c => String(c._id)).catch(() => { });
 
     // Enregistrement backend seulement si l'ID est réel (offline-safe via queue)
     const isLocal = String(selected._id).startsWith('local_');
@@ -745,20 +747,20 @@ export default function CarnetCreancesScreen() {
 
     if (canal === 'whatsapp' && selected.clientTel) {
       const msg = encodeURIComponent(
-        `Bonjour ${selected.clientNom}, vous avez un crédit de ${fmt(selected.montantDu)} ₣ en cours. Merci de vous en acquitter.`
+        `Bonjour ${selected.clientNom}, vous avez un crédit de ${fmt(selected.montantDu)} FCFA en cours. Merci de vous en acquitter.`
       );
       const num = selected.clientTel.replace(/\D/g, '');
-      Linking.openURL(`https://wa.me/${num}?text=${msg}`).catch(() => {});
+      Linking.openURL(`https://wa.me/${num}?text=${msg}`).catch(() => { });
       notify('Rappel WhatsApp envoyé ✓');
       return;
     }
     if (canal === 'appel' && selected.clientTel) {
-      Linking.openURL(`tel:${selected.clientTel}`).catch(() => {});
+      Linking.openURL(`tel:${selected.clientTel}`).catch(() => { });
       notify('Appel lancé ✓');
       return;
     }
     if (canal === 'sms' && selected.clientTel) {
-      Linking.openURL(`sms:${selected.clientTel}`).catch(() => {});
+      Linking.openURL(`sms:${selected.clientTel}`).catch(() => { });
       notify('SMS ouvert ✓');
       return;
     }
@@ -771,7 +773,7 @@ export default function CarnetCreancesScreen() {
     const isLocal = String(selected._id).startsWith('local_');
     const newEntry = { ...selected, statut };
     optimisticUpdate(list => list.map(c => c._id === selected._id ? newEntry : c));
-    upsertMany('creances', [newEntry], c => String(c._id)).catch(() => {});
+    upsertMany('creances', [newEntry], c => String(c._id)).catch(() => { });
     if (!isLocal) {
       queueAndFlush('CHANGE_STATUT_CREANCE', { creanceId: selected._id, statut });
     }
@@ -1147,9 +1149,9 @@ export default function CarnetCreancesScreen() {
       <BottomSheet visible={sheet === 'statut'} onClose={closeSheet} title="Changer le statut" colors={colors}>
         <View style={styles.formContent}>
           {[
-            { key: 'en_cours',  label: 'En cours',       icon: 'time-outline',             color: AMBER,   desc: 'Crédit actif, non soldé' },
+            { key: 'en_cours', label: 'En cours', icon: 'time-outline', color: AMBER, desc: 'Crédit actif, non soldé' },
             { key: 'rembourse', label: 'Marquer remboursé', icon: 'checkmark-circle-outline', color: EMERALD, desc: 'Crédit entièrement soldé' },
-            { key: 'litige',    label: 'Marquer en litige', icon: 'shield-outline',           color: DANGER,  desc: 'Problème ou contentieux' },
+            { key: 'litige', label: 'Marquer en litige', icon: 'shield-outline', color: DANGER, desc: 'Problème ou contentieux' },
           ].filter(a => a.key !== selected?.statut).map(a => (
             <TouchableOpacity
               key={a.key}
@@ -1205,7 +1207,7 @@ const styles = StyleSheet.create({
   stickyHeader: { borderBottomWidth: 1, paddingTop: 12, paddingBottom: 8, gap: 10 },
   headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16 },
   screenTitle: { fontSize: 20, fontWeight: '900', letterSpacing: -0.5 },
-  screenSub:   { fontSize: 12, fontWeight: '500', marginTop: 1 },
+  screenSub: { fontSize: 12, fontWeight: '500', marginTop: 1 },
   newBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12,
@@ -1221,8 +1223,8 @@ const styles = StyleSheet.create({
 
   // Filters
   filterBar: { flexDirection: 'row', gap: 6, paddingHorizontal: 16, paddingBottom: 2 },
-  chip:      { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
-  chipText:  { fontSize: 12, fontWeight: '700' },
+  chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
+  chipText: { fontSize: 12, fontWeight: '700' },
 
   // List
   listContent: { padding: 16, paddingTop: 12 },
@@ -1247,7 +1249,7 @@ const styles = StyleSheet.create({
   // Progress
   progressRow: { flexDirection: 'row', justifyContent: 'space-between' },
   progressLabel: { fontSize: 11 },
-  progressPct:   { fontSize: 11, fontWeight: '700' },
+  progressPct: { fontSize: 11, fontWeight: '700' },
   progressBg: { height: 5, borderRadius: 3, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 3 },
 
@@ -1287,7 +1289,7 @@ const styles = StyleSheet.create({
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 60, gap: 12 },
   emptyIcon: { width: 60, height: 60, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
   emptyTitle: { fontSize: 15, fontWeight: '700', textAlign: 'center' },
-  emptyBtn:   { marginTop: 6, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12 },
+  emptyBtn: { marginTop: 6, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12 },
   emptyBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
 
   // Sheet
@@ -1302,7 +1304,7 @@ const styles = StyleSheet.create({
   sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1 },
   sheetTitle: { fontSize: 16, fontWeight: '800' },
   sheetClose: { width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  sheetFooter: { paddingHorizontal: 20, paddingVertical: 14, paddingBottom: Platform.OS === 'ios' ? 28 : 16, borderTopWidth: 1, gap: 8 },
+  sheetFooter: { paddingHorizontal: 20, paddingVertical: 14, borderTopWidth: 1, gap: 8 },
 
   // Form
   formContent: { paddingHorizontal: 20, paddingVertical: 16, gap: 14 },
@@ -1334,13 +1336,13 @@ const styles = StyleSheet.create({
   rappelIntro: { fontSize: 13, marginBottom: 4 },
   rappelOption: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 14, borderWidth: 1, padding: 14 },
   rappelOptionTitle: { fontSize: 14, fontWeight: '700' },
-  rappelOptionSub:   { fontSize: 12 },
+  rappelOptionSub: { fontSize: 12 },
 
   // Statut options
   statutOption: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 14, borderWidth: 1, padding: 14 },
   statutOptionIcon: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   statutOptionTitle: { fontSize: 14, fontWeight: '700' },
-  statutOptionSub:   { fontSize: 12 },
+  statutOptionSub: { fontSize: 12 },
 
   // Phone input
   phoneRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: 12, overflow: 'hidden' },
@@ -1382,6 +1384,6 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, elevation: 8,
   },
   toastSuccess: { backgroundColor: '#111827' },
-  toastError:   { backgroundColor: DANGER },
-  toastText:    { fontSize: 13, fontWeight: '700', color: '#fff' },
+  toastError: { backgroundColor: DANGER },
+  toastText: { fontSize: 13, fontWeight: '700', color: '#fff' },
 });

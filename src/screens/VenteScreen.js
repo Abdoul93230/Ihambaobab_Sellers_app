@@ -24,7 +24,7 @@ const W = Dimensions.get('window').width;
 const WEB_URL = 'https://ihambaobab.com';
 
 function fmtCFA(n) {
-  return new Intl.NumberFormat('fr-FR').format(n || 0) + ' ₣';
+  return new Intl.NumberFormat('fr-FR').format(n || 0) + ' FCFA';
 }
 
 // ─── Custom Bottom Sheet ──────────────────────────────────────────────────────
@@ -848,7 +848,7 @@ function ReceiptModal({ visible, vente, storeName, onClose, onNewSale, colors })
               {vente.modePaiement === 'ESPECES' && vente.monnaie > 0 && (
                 <View style={[styles.receiptTotalRow, { backgroundColor: '#ECFDF5', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 6, marginTop: 4 }]}>
                   <Text style={{ color: '#059669', fontWeight: '700', fontSize: 13 }}>💵 Monnaie rendue</Text>
-                  <Text style={{ color: '#059669', fontWeight: '800', fontSize: 14 }}>{fmtCFA(vente.monnaie)} ₣</Text>
+                  <Text style={{ color: '#059669', fontWeight: '800', fontSize: 14 }}>{fmtCFA(vente.monnaie)}</Text>
                 </View>
               )}
 
@@ -1512,7 +1512,7 @@ export default function VenteScreen() {
           {/* Récap totaux + remise */}
           <View style={[styles.recapBox, { margin: 12, backgroundColor: colors.bgHover, borderColor: colors.border }]}>
             <View style={styles.recapRow}>
-              <Text style={[styles.recapLabel, { color: colors.textMuted }]}>Remise (₣)</Text>
+              <Text style={[styles.recapLabel, { color: colors.textMuted }]}>Remise (FCFA)</Text>
               <TextInput
                 style={[styles.remiseInput, { borderColor: colors.border, backgroundColor: colors.bgCard, color: colors.text }]}
                 value={remise ? String(remise) : ''}

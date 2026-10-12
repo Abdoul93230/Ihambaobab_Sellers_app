@@ -408,7 +408,7 @@ function VarianteSheet({ visible, initial, defaultPrice, defaultPromoPrice, onSa
           </TouchableOpacity>
         </View>
         {hasCustomPrice && (
-          <Field label="Prix (₣)" colors={colors}>
+          <Field label="Prix (FCFA)" colors={colors}>
             <Input value={price} onChangeText={setPrice} keyboardType="numeric" placeholder="ex: 5000" colors={colors} />
           </Field>
         )}
@@ -424,7 +424,7 @@ function VarianteSheet({ visible, initial, defaultPrice, defaultPromoPrice, onSa
           </TouchableOpacity>
         </View>
         {hasPromo && (
-          <Field label="Prix promo (₣)" colors={colors}>
+          <Field label="Prix promo (FCFA)" colors={colors}>
             <Input value={promoPrice} onChangeText={setPromoPrice} keyboardType="numeric" placeholder="ex: 3500" colors={colors} />
           </Field>
         )}
@@ -481,10 +481,10 @@ function generateDescription({ name, brand, typeName, prix, prixPromo, quantite,
   if (prix) {
     lines.push('');
     lines.push('💰 TARIFS');
-    lines.push(`• Prix de vente : ${Number(prix).toLocaleString()} ₣`);
+    lines.push(`• Prix de vente : ${Number(prix).toLocaleString()} FCFA`);
     if (prixPromo && Number(prixPromo) > 0) {
       const discount = Math.round((1 - Number(prixPromo) / Number(prix)) * 100);
-      lines.push(`• 🔥 Prix promotionnel : ${Number(prixPromo).toLocaleString()} ₣ — Vous économisez ${discount}% !`);
+      lines.push(`• 🔥 Prix promotionnel : ${Number(prixPromo).toLocaleString()} FCFA — Vous économisez ${discount}% !`);
     }
   }
 
@@ -535,6 +535,8 @@ export default function ProduitUpdateScreen({ route, navigation }) {
   const [varianteEdit, setVarianteEdit]         = useState(null);
   const [showVarianteSheet, setShowVarianteSheet] = useState(false);
 
+  const [typesLoading, setTypesLoading] = useState(false);
+
   // Types + catégories lus depuis le store SQLite — disponibles offline
   const storeTypes      = useSyncStore((s) => s.types) ?? [];
   const storeCategories = useSyncStore((s) => s.categories) ?? [];
@@ -570,10 +572,11 @@ export default function ProduitUpdateScreen({ route, navigation }) {
     // on les fetche maintenant et ils seront stockés dans SQLite pour la prochaine fois
     if (storeTypes.length === 0 || storeCategories.length === 0) {
       const { syncService } = require('../services/syncService');
+      setTypesLoading(true);
       Promise.allSettled([
         storeTypes.length === 0 ? syncService.fetchOne('types') : Promise.resolve(),
         storeCategories.length === 0 ? syncService.fetchOne('categories') : Promise.resolve(),
-      ]);
+      ]).finally(() => setTypesLoading(false));
     }
   }, []);
 
@@ -628,10 +631,12 @@ export default function ProduitUpdateScreen({ route, navigation }) {
   // ── Sélecteur image — stocke base64 pour persistance offline ─────────────────
   const pickImage = useCallback(async (slot) => {
     const setters = { 1: setImg1, 2: setImg2, 3: setImg3 };
-    const opts = { allowsEditing: false, quality: 0.85, base64: true };
+    // La caméra en build prod capture la résolution native complète → quality basse obligatoire
+    const galleryOpts = { allowsEditing: false, quality: 0.85, base64: true };
+    const cameraOpts  = { quality: 0.3, base64: true };
     Alert.alert('Ajouter une image', '', [
       { text: 'Galerie', onPress: async () => {
-        const r = await ImagePicker.launchImageLibraryAsync(opts);
+        const r = await ImagePicker.launchImageLibraryAsync(galleryOpts);
         if (!r.canceled) {
           const a = r.assets[0];
           if (!checkImageSize(a)) return;
@@ -640,7 +645,7 @@ export default function ProduitUpdateScreen({ route, navigation }) {
         }
       }},
       { text: 'Caméra', onPress: async () => {
-        const r = await ImagePicker.launchCameraAsync(opts);
+        const r = await ImagePicker.launchCameraAsync(cameraOpts);
         if (!r.canceled) {
           const a = r.assets[0];
           if (!checkImageSize(a)) return;
@@ -803,7 +808,7 @@ export default function ProduitUpdateScreen({ route, navigation }) {
       e.name = 'Nom du produit requis';
 
     if (!prix || isNaN(parseFloat(prix)) || parseFloat(prix) < 40)
-      e.prix = 'Prix incorrect (minimum 40 ₣)';
+      e.prix = 'Prix incorrect (minimum 40 FCFA)';
 
     if (prixPromo && parseFloat(prixPromo) > 0 && parseFloat(prixPromo) >= parseFloat(prix))
       e.prixPromo = 'Le prix promo doit être inférieur au prix normal';
@@ -983,7 +988,7 @@ export default function ProduitUpdateScreen({ route, navigation }) {
         </TouchableOpacity>
       </View>
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
           {/* ── Bannière refus admin ─────────────────────────────────── */}
@@ -1017,12 +1022,12 @@ export default function ProduitUpdateScreen({ route, navigation }) {
 
           <View style={styles.row2}>
             <View style={{ flex: 1 }}>
-              <Field label="Prix (₣)" required colors={colors} error={errors.prix}>
+              <Field label="Prix (FCFA)" required colors={colors} error={errors.prix}>
                 <Input value={prix} onChangeText={setPrix} keyboardType="numeric" placeholder="0" colors={colors} error={errors.prix} />
               </Field>
             </View>
             <View style={{ flex: 1 }}>
-              <Field label="Prix promotionnel (₣)" colors={colors} error={errors.prixPromo}>
+              <Field label="Prix promotionnel (FCFA)" colors={colors} error={errors.prixPromo}>
                 <Input value={prixPromo} onChangeText={setPrixPromo} keyboardType="numeric" placeholder="0" colors={colors} error={errors.prixPromo} />
               </Field>
             </View>
@@ -1079,16 +1084,26 @@ export default function ProduitUpdateScreen({ route, navigation }) {
                 borderWidth: 1.5,
               }]}
               onPress={() => setShowTypes(true)} activeOpacity={0.8}
+              disabled={typesLoading && storeTypes.length === 0}
             >
-              <Text style={{ fontSize: 14, flex: 1, color: typeName ? colors.text : colors.textPlaceholder }}>
-                {typeName || 'Choisir un type...'}
-              </Text>
-              {typeName && (
-                <View style={[styles.typeSelectedBadge, { backgroundColor: colors.primaryLight }]}>
-                  <Text style={{ fontSize: 10, color: colors.primary, fontWeight: '700' }}>{typeName}</Text>
-                </View>
+              {typesLoading && storeTypes.length === 0 ? (
+                <>
+                  <ActivityIndicator size="small" color={colors.primary} style={{ marginRight: 8 }} />
+                  <Text style={{ fontSize: 14, flex: 1, color: colors.textPlaceholder }}>Chargement des types…</Text>
+                </>
+              ) : (
+                <>
+                  <Text style={{ fontSize: 14, flex: 1, color: typeName ? colors.text : colors.textPlaceholder }}>
+                    {typeName || 'Choisir un type...'}
+                  </Text>
+                  {typeName && (
+                    <View style={[styles.typeSelectedBadge, { backgroundColor: colors.primaryLight }]}>
+                      <Text style={{ fontSize: 10, color: colors.primary, fontWeight: '700' }}>{typeName}</Text>
+                    </View>
+                  )}
+                  <Ionicons name="chevron-down" size={16} color={errors.typeId ? colors.danger : colors.textMuted} />
+                </>
               )}
-              <Ionicons name="chevron-down" size={16} color={errors.typeId ? colors.danger : colors.textMuted} />
             </TouchableOpacity>
           </Field>
 
@@ -1175,9 +1190,9 @@ export default function ProduitUpdateScreen({ route, navigation }) {
                 <Text style={[styles.varianteName, { color: colors.text }]}>{v.colorName}</Text>
                 <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 1 }}>
                   Stock: {v.stock}
-                  {v.hasCustomPrice ? ` · ${v.price} ₣` : ''}
+                  {v.hasCustomPrice ? ` · ${v.price} FCFA` : ''}
                   {v.sizes?.length ? ` · ${v.sizes.join(', ')}` : ''}
-                  {v.isOnPromo ? ` · Promo: ${v.promoPrice} ₣` : ''}
+                  {v.isOnPromo ? ` · Promo: ${v.promoPrice} FCFA` : ''}
                 </Text>
               </View>
               <TouchableOpacity onPress={() => { setVarianteEdit(v); setShowVarianteSheet(true); }} style={{ padding: 6 }}>
@@ -1212,7 +1227,7 @@ export default function ProduitUpdateScreen({ route, navigation }) {
               onPress={() => navigation.goBack()}
               activeOpacity={0.8}
             >
-              <Text style={[styles.cancelBtnText, { color: colors.textSub }]}>Annuler</Text>
+              <Text style={[styles.cancelBtnText, { color: 'red' }]}>Annuler</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.submitBtn, { backgroundColor: colors.primary, flex: 2 }, saving && { opacity: 0.6 }]}

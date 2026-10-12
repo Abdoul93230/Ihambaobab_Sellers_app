@@ -117,7 +117,10 @@ export const useAgentStore = create((set) => ({
 
       return { success: true };
     } catch (e) {
-      const msg = e.response?.data?.message || 'Erreur de connexion agent';
+      const backMsg = e.response?.data?.message;
+      const msg = e.response?.status === 403
+        ? (backMsg || 'Votre compte a été désactivé par l\'administrateur de la boutique.')
+        : (backMsg || 'Erreur de connexion agent');
       set({ loading: false, error: msg });
       return { success: false, error: msg };
     }

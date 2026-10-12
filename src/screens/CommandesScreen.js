@@ -11,10 +11,10 @@ import { upsertMany } from '../db/database';
 import Toast from 'react-native-toast-message';
 
 const STATUS_CONFIG = {
-  pending:   { label: 'En attente',   color: '#F59E0B', bg: '#FFFBEB', icon: 'time-outline' },
-  validated: { label: 'Validée',      color: '#3B82F6', bg: '#EFF6FF', icon: 'checkmark-outline' },
-  delivered: { label: 'Livrée',       color: '#10B981', bg: '#ECFDF5', icon: 'bicycle-outline' },
-  cancelled: { label: 'Annulée',      color: '#EF4444', bg: '#FEF2F2', icon: 'close-outline' },
+  pending: { label: 'En attente', color: '#F59E0B', bg: '#FFFBEB', icon: 'time-outline' },
+  validated: { label: 'Validée', color: '#3B82F6', bg: '#EFF6FF', icon: 'checkmark-outline' },
+  delivered: { label: 'Livrée', color: '#10B981', bg: '#ECFDF5', icon: 'bicycle-outline' },
+  cancelled: { label: 'Annulée', color: '#EF4444', bg: '#FEF2F2', icon: 'close-outline' },
 };
 
 const FILTRES = ['Toutes', 'En attente', 'Validée', 'Livrée'];
@@ -44,7 +44,7 @@ function CommandeCard({ commande, onAction }) {
         <Text style={styles.clientName}>
           {commande.client?.name || commande.userId?.name || 'Client anonyme'}
         </Text>
-        <Text style={styles.total}>{fmt(commande.total)} ₣</Text>
+        <Text style={styles.total}>{fmt(commande.total)} FCFA</Text>
       </View>
 
       {commande.products && (
@@ -105,7 +105,7 @@ export default function CommandesScreen() {
     // Persiste dans SQLite
     const changedItem = updated.find(c => String(c._id) === String(commandeId));
     if (changedItem) {
-      upsertMany('commandes', [changedItem], o => String(o._id)).catch(() => {});
+      upsertMany('commandes', [changedItem], o => String(o._id)).catch(() => { });
     }
 
     // Queue la mutation

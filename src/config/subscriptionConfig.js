@@ -13,21 +13,21 @@ const SUBSCRIPTION_CONFIG = {
   PLANS: {
     Starter: {
       name: 'Starter',
-      description: "Idéal pour débuter. 2 mois d'essai gratuit, aucun paiement requis.",
+      description: "Idéal pour débuter. 1 mois d'essai gratuit, aucun paiement requis.",
       agentQuota: 0,
       pricing: {
-        monthly: 2000,
-        annual: 21600,      // 2000 * 12 - 10%
-        trialMonths: 2,
+        monthly: 1000,
+        annual: 10800,      // 1000 * 12 - 10%
+        trialMonths: 1,
         annualDiscount: 0.10,
       },
-      commission: 3.0,
-      productLimit: 20,
+      commission: null,  // N/A — pas d'accès marketplace, aucune vente marketplace possible
+      productLimit: 30,
       features: {
         pos: true,
         marketplace: false,
         productManagement: {
-          maxProducts: 20,
+          maxProducts: 30,
           maxVariants: 3,
           maxCategories: 5,
           catalogImport: false,
@@ -57,8 +57,8 @@ const SUBSCRIPTION_CONFIG = {
       description: "Pour les vendeurs réguliers. 1 mois d'essai gratuit, aucun paiement requis.",
       agentQuota: 2,
       pricing: {
-        monthly: 5000,
-        annual: 54000,      // 5000 * 12 - 10%
+        monthly: 2500,
+        annual: 27000,      // 2500 * 12 - 10%
         trialMonths: 1,
         annualDiscount: 0.10,
       },
@@ -98,8 +98,8 @@ const SUBSCRIPTION_CONFIG = {
       description: "Pour les vendeurs établis à fort volume. 1 mois d'essai gratuit, aucun paiement requis.",
       agentQuota: 6,
       pricing: {
-        monthly: 10000,
-        annual: 108000,     // 10000 * 12 - 10%
+        monthly: 5000,
+        annual: 54000,     // 5000 * 12 - 10%
         trialMonths: 1,
         annualDiscount: 0.10,
       },
@@ -139,33 +139,33 @@ const SUBSCRIPTION_CONFIG = {
   DEFAULT_COMMISSION: 3.0,
 
   PAYMENT_METHODS: {
-    mynita:       { phone: '+22790123456', name: 'iHambaObab Mynita',       active: true },
-    aman:         { phone: '+22798765432', name: 'iHambaObab Aman',         active: true },
+    mynita: { phone: '+22790123456', name: 'iHambaObab Mynita', active: true },
+    aman: { phone: '+22798765432', name: 'iHambaObab Aman', active: true },
     airtel_money: { phone: '+22787654321', name: 'iHambaObab Airtel Money', active: true },
     orange_money: { phone: '+22776543210', name: 'iHambaObab Orange Money', active: true },
   },
 
   SUBSCRIPTION_STATUSES: {
-    ACTIVE:    'active',
-    EXPIRED:   'expired',
+    ACTIVE: 'active',
+    EXPIRED: 'expired',
     SUSPENDED: 'suspended',
     CANCELLED: 'cancelled',
-    PENDING:   'pending',
-    TRIAL:     'trial',
+    PENDING: 'pending',
+    TRIAL: 'trial',
   },
 
   REQUEST_STATUSES: {
-    PENDING_PAYMENT:   'pending_payment',
+    PENDING_PAYMENT: 'pending_payment',
     PAYMENT_SUBMITTED: 'payment_submitted',
-    PAYMENT_VERIFIED:  'payment_verified',
-    ACTIVATED:         'activated',
-    REJECTED:          'rejected',
-    CANCELLED:         'cancelled',
+    PAYMENT_VERIFIED: 'payment_verified',
+    ACTIVATED: 'activated',
+    REJECTED: 'rejected',
+    CANCELLED: 'cancelled',
   },
 
-  GRACE_PERIOD_DAYS:       2,
-  PAYMENT_DEADLINE_HOURS:  24,
-  RENEWAL_REMINDER_DAYS:   [7, 3, 1],
+  GRACE_PERIOD_DAYS: 2,
+  PAYMENT_DEADLINE_HOURS: 24,
+  RENEWAL_REMINDER_DAYS: [7, 3, 1],
 
   // ─── Utilitaires ──────────────────────────────────────────────
 
@@ -180,7 +180,8 @@ const SUBSCRIPTION_CONFIG = {
 
   getPlanCommission(planName) {
     const plan = SUBSCRIPTION_CONFIG.PLANS[planName];
-    return plan ? plan.commission : SUBSCRIPTION_CONFIG.DEFAULT_COMMISSION;
+    if (!plan) return SUBSCRIPTION_CONFIG.DEFAULT_COMMISSION;
+    return plan.commission ?? SUBSCRIPTION_CONFIG.DEFAULT_COMMISSION;
   },
 
   calculateAnnualSavings(planName) {
@@ -213,11 +214,11 @@ const SUBSCRIPTION_CONFIG = {
     const plan = SUBSCRIPTION_CONFIG.PLANS[planName];
     if (!plan) return null;
     return {
-      price:        { monthly: plan.pricing.monthly, annual: plan.pricing.annual },
-      commission:   plan.commission,
+      price: { monthly: plan.pricing.monthly, annual: plan.pricing.annual },
+      commission: plan.commission,
       productLimit: plan.productLimit,
-      trialMonths:  plan.pricing.trialMonths,
-      features:     plan.features,
+      trialMonths: plan.pricing.trialMonths,
+      features: plan.features,
     };
   },
 
@@ -229,9 +230,9 @@ const SUBSCRIPTION_CONFIG = {
     const plan = SUBSCRIPTION_CONFIG.PLANS[planName];
     if (!plan) return [];
 
-    const f   = plan.features;
-    const pm  = f.productManagement;
-    const po  = f.paymentOptions;
+    const f = plan.features;
+    const pm = f.productManagement;
+    const po = f.paymentOptions;
     const mkt = f.marketing;
     const sup = f.support;
     const list = [];
@@ -250,8 +251,8 @@ const SUBSCRIPTION_CONFIG = {
 
     // Paiements
     const payMethods = [];
-    if (po.mobileMoney)   payMethods.push('Mobile Money');
-    if (po.cardPayment)   payMethods.push('Carte bancaire');
+    if (po.mobileMoney) payMethods.push('Mobile Money');
+    if (po.cardPayment) payMethods.push('Carte bancaire');
     if (po.customPayment) payMethods.push('Paiement personnalisé');
     if (payMethods.length > 0) {
       list.push({ name: `Paiements : ${payMethods.join(', ')}`, included: true });

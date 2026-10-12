@@ -34,10 +34,10 @@ import {
 
 // ─── Périodes ─────────────────────────────────────────────────────────────────
 const PERIODES = [
-  { label: 'Auj.', value: 1  },
-  { label: '7j',   value: 7  },
-  { label: '30j',  value: 30 },
-  { label: '90j',  value: 90 },
+  { label: 'Auj.', value: 1 },
+  { label: '7j', value: 7 },
+  { label: '30j', value: 30 },
+  { label: '90j', value: 90 },
 ];
 
 function getPeriodeDates(nbJours) {
@@ -57,28 +57,28 @@ async function loadOfflineVentes() {
       .map(m => {
         const p = m.payload;
         const lignes = (p.lignes || []).map(l => ({
-          nom:           l.nom,
-          image:         l.image,
-          prixUnitaire:  l.prixUnitaire,
-          quantite:      l.quantite,
+          nom: l.nom,
+          image: l.image,
+          prixUnitaire: l.prixUnitaire,
+          quantite: l.quantite,
           varianteLabel: l.varianteLabel || '',
-          sousTotal:     l.sousTotal,
+          sousTotal: l.sousTotal,
         }));
         const total = Math.max(0, lignes.reduce((s, l) => s + l.sousTotal, 0) - (p.remise || 0));
         return {
-          _id:             m.id,
-          _offlineMutId:   m.id,
-          reference:       p.referenceOffline || m.id,
-          createdAt:       new Date(Number(m.created_at) || Date.now()).toISOString(),
-          statut:          'COMPLETEE',
-          modePaiement:    p.modePaiement || 'ESPECES',
+          _id: m.id,
+          _offlineMutId: m.id,
+          reference: p.referenceOffline || m.id,
+          createdAt: new Date(Number(m.created_at) || Date.now()).toISOString(),
+          statut: 'COMPLETEE',
+          modePaiement: p.modePaiement || 'ESPECES',
           total,
-          remise:          p.remise || 0,
-          montantRecu:     p.montantRecu || 0,
-          monnaie:         p.monnaie || 0,
+          remise: p.remise || 0,
+          montantRecu: p.montantRecu || 0,
+          monnaie: p.monnaie || 0,
           telephoneClient: p.telephoneClient || '',
           lignes,
-          _syncStatus:     m.status,
+          _syncStatus: m.status,
         };
       });
   } catch (_) {
@@ -127,38 +127,38 @@ const bsStyles = StyleSheet.create({
 });
 
 // ─── Constantes couleurs ──────────────────────────────────────────────────────
-const PRIMARY   = '#30A08B';
+const PRIMARY = '#30A08B';
 const SECONDARY = '#B17236';
-const DANGER    = '#EF4444';
-const SUCCESS   = '#10B981';
-const WARN      = '#F59E0B';
+const DANGER = '#EF4444';
+const SUCCESS = '#10B981';
+const WARN = '#F59E0B';
 
 const WEB_URL = 'https://ihambaobab.com';
 
 function fmtCFA(n) {
-  return new Intl.NumberFormat('fr-FR').format(n || 0) + ' ₣';
+  return new Intl.NumberFormat('fr-FR').format(n || 0) + ' FCFA';
 }
 
 function calcReceiptHeight(vente) {
-  const header      = 90;
-  const colHeader   = 22;
-  const ligneBase   = 30;
-  const ligneExtra  = 12;
-  const totaux      = 55;
-  const paiement    = 20;
+  const header = 90;
+  const colHeader = 22;
+  const ligneBase = 30;
+  const ligneExtra = 12;
+  const totaux = 55;
+  const paiement = 20;
   const montantRecu = vente.modePaiement === 'ESPECES' ? 16 : 0;
-  const monnaie     = (vente.modePaiement === 'ESPECES' && vente.monnaie > 0) ? 16 : 0;
-  const remise      = vente.remise > 0 ? 16 : 0;
-  const qrcode      = 95;
-  const footer      = 30;
-  const padding     = 44;
+  const monnaie = (vente.modePaiement === 'ESPECES' && vente.monnaie > 0) ? 16 : 0;
+  const remise = vente.remise > 0 ? 16 : 0;
+  const qrcode = 95;
+  const footer = 30;
+  const padding = 44;
   const lignesHauteur = (vente.lignes || []).reduce((h, l) => {
     const chars = (l.nom || '').length;
     const extraLines = Math.max(0, Math.floor(chars / 30));
     return h + ligneBase + extraLines * ligneExtra;
   }, 0);
   return header + colHeader + lignesHauteur + totaux + remise +
-         paiement + montantRecu + monnaie + qrcode + footer + padding;
+    paiement + montantRecu + monnaie + qrcode + footer + padding;
 }
 
 async function buildReceiptHtml(vente, storeName) {
@@ -240,7 +240,7 @@ const fmtDate = (iso) =>
   }).format(new Date(iso));
 
 const fmtMoney = (n) =>
-  new Intl.NumberFormat('fr-FR').format(n ?? 0) + ' ₣';
+  new Intl.NumberFormat('fr-FR').format(n ?? 0) + ' FCFA';
 
 const canCancel = (createdAt) =>
   Date.now() - new Date(createdAt).getTime() < 24 * 60 * 60 * 1000;
@@ -255,7 +255,7 @@ function PaymentIcon({ mode, color }) {
 function StatutBadge({ statut, syncStatus }) {
   if (syncStatus) {
     const isFailed = syncStatus === 'failed';
-    const bg    = isFailed ? DANGER + '18' : WARN + '22';
+    const bg = isFailed ? DANGER + '18' : WARN + '22';
     const color = isFailed ? DANGER : WARN;
     const label = isFailed ? 'Échec sync' : 'En attente';
     return (
@@ -265,10 +265,10 @@ function StatutBadge({ statut, syncStatus }) {
       </View>
     );
   }
-  const isOk    = statut === 'COMPLETEE';
+  const isOk = statut === 'COMPLETEE';
   const bgColor = isOk ? SUCCESS + '18' : DANGER + '18';
   const txColor = isOk ? SUCCESS : DANGER;
-  const label   = isOk ? 'Complétée' : 'Annulée';
+  const label = isOk ? 'Complétée' : 'Annulée';
   return (
     <View style={[styles.badge, { backgroundColor: bgColor }]}>
       <Text style={[styles.badgeText, { color: txColor }]}>{label}</Text>
@@ -278,8 +278,8 @@ function StatutBadge({ statut, syncStatus }) {
 
 // ─── Carte de vente ───────────────────────────────────────────────────────────
 function VenteCard({ vente, onPress, colors }) {
-  const isOffline   = !!vente._offlineMutId;
-  const isFailed    = vente._syncStatus === 'failed';
+  const isOffline = !!vente._offlineMutId;
+  const isFailed = vente._syncStatus === 'failed';
   const borderColor = isOffline ? (isFailed ? DANGER : WARN) : colors.border;
 
   return (
@@ -353,10 +353,10 @@ function LigneProduit({ ligne, colors }) {
 function DetailModal({ vente, visible, onClose, onAnnuler, cancelling, colors, onViewReceipt }) {
   if (!vente) return null;
 
-  const isOffline  = !!vente._offlineMutId;
-  const isFailed   = vente._syncStatus === 'failed';
-  const annulable  = !isOffline && vente.statut === 'COMPLETEE' && canCancel(vente.createdAt);
-  const hasRemise  = Number(vente.remise) > 0;
+  const isOffline = !!vente._offlineMutId;
+  const isFailed = vente._syncStatus === 'failed';
+  const annulable = !isOffline && vente.statut === 'COMPLETEE' && canCancel(vente.createdAt);
+  const hasRemise = Number(vente.remise) > 0;
   const hasMonnaie = vente.modePaiement === 'ESPECES' && Number(vente.monnaie) > 0;
 
   return (
@@ -452,7 +452,7 @@ function DetailModal({ vente, visible, onClose, onAnnuler, cancelling, colors, o
           <View style={[styles.sheetFooter, { borderTopColor: colors.border }]}>
             <View style={[styles.syncBanner, {
               backgroundColor: isFailed ? DANGER + '12' : WARN + '14',
-              borderColor:     isFailed ? DANGER + '40' : WARN + '40',
+              borderColor: isFailed ? DANGER + '40' : WARN + '40',
             }]}>
               <Ionicons
                 name={isFailed ? 'alert-circle-outline' : 'cloud-upload-outline'}
@@ -499,9 +499,9 @@ function DetailModal({ vente, visible, onClose, onAnnuler, cancelling, colors, o
               {cancelling
                 ? <ActivityIndicator size="small" color="#fff" />
                 : <>
-                    <Ionicons name="close-circle-outline" size={17} color="#fff" />
-                    <Text style={styles.annulerBtnText}>Annuler cette vente</Text>
-                  </>
+                  <Ionicons name="close-circle-outline" size={17} color="#fff" />
+                  <Text style={styles.annulerBtnText}>Annuler cette vente</Text>
+                </>
               }
             </TouchableOpacity>
           </View>
@@ -531,10 +531,10 @@ function AgentReceiptModal({ visible, vente, storeName, onClose, colors }) {
   const downloadPDF = async () => {
     setGenerating(true);
     try {
-      const Print   = require('expo-print');
+      const Print = require('expo-print');
       const Sharing = require('expo-sharing');
-      const html    = await buildReceiptHtml(vente, storeName);
-      const height  = calcReceiptHeight(vente);
+      const html = await buildReceiptHtml(vente, storeName);
+      const height = calcReceiptHeight(vente);
       const { uri } = await Print.printToFileAsync({ html, width: 302, height });
       const canShare = await Sharing.isAvailableAsync();
       if (canShare) {
@@ -665,7 +665,7 @@ function AgentReceiptModal({ visible, vente, storeName, onClose, colors }) {
           {vente.modePaiement === 'ESPECES' && vente.monnaie > 0 && (
             <View style={[rStyles.receiptTotalRow, { backgroundColor: '#ECFDF5', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 6, marginTop: 4 }]}>
               <Text style={{ color: '#059669', fontWeight: '700', fontSize: 13 }}>💵 Monnaie rendue</Text>
-              <Text style={{ color: '#059669', fontWeight: '800', fontSize: 14 }}>{fmtCFA(vente.monnaie)} ₣</Text>
+              <Text style={{ color: '#059669', fontWeight: '800', fontSize: 14 }}>{fmtCFA(vente.monnaie)} FCFA</Text>
             </View>
           )}
 
@@ -702,80 +702,80 @@ function AgentReceiptModal({ visible, vente, storeName, onClose, colors }) {
 }
 
 const rStyles = StyleSheet.create({
-  receiptHeader:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+  receiptHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
   receiptHeaderText: { color: '#fff', fontSize: 16, fontWeight: '800' },
-  receiptTicket:     { backgroundColor: '#fff', borderRadius: 16, padding: 16, width: '100%', maxWidth: 320, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 6 },
-  receiptBrand:      { textAlign: 'center', fontSize: 16, fontWeight: '900', letterSpacing: 1.5, color: '#111', fontFamily: 'Courier New' },
-  receiptStoreName:  { textAlign: 'center', fontSize: 13, fontWeight: '700', color: '#111', marginTop: 2, fontFamily: 'Courier New' },
-  receiptSubTitle:   { textAlign: 'center', fontSize: 10, color: '#6B7280', marginTop: 2 },
-  receiptDate:       { textAlign: 'center', fontSize: 10, color: '#9CA3AF', marginTop: 1 },
-  receiptRef:        { textAlign: 'center', fontSize: 9, color: '#9CA3AF', letterSpacing: 0.5, marginTop: 1 },
-  receiptDivider:    { borderTopWidth: 1, borderStyle: 'dashed', borderColor: '#D1D5DB', marginVertical: 8, width: '100%' },
-  receiptColHeader:  { flexDirection: 'row', marginBottom: 6 },
-  receiptColText:    { fontSize: 10, color: '#6B7280', fontWeight: '600' },
-  receiptItemWrap:   { marginBottom: 8, width: '100%' },
-  receiptItemNom:    { fontSize: 12, fontWeight: '700', color: '#111', marginBottom: 2 },
+  receiptTicket: { backgroundColor: '#fff', borderRadius: 16, padding: 16, width: '100%', maxWidth: 320, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 6 },
+  receiptBrand: { textAlign: 'center', fontSize: 16, fontWeight: '900', letterSpacing: 1.5, color: '#111', fontFamily: 'Courier New' },
+  receiptStoreName: { textAlign: 'center', fontSize: 13, fontWeight: '700', color: '#111', marginTop: 2, fontFamily: 'Courier New' },
+  receiptSubTitle: { textAlign: 'center', fontSize: 10, color: '#6B7280', marginTop: 2 },
+  receiptDate: { textAlign: 'center', fontSize: 10, color: '#9CA3AF', marginTop: 1 },
+  receiptRef: { textAlign: 'center', fontSize: 9, color: '#9CA3AF', letterSpacing: 0.5, marginTop: 1 },
+  receiptDivider: { borderTopWidth: 1, borderStyle: 'dashed', borderColor: '#D1D5DB', marginVertical: 8, width: '100%' },
+  receiptColHeader: { flexDirection: 'row', marginBottom: 6 },
+  receiptColText: { fontSize: 10, color: '#6B7280', fontWeight: '600' },
+  receiptItemWrap: { marginBottom: 8, width: '100%' },
+  receiptItemNom: { fontSize: 12, fontWeight: '700', color: '#111', marginBottom: 2 },
   receiptItemVariante: { fontSize: 10, fontWeight: '400', color: '#6B7280' },
-  receiptItemRow:    { flexDirection: 'row', alignItems: 'center' },
-  receiptItemCell:   { fontSize: 11, color: '#374151' },
+  receiptItemRow: { flexDirection: 'row', alignItems: 'center' },
+  receiptItemCell: { fontSize: 11, color: '#374151' },
   receiptItemCellBold: { fontSize: 11, fontWeight: '700', color: '#111' },
-  receiptTotalRow:   { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginBottom: 4 },
+  receiptTotalRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginBottom: 4 },
   receiptGrandTotal: { borderTopWidth: 1, borderColor: '#111', paddingTop: 6, marginTop: 4 },
   receiptGrandTotalText: { fontSize: 15, fontWeight: '900', color: '#111' },
-  receiptFooter:     { textAlign: 'center', fontSize: 10, color: '#9CA3AF', lineHeight: 16, marginTop: 4 },
-  receiptActions:    { paddingHorizontal: 16, paddingTop: 12, borderTopWidth: 1 },
-  whatsappBtn:       { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#25D366', paddingVertical: 13, borderRadius: 14 },
-  whatsappBtnText:   { color: '#fff', fontSize: 14, fontWeight: '800' },
-  pdfBtn:            { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: PRIMARY, paddingVertical: 13, borderRadius: 14 },
-  pdfBtnText:        { color: '#fff', fontSize: 14, fontWeight: '800' },
+  receiptFooter: { textAlign: 'center', fontSize: 10, color: '#9CA3AF', lineHeight: 16, marginTop: 4 },
+  receiptActions: { paddingHorizontal: 16, paddingTop: 12, borderTopWidth: 1 },
+  whatsappBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#25D366', paddingVertical: 13, borderRadius: 14 },
+  whatsappBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  pdfBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: PRIMARY, paddingVertical: 13, borderRadius: 14 },
+  pdfBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
 });
 
 // ─── Stats des ventes offline pour la période affichée ───────────────────────
 function calcOfflineStats(offlineVentes, nbJours) {
   const { dateStart, dateEnd } = getPeriodeDates(nbJours);
   const start = new Date(dateStart);
-  const end   = new Date(dateEnd);
+  const end = new Date(dateEnd);
   const inPeriod = offlineVentes.filter(v => {
     const d = new Date(v.createdAt);
     return d >= start && d <= end && v.statut === 'COMPLETEE';
   });
-  const totalCA      = inPeriod.reduce((s, v) => s + (v.total || 0), 0);
+  const totalCA = inPeriod.reduce((s, v) => s + (v.total || 0), 0);
   const totalEspeces = inPeriod.filter(v => v.modePaiement === 'ESPECES')
-                               .reduce((s, v) => s + (v.total || 0), 0);
-  const totalMobile  = inPeriod.filter(v => v.modePaiement === 'MOBILE_MONEY')
-                               .reduce((s, v) => s + (v.total || 0), 0);
+    .reduce((s, v) => s + (v.total || 0), 0);
+  const totalMobile = inPeriod.filter(v => v.modePaiement === 'MOBILE_MONEY')
+    .reduce((s, v) => s + (v.total || 0), 0);
   return { count: inPeriod.length, totalCA, totalEspeces, totalMobile };
 }
 
 // ─── Composant principal ──────────────────────────────────────────────────────
 export default function AgentHistoriqueScreen() {
   const { colors } = useTheme();
-  const { agent }  = useAgentStore();
-  const agentId    = agent?.id;
+  const { agent } = useAgentStore();
+  const agentId = agent?.id;
 
   // ── Périodes & stats ───────────────────────────────────────────────────────
-  const [periode,       setPeriode]       = useState(7);
-  const [stats,         setStats]         = useState(null);
+  const [periode, setPeriode] = useState(7);
+  const [stats, setStats] = useState(null);
   const statsCache = useRef({});   // { [nbJours]: statsObject }
   const venteCache = useRef({});   // { [`${nbJours}_${statut}_${page}`]: { ventes, pagination } }
 
   // ── Liste ──────────────────────────────────────────────────────────────────
-  const [ventes,        setVentes]        = useState([]);
+  const [ventes, setVentes] = useState([]);
   const [offlineVentes, setOfflineVentes] = useState([]);
-  const [statut,        setStatut]        = useState('COMPLETEE');
-  const [loading,       setLoading]       = useState(false);
-  const [refreshing,    setRefreshing]    = useState(false);
-  const [loadingMore,   setLoadingMore]   = useState(false);
-  const [pagination,    setPagination]    = useState({ page: 1, pages: 1, total: 0, hasNext: false });
+  const [statut, setStatut] = useState('COMPLETEE');
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0, hasNext: false });
 
   // ── Modal détail ───────────────────────────────────────────────────────────
-  const [selected,      setSelected]      = useState(null);
-  const [modalOpen,     setModalOpen]     = useState(false);
-  const [cancelling,    setCancelling]    = useState(false);
-  const [receiptOpen,   setReceiptOpen]   = useState(false);
+  const [selected, setSelected] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [receiptOpen, setReceiptOpen] = useState(false);
 
   // ── Confirmation annulation ────────────────────────────────────────────────
-  const [confirmOpen,   setConfirmOpen]   = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [venteToCancel, setVenteToCancel] = useState(null);
 
   // ── Stats fusionnées serveur + offline ────────────────────────────────────
@@ -783,15 +783,15 @@ export default function AgentHistoriqueScreen() {
     const off = calcOfflineStats(offlineVentes, periode);
     if (off.count === 0) return stats; // rien à fusionner
     const base = stats || { totalCA: 0, nombreVentes: 0, nombreAnnulations: 0, totalEspeces: 0, totalMobile: 0 };
-    const totalCA      = (base.totalCA      || 0) + off.totalCA;
+    const totalCA = (base.totalCA || 0) + off.totalCA;
     const nombreVentes = (base.nombreVentes || 0) + off.count;
     return {
       ...base,
       totalCA,
       nombreVentes,
       totalEspeces: (base.totalEspeces || 0) + off.totalEspeces,
-      totalMobile:  (base.totalMobile  || 0) + off.totalMobile,
-      panierMoyen:  nombreVentes > 0 ? Math.round(totalCA / nombreVentes) : 0,
+      totalMobile: (base.totalMobile || 0) + off.totalMobile,
+      panierMoyen: nombreVentes > 0 ? Math.round(totalCA / nombreVentes) : 0,
     };
   }, [stats, offlineVentes, periode]);
 
@@ -835,7 +835,7 @@ export default function AgentHistoriqueScreen() {
 
   // ref stable pour lire periode/statut courants sans recréer fetchData
   const periodeRef = useRef(7);
-  const statutRef  = useRef('COMPLETEE');
+  const statutRef = useRef('COMPLETEE');
 
   // ─── Fetch réseau + mise en cache ─────────────────────────────────────────
   const fetchData = useCallback(async (nbJours, statutFilter, page = 1, silent = false) => {
@@ -887,7 +887,7 @@ export default function AgentHistoriqueScreen() {
       // Offline : lire depuis SQLite seulement pour la vue active
       if (!e.response && isVisible) {
         const cached = await readAgentVentes(statutFilter, page, 20);
-        const total  = await countAgentVentes(statutFilter);
+        const total = await countAgentVentes(statutFilter);
         if (cached.length > 0) {
           if (page > 1) setVentes(prev => [...prev, ...cached]);
           else setVentes(cached);
@@ -910,7 +910,7 @@ export default function AgentHistoriqueScreen() {
 
   // ─── Sync refs état courant ───────────────────────────────────────────────
   useEffect(() => { periodeRef.current = periode; }, [periode]);
-  useEffect(() => { statutRef.current  = statut;  }, [statut]);
+  useEffect(() => { statutRef.current = statut; }, [statut]);
 
   // ─── Changement de période ────────────────────────────────────────────────
   const handlePeriodeChange = (nbJours) => {
@@ -1056,9 +1056,9 @@ export default function AgentHistoriqueScreen() {
           <View style={[styles.statsDivider, { backgroundColor: colors.border }]} />
           {/* Ligne 2 : panier moyen + répartition paiements */}
           <View style={styles.statsRow}>
-            <StatCard label="Panier moy."   value={fmtMoney(displayStats.panierMoyen)}     color={SECONDARY} colors={colors} />
-            <StatCard label="Espèces"       value={fmtMoney(displayStats.totalEspeces)}    color={WARN}      colors={colors} />
-            <StatCard label="Mobile Money"  value={fmtMoney(displayStats.totalMobile)}     color={PRIMARY}   colors={colors} />
+            <StatCard label="Panier moy." value={fmtMoney(displayStats.panierMoyen)} color={SECONDARY} colors={colors} />
+            <StatCard label="Espèces" value={fmtMoney(displayStats.totalEspeces)} color={WARN} colors={colors} />
+            <StatCard label="Mobile Money" value={fmtMoney(displayStats.totalMobile)} color={PRIMARY} colors={colors} />
           </View>
         </View>
       ) : (
@@ -1213,9 +1213,9 @@ export default function AgentHistoriqueScreen() {
               {cancelling
                 ? <ActivityIndicator size="small" color="#fff" />
                 : <>
-                    <Ionicons name="trash-outline" size={16} color="#fff" />
-                    <Text style={{ fontSize: 15, fontWeight: '800', color: '#fff' }}>Oui, annuler</Text>
-                  </>
+                  <Ionicons name="trash-outline" size={16} color="#fff" />
+                  <Text style={{ fontSize: 15, fontWeight: '800', color: '#fff' }}>Oui, annuler</Text>
+                </>
               }
             </TouchableOpacity>
           </View>
@@ -1280,7 +1280,7 @@ const styles = StyleSheet.create({
   statCardLabel: { fontSize: 10, fontWeight: '600' },
 
   // ── Filtres toggle — même motif que methodToggle de LoginScreen ───────────
-  filterWrap:    { paddingHorizontal: 16, paddingBottom: 10 },
+  filterWrap: { paddingHorizontal: 16, paddingBottom: 10 },
   methodToggle: {
     flexDirection: 'row', borderRadius: 12,
     borderWidth: 1.5, padding: 3, gap: 3,
@@ -1294,11 +1294,11 @@ const styles = StyleSheet.create({
     shadowColor: PRIMARY, shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.28, shadowRadius: 6, elevation: 4,
   },
-  methodBtnText:       { fontSize: 13, fontWeight: '700' },
+  methodBtnText: { fontSize: 13, fontWeight: '700' },
   methodBtnTextActive: { color: '#fff' },
 
   // ── Liste ─────────────────────────────────────────────────────────────────
-  list:      { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 32, gap: 10 },
+  list: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 32, gap: 10 },
   listEmpty: { flexGrow: 1 },
 
   // ── Carte de vente ────────────────────────────────────────────────────────
@@ -1307,23 +1307,23 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04, shadowRadius: 6, elevation: 2,
   },
-  cardRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  cardRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   cardRowRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
 
   refPill: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 9, paddingVertical: 4, borderRadius: 8,
   },
-  refText:   { fontSize: 12, fontWeight: '800' },
-  dateText:  { fontSize: 12 },
+  refText: { fontSize: 12, fontWeight: '800' },
+  dateText: { fontSize: 12 },
   totalText: { fontSize: 17, fontWeight: '800' },
-  modePill:  {
+  modePill: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 8, paddingVertical: 3, borderRadius: 7,
   },
   modeText: { fontSize: 11, fontWeight: '600' },
 
-  badge:     { alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 3, borderRadius: 8 },
+  badge: { alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 3, borderRadius: 8 },
   badgeText: { fontSize: 11, fontWeight: '700' },
 
   // ── État vide ─────────────────────────────────────────────────────────────
@@ -1332,8 +1332,8 @@ const styles = StyleSheet.create({
     gap: 12, paddingBottom: 60, paddingTop: 40,
   },
   emptyIconWrap: { width: 80, height: 80, borderRadius: 24, justifyContent: 'center', alignItems: 'center' },
-  emptyTitle:    { fontSize: 16, fontWeight: '700' },
-  emptyHint:     { fontSize: 13, textAlign: 'center', paddingHorizontal: 32 },
+  emptyTitle: { fontSize: 16, fontWeight: '700' },
+  emptyHint: { fontSize: 13, textAlign: 'center', paddingHorizontal: 32 },
 
   // ── Modal / Bottom sheet ──────────────────────────────────────────────────
   sheet: {
@@ -1343,19 +1343,19 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.16, elevation: 28,
   },
   sheetHandleWrap: { alignItems: 'center', paddingTop: 12, paddingBottom: 4 },
-  sheetHandle:     { width: 40, height: 4, borderRadius: 2 },
+  sheetHandle: { width: 40, height: 4, borderRadius: 2 },
 
   sheetHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingBottom: 12, paddingTop: 6, borderBottomWidth: 1,
   },
-  sheetHeaderLeft:  { gap: 4 },
+  sheetHeaderLeft: { gap: 4 },
   sheetHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  sheetDate:        { fontSize: 12, marginTop: 2 },
-  closeBtn:         { width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  sheetDate: { fontSize: 12, marginTop: 2 },
+  closeBtn: { width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
 
   // ── Sections dans le modal ────────────────────────────────────────────────
-  section:      { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10, borderBottomWidth: 1 },
+  section: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10, borderBottomWidth: 1 },
   sectionTitle: {
     fontSize: 10, fontWeight: '800', letterSpacing: 1,
     textTransform: 'uppercase', marginBottom: 10,
@@ -1366,18 +1366,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  ligneImg:       { width: 44, height: 44, borderRadius: 10 },
-  ligneInfo:      { flex: 1, gap: 3 },
-  ligneNom:       { fontSize: 13, fontWeight: '600' },
-  ligneQtePrix:   { fontSize: 12 },
+  ligneImg: { width: 44, height: 44, borderRadius: 10 },
+  ligneInfo: { flex: 1, gap: 3 },
+  ligneNom: { fontSize: 13, fontWeight: '600' },
+  ligneQtePrix: { fontSize: 12 },
   ligneSousTotal: { fontSize: 13, fontWeight: '700', minWidth: 72, textAlign: 'right' },
 
   // ── Récapitulatif ─────────────────────────────────────────────────────────
-  recapRow:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 6 },
-  recapValueRow:   { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  recapLabel:      { fontSize: 13 },
-  recapValue:      { fontSize: 13, fontWeight: '600' },
-  recapTotalRow:   { marginTop: 6, paddingTop: 12, borderTopWidth: 1 },
+  recapRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 6 },
+  recapValueRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  recapLabel: { fontSize: 13 },
+  recapValue: { fontSize: 13, fontWeight: '600' },
+  recapTotalRow: { marginTop: 6, paddingTop: 12, borderTopWidth: 1 },
   recapTotalLabel: { fontSize: 15, fontWeight: '700' },
   recapTotalValue: { fontSize: 17, fontWeight: '900' },
 

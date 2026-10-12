@@ -40,6 +40,26 @@ const COUNTRIES = [
 ];
 const DEFAULT_COUNTRY = COUNTRIES[0];
 
+// ─── Pays + régions (identique RegisterScreen) ───────────────────────────────
+const PAYS_DATA = [
+  { name: 'Niger',         flag: '🇳🇪', regions: ['Agadez','Diffa','Dosso','Maradi','Niamey','Tahoua','Tillabéri','Zinder'] },
+  { name: 'Bénin',         flag: '🇧🇯', regions: ['Alibori','Atacora','Atlantique','Borgou','Collines','Couffo','Donga','Littoral (Cotonou)','Mono','Ouémé','Plateau','Zou'] },
+  { name: 'Burkina Faso',  flag: '🇧🇫', regions: ['Boucle du Mouhoun','Cascades','Centre (Ouagadougou)','Centre-Est','Centre-Nord','Centre-Ouest','Centre-Sud','Est','Hauts-Bassins (Bobo-Dioulasso)','Nord','Plateau Central','Sahel','Sud-Ouest'] },
+  { name: 'Mali',          flag: '🇲🇱', regions: ['Bamako','Gao','Kayes','Kidal','Koulikoro','Mopti','Ségou','Sikasso'] },
+  { name: 'Sénégal',       flag: '🇸🇳', regions: ['Dakar','Diourbel','Fatick','Kaolack','Kolda','Louga','Matam','Saint-Louis','Thiès','Ziguinchor'] },
+  { name: "Côte d'Ivoire", flag: '🇨🇮', regions: ['Abidjan','Bas-Sassandra','Comoé','Lagunes','Montagnes','Savanes','Yamoussoukro'] },
+  { name: 'Togo',          flag: '🇹🇬', regions: ['Centrale','Kara','Maritime','Plateaux','Savanes'] },
+  { name: 'Guinée',        flag: '🇬🇳', regions: ['Boké','Conakry','Faranah','Kankan','Kindia','Labé','Mamou','Nzérékoré'] },
+  { name: 'Cameroun',      flag: '🇨🇲', regions: ['Adamaoua','Centre (Yaoundé)','Est','Extrême-Nord','Littoral (Douala)','Nord','Ouest','Sud'] },
+  { name: 'Mauritanie',    flag: '🇲🇷', regions: ['Adrar','Brakna','Dakhlet Nouadhibou','Gorgol','Hodh Ech Chargui','Nouakchott Nord','Trarza'] },
+  { name: 'Ghana',         flag: '🇬🇭', regions: ['Ashanti','Central','Eastern','Greater Accra','Northern','Upper East','Upper West','Volta','Western'] },
+  { name: 'Nigeria',       flag: '🇳🇬', regions: ['Abuja (FCT)','Kano','Lagos','Ogun','Oyo','Rivers'] },
+  { name: 'France',        flag: '🇫🇷', regions: ['Île-de-France','Normandie','Nouvelle-Aquitaine','Occitanie',"Provence-Alpes-Côte d'Azur"] },
+  { name: 'Maroc',         flag: '🇲🇦', regions: ['Casablanca-Settat','Fès-Meknès','Marrakech-Safi','Rabat-Salé-Kénitra','Tanger-Tétouan-Al Hoceïma'] },
+  { name: 'Algérie',       flag: '🇩🇿', regions: ['Alger','Annaba','Constantine','Oran','Sétif'] },
+  { name: 'États-Unis',    flag: '🇺🇸', regions: ['California','Florida','New York','Texas'] },
+];
+
 const formatPhoneNumber = (raw, pattern) => {
   const digits = raw.replace(/\D/g, '');
   let result = '', di = 0;
@@ -379,6 +399,86 @@ const TABS = [
   { key: 'contact',      label: 'Contact',  icon: 'globe-outline' },
 ];
 
+// ─── Sélecteur pays/région plein écran (identique RegisterScreen) ────────────
+function PaysListPicker({ visible, title, items, selected, onSelect, onClose }) {
+  const [search, setSearch] = useState('');
+  const { colors } = useTheme();
+
+  const getLabel = (i) => typeof i === 'string' ? i : i.name;
+  const getFlag  = (i) => typeof i === 'string' ? null : (i.flag ?? null);
+
+  useEffect(() => { if (visible) setSearch(''); }, [visible]);
+
+  const filtered = items.filter(i => getLabel(i).toLowerCase().includes(search.toLowerCase()));
+
+  return (
+    <Modal visible={visible} transparent={false} animationType="slide" statusBarTranslucent onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: colors.bgCard }}>
+        {/* Header */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+          <TouchableOpacity onPress={onClose} style={{ padding: 4, marginRight: 8 }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="arrow-back" size={22} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={{ fontSize: 17, fontWeight: '800', color: colors.text, flex: 1 }}>{title}</Text>
+        </View>
+        {/* Recherche */}
+        <View style={{ paddingHorizontal: 14, paddingVertical: 10 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.bgHover, borderRadius: 12, paddingHorizontal: 12, gap: 8 }}>
+            <Ionicons name="search-outline" size={16} color={colors.textMuted} />
+            <TextInput
+              style={{ flex: 1, fontSize: 15, color: colors.text, paddingVertical: 11 }}
+              placeholder="Rechercher..."
+              placeholderTextColor={colors.textMuted}
+              value={search}
+              onChangeText={setSearch}
+              returnKeyType="search"
+              autoFocus
+            />
+            {search.length > 0 && (
+              <TouchableOpacity onPress={() => setSearch('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name="close-circle" size={17} color={colors.textMuted} />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+        {/* Liste */}
+        <FlatList
+          data={filtered}
+          keyExtractor={i => getLabel(i)}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: 32 }}
+          renderItem={({ item }) => {
+            const label = getLabel(item);
+            const flag  = getFlag(item);
+            const isSel = label === selected;
+            return (
+              <TouchableOpacity
+                style={[s.sheetRow, isSel && { backgroundColor: colors.primary + '14' }, { borderBottomColor: colors.border }]}
+                onPress={() => { onSelect(label); onClose(); }}
+                activeOpacity={0.65}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1 }}>
+                  {flag != null
+                    ? <Text style={{ fontSize: 26, lineHeight: 32 }}>{flag}</Text>
+                    : <View style={{ width: 26 }} />}
+                  <Text style={[s.sheetRowLabel, { color: isSel ? colors.primary : colors.text, fontWeight: isSel ? '800' : '500' }]}>{label}</Text>
+                </View>
+                {isSel && <Ionicons name="checkmark" size={20} color={colors.primary} />}
+              </TouchableOpacity>
+            );
+          }}
+          ListEmptyComponent={
+            <View style={{ paddingVertical: 48, alignItems: 'center' }}>
+              <Ionicons name="search-outline" size={32} color={colors.textMuted} />
+              <Text style={{ color: colors.textMuted, marginTop: 10, fontSize: 14 }}>Aucun résultat</Text>
+            </View>
+          }
+        />
+      </View>
+    </Modal>
+  );
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // ÉCRAN PRINCIPAL
 // ═════════════════════════════════════════════════════════════════════════════
@@ -407,6 +507,8 @@ export default function SellerSettingsScreen() {
   const [openingHours,     setOpeningHours]     = useState('');
   const [region,           setRegion]           = useState('');
   const [city,             setCity]             = useState('');
+  const [paysOpen,         setPaysOpen]         = useState(false);
+  const [regionOpen,       setRegionOpen]       = useState(false);
   const [address,          setAddress]          = useState('');
   const [postalCode,       setPostalCode]       = useState('');
   const [facebook,         setFacebook]         = useState('');
@@ -456,8 +558,10 @@ export default function SellerSettingsScreen() {
     setInstagram(data.instagram || '');
     setWebsite(data.website || '');
     setPhoneDigits(ph.digits);  setPhoneCountry(ph.country);
-    setBizDigits(bh.digits);    setBizCountry(bh.country);
-    setWaDigits(wh.digits);     setWaCountry(wh.country);
+    setBizDigits(bh.digits || ph.digits);
+    setBizCountry(bh.digits ? bh.country : ph.country);
+    setWaDigits(wh.digits || ph.digits);
+    setWaCountry(wh.digits ? wh.country : ph.country);
     setLogoPreview(data.logo || null);
     setIdentityPreview(data.ownerIdentity || null);
     setIsvalid(!!data.isvalid);
@@ -821,16 +925,84 @@ export default function SellerSettingsScreen() {
           <View style={s.section}>
             <SectionCard title="Localisation" icon="location-outline" colors={colors}>
               <View style={s.row2}>
-                <View style={{ flex: 1 }}>
-                  <Field label="Pays" icon="earth-outline" value={region} onChangeText={setRegion} error={errors.region} required colors={colors} />
+                {/* Pays — stocké dans `city` côté backend (RegisterScreen: fd.append('city', form.pays)) */}
+                <View style={[s.fieldWrap, { flex: 1 }]}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 }}>
+                    <Ionicons name="earth-outline" size={13} color={colors.textMuted} />
+                    <Text style={[s.label, { color: colors.textSub }]}>Pays</Text>
+                    <Text style={{ fontSize: 12, color: '#EF4444' }}>*</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[s.inputWrap, { borderColor: errors.city ? '#FCA5A5' : colors.border, backgroundColor: colors.bgHover, paddingHorizontal: 12 }]}
+                    onPress={() => setPaysOpen(true)}
+                    activeOpacity={0.8}
+                  >
+                    {city ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                        <Text style={{ fontSize: 18 }}>{PAYS_DATA.find(p => p.name === city)?.flag || '🌍'}</Text>
+                        <Text style={[s.input, { color: colors.text, paddingHorizontal: 0, paddingVertical: 0, flex: 1 }]} numberOfLines={1}>{city}</Text>
+                      </View>
+                    ) : (
+                      <Text style={[s.input, { color: colors.textMuted, paddingHorizontal: 0, paddingVertical: 0, flex: 1 }]}>Sélectionner</Text>
+                    )}
+                    <Ionicons name="chevron-down" size={15} color={colors.textMuted} />
+                  </TouchableOpacity>
+                  {errors.city && (
+                    <View style={s.errorRow}>
+                      <Ionicons name="alert-circle-outline" size={12} color="#DC2626" />
+                      <Text style={s.fieldError}>{errors.city}</Text>
+                    </View>
+                  )}
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Field label="Région / Ville" icon="map-outline" value={city} onChangeText={setCity} error={errors.city} required colors={colors} />
+
+                {/* Région / Ville — stocké dans `region` côté backend */}
+                <View style={[s.fieldWrap, { flex: 1 }]}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 }}>
+                    <Ionicons name="map-outline" size={13} color={colors.textMuted} />
+                    <Text style={[s.label, { color: colors.textSub }]}>Région / Ville</Text>
+                    <Text style={{ fontSize: 12, color: '#EF4444' }}>*</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[s.inputWrap, { borderColor: errors.region ? '#FCA5A5' : colors.border, backgroundColor: colors.bgHover, paddingHorizontal: 12, opacity: city ? 1 : 0.5 }]}
+                    onPress={() => city && setRegionOpen(true)}
+                    disabled={!city}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[s.input, { color: region ? colors.text : colors.textMuted, paddingHorizontal: 0, paddingVertical: 0, flex: 1 }]} numberOfLines={1}>
+                      {region || (city ? 'Sélectionner' : 'Pays d\'abord')}
+                    </Text>
+                    <Ionicons name="chevron-down" size={15} color={colors.textMuted} />
+                  </TouchableOpacity>
+                  {errors.region && (
+                    <View style={s.errorRow}>
+                      <Ionicons name="alert-circle-outline" size={12} color="#DC2626" />
+                      <Text style={s.fieldError}>{errors.region}</Text>
+                    </View>
+                  )}
                 </View>
               </View>
+
               <Field label="Adresse" icon="location-outline" value={address} onChangeText={setAddress} error={errors.address} colors={colors} optional />
               <Field label="Code postal" icon="mail-outline" value={postalCode} onChangeText={setPostalCode} error={errors.postalCode} keyboardType="numeric" colors={colors} optional />
             </SectionCard>
+
+            {/* Modals pays/région */}
+            <PaysListPicker
+              visible={paysOpen}
+              title="Sélectionner un pays"
+              items={PAYS_DATA}
+              selected={region}
+              onSelect={v => { setCity(v); setRegion(''); setErrors(prev => ({ ...prev, city: undefined })); }}
+              onClose={() => setPaysOpen(false)}
+            />
+            <PaysListPicker
+              visible={regionOpen}
+              title="Sélectionner une région"
+              items={PAYS_DATA.find(p => p.name === city)?.regions || []}
+              selected={region}
+              onSelect={v => { setRegion(v); setErrors(prev => ({ ...prev, region: undefined })); }}
+              onClose={() => setRegionOpen(false)}
+            />
           </View>
           <SaveButton saving={saving} isOffline={isOffline} onPress={handleSave} colors={colors} />
         </ScrollView>
@@ -846,7 +1018,7 @@ export default function SellerSettingsScreen() {
           <View style={s.section}>
             <SectionCard title="Coordonnées professionnelles" icon="call-outline" colors={colors}>
               <PhoneField
-                label="Téléphone professionnel" required
+                label="Téléphone professionnel" optional
                 digits={bizDigits} country={bizCountry}
                 onChangeDigits={v => { setBizDigits(v); setErrors(prev => ({ ...prev, businessPhone: undefined })); }}
                 onChangeCountry={setBizCountry}

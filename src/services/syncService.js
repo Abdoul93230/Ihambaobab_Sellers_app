@@ -6,7 +6,7 @@ import { useAuthStore } from '../stores/authStore';
 import {
   getDB, upsertMany, readAll, readWhere, count, getMeta, setMeta,
   getBilanCache, setBilanCache, getBilanCacheOffline, clearDB,
-  setAgentStatsCache,
+  setAgentStatsCache, runInTransaction,
 } from '../db/database';
 import { prefetchProductImages } from '../utils/imagePrefetch';
 
@@ -42,96 +42,115 @@ async function markFetched(entity) {
 // ─── Fetchers — écrivent dans SQLite ET dans le syncStore (mémoire) ───────────
 const fetchers = {
   produits: async () => {
-    const [res, pubRes] = await Promise.allSettled([
-      apiClient.get('/Products?limit=50&page=1'),
-      apiClient.get('/Products?status=Published&limit=1'),
-    ]);
+    try {
+      if (__DEV__) console.log('[sync] 🔄 Fetching produits...');
+      const [res, pubRes] = await Promise.allSettled([
+        apiClient.get('/Products?limit=50&page=1'),
+        apiClient.get('/Products?status=Published&limit=1'),
+      ]);
 
-    if (res.status === 'fulfilled') {
-      const d = res.value.data;
-      const prods = d?.data || d?.products || [];
-      const total = d?.total ?? prods.length;
-      const pages = d?.pages ?? 1;
+      if (res.status === 'rejected') {
+        console.warn('[sync] ❌ Erreur fetch /Products:', res.reason?.message, res.reason?.response?.status, res.reason?.response?.data);
+      } else {
+        const d = res.value.data;
+        const prods = d?.data || d?.products || [];
+        const total = d?.total ?? prods.length;
+        const pages = d?.pages ?? 1;
 
-      // 1. Upsert les produits reçus
-      await upsertMany('produits', prods, p => String(p._id));
+        if (__DEV__) console.log(`[sync] 📦 Produits reçus du serveur: ${prods.length} (total: ${total})`);
 
-      // 2. Supprimer de SQLite les produits absents du serveur
-      //    → couvre suppression via web, admin, MongoDB direct
-      //    → protège les produits _pendingSync (créés offline, pas encore syncs)
-      if (prods.length > 0) {
-        const db = getDB();
-        const serverIds = prods.map(p => String(p._id));
+        // 1. Upsert les produits reçus
+        await upsertMany('produits', prods, p => String(p._id));
 
-        // Récupère les IDs locaux à comparer avec le serveur
-        // Exclut les produits offline (id LIKE 'local_%') — ils ne viennent pas du serveur
-        const localRows = await db.getAllAsync(
-          `SELECT id FROM produits WHERE id NOT LIKE 'local_%'`
-        ).catch(() => []);
+        // 2. Supprimer de SQLite les produits absents du serveur
+        //    → couvre suppression via web, admin, MongoDB direct
+        //    → protège les produits _pendingSync (créés offline, pas encore syncs)
+        if (prods.length > 0) {
+          const db = getDB();
+          const serverIds = prods.map(p => String(p._id));
 
-        // Supprime ceux absents du serveur
-        const toDelete = localRows
-          .map(r => r.id)
-          .filter(id => !serverIds.includes(id));
+          // Récupère les IDs locaux à comparer avec le serveur
+          // Exclut les produits offline (id LIKE 'local_%') — ils ne viennent pas du serveur
+          const localRows = await db.getAllAsync(
+            `SELECT id FROM produits WHERE id NOT LIKE 'local_%'`
+          ).catch(() => []);
 
-        if (toDelete.length > 0) {
-          await db.withTransactionAsync(async () => {
-            for (const id of toDelete) {
-              await db.runAsync(`DELETE FROM produits WHERE id = ?`, [id]);
-            }
-          });
-          if (__DEV__) console.log('[sync] produits supprimés du cache local:', toDelete.length);
+          // Supprime ceux absents du serveur
+          const toDelete = localRows
+            .map(r => r.id)
+            .filter(id => !serverIds.includes(id));
+
+          if (toDelete.length > 0) {
+            await runInTransaction(async () => {
+              for (const id of toDelete) {
+                await db.runAsync(`DELETE FROM produits WHERE id = ?`, [id]);
+              }
+            });
+            if (__DEV__) console.log('[sync] produits supprimés du cache local:', toDelete.length);
+          }
         }
+
+        await setMeta('produits_pagination', { total, pages, lastPage: 1 });
+
+        // 3. Recharge depuis SQLite — inclut les produits offline (_pendingSync)
+        const allLocal = await readAll('produits').catch(() => prods);
+        useSyncStore.getState().setStoreData('produits', allLocal);
+        // Préchargement background des images pour disponibilité offline
+        prefetchProductImages(allLocal);
+
+        await markFetched('produits');
       }
 
-      await setMeta('produits_pagination', { total, pages, lastPage: 1 });
-
-      // 3. Recharge depuis SQLite — inclut les produits offline (_pendingSync)
-      const allLocal = await readAll('produits').catch(() => prods);
-      useSyncStore.getState().setStoreData('produits', allLocal);
-      // Préchargement background des images pour disponibilité offline
-      prefetchProductImages(allLocal);
+      if (pubRes.status === 'rejected') {
+        console.warn('[sync] ❌ Erreur fetch /Products?status=Published:', pubRes.reason?.message);
+      } else {
+        const totalPublished = pubRes.value.data?.total ?? 0;
+        if (__DEV__) console.log(`[sync] 📊 Produits publiés: ${totalPublished}`);
+        useSyncStore.getState().setStoreData('produitsStats', {
+          totalPublished,
+          hasMore: (await getMeta('produits_pagination'))?.pages > 1,
+        });
+      }
+    } catch (err) {
+      console.warn('[sync] ❌ Exception fetchers.produits:', err.message);
     }
-
-    if (pubRes.status === 'fulfilled') {
-      const totalPublished = pubRes.value.data?.total ?? 0;
-      useSyncStore.getState().setStoreData('produitsStats', {
-        totalPublished,
-        hasMore: (await getMeta('produits_pagination'))?.pages > 1,
-      });
-    }
-
-    await markFetched('produits');
   },
 
   commandes: async () => {
     const sellerId = getSellerId();
     if (!sellerId) return;
 
-    // Page 1 — données récentes pour le dashboard et l'écran commandes
-    const res = await apiClient.get(`/seller-orders/${sellerId}?limit=50&page=1`);
-    const d = res.data;
-    const orders = d?.data?.orders || d?.orders || d?.data || [];
-    const pagination = d?.data?.pagination || d?.pagination || {};
+    try {
+      if (__DEV__) console.log('[sync] 🔄 Fetching commandes pour sellerId:', sellerId);
+      // Page 1 — données récentes pour le dashboard et l'écran commandes
+      const res = await apiClient.get(`/seller-orders/${sellerId}?limit=50&page=1`);
+      const d = res.data;
+      const orders = d?.data?.orders || d?.orders || d?.data || [];
+      const pagination = d?.data?.pagination || d?.pagination || {};
 
-    // Stocke la pagination pour que les écrans sachent s'il y a plus
-    await setMeta('commandes_pagination', {
-      totalOrders: pagination.totalOrders ?? orders.length,
-      totalPages:  pagination.totalPages  ?? 1,
-      lastPage:    1,
-    });
+      if (__DEV__) console.log(`[sync] 📦 Commandes reçues: ${orders.length}`);
 
-    await upsertMany('commandes', orders, o => String(o._id));
-    const uniqueClients = orders.length > 0
-      ? new Set(orders.map(o => o.client?.email || o.client?.name)).size : 0;
-    useSyncStore.getState().setStoreData('commandes', orders);
-    useSyncStore.getState().setStoreData('commandesStats', {
-      uniqueClients,
-      totalOrders: pagination.totalOrders ?? orders.length,
-      hasMore: pagination.hasNext ?? false,
-    });
+      // Stocke la pagination pour que les écrans sachent s'il y a plus
+      await setMeta('commandes_pagination', {
+        totalOrders: pagination.totalOrders ?? orders.length,
+        totalPages:  pagination.totalPages  ?? 1,
+        lastPage:    1,
+      });
 
-    await markFetched('commandes');
+      await upsertMany('commandes', orders, o => String(o._id));
+      const uniqueClients = orders.length > 0
+        ? new Set(orders.map(o => o.client?.email || o.client?.name)).size : 0;
+      useSyncStore.getState().setStoreData('commandes', orders);
+      useSyncStore.getState().setStoreData('commandesStats', {
+        uniqueClients,
+        totalOrders: pagination.totalOrders ?? orders.length,
+        hasMore: pagination.hasNext ?? false,
+      });
+
+      await markFetched('commandes');
+    } catch (err) {
+      console.warn('[sync] ❌ Erreur fetch commandes:', err.message, err.response?.status, err.response?.data);
+    }
   },
 
   bilan: async () => {
@@ -257,13 +276,22 @@ export const syncService = {
     store.setStoreData('types', types);
     store.setStoreData('categories', categories);
     if (modules) store.setStoreData('modules', modules);
+    if (__DEV__) console.log(`[sync] 📂 Chargé depuis SQLite: ${produits.length} produits, ${commandes.length} commandes`);
     // Préchargement background des images manquantes (fire-and-forget)
     prefetchProductImages(produits);
   },
 
   // Pull complet (login, pull-to-refresh forcé)
   pullAll: async () => {
-    await Promise.allSettled(Object.values(fetchers).map(f => f().catch(() => {})));
+    if (__DEV__) console.log('[sync] 🔄 pullAll déclenché...');
+    // Séquentiel pour éviter les transactions SQLite concurrentes
+    for (const [key, f] of Object.entries(fetchers)) {
+      try {
+        await f();
+      } catch (err) {
+        if (__DEV__) console.warn(`[sync] pullAll erreur ${key}:`, err.message);
+      }
+    }
   },
 
   // Pull intelligent via heartbeat — 1 requête légère pour savoir ce qui a changé
@@ -283,15 +311,19 @@ export const syncService = {
         getMeta('lastFetch_creances'),
       ]);
 
-      // 3. Compare : fetch seulement si le serveur est plus récent que notre dernière fetch
+      const store = useSyncStore.getState();
+      const produitsEmpty = !store.produits || store.produits.length === 0;
+      const commandesEmpty = !store.commandes || store.commandes.length === 0;
+
+      // 3. Compare : fetch si vide en local OU si le serveur est plus récent
       const toFetch = [];
-      if (serverTs.commandes && (!localCommandes || serverTs.commandes > localCommandes))
+      if (commandesEmpty || (serverTs.commandes && (!localCommandes || serverTs.commandes > localCommandes)))
         toFetch.push('commandes');
-      if (serverTs.produits && (!localProduits || serverTs.produits > localProduits))
+      if (produitsEmpty || (serverTs.produits && (!localProduits || serverTs.produits > localProduits)))
         toFetch.push('produits');
-      if (serverTs.bilan && (!localBilan || serverTs.bilan > localBilan))
+      if (!store.bilanToday || (serverTs.bilan && (!localBilan || serverTs.bilan > localBilan)))
         toFetch.push('bilan');
-      if (serverTs.creances && (!localCreances || serverTs.creances > localCreances))
+      if (!store.creances || store.creances.length === 0 || (serverTs.creances && (!localCreances || serverTs.creances > localCreances)))
         toFetch.push('creances');
 
       // 4. Supprime les produits effacés côté serveur de SQLite + store
@@ -320,7 +352,14 @@ export const syncService = {
       }
 
       if (__DEV__) console.log('[sync] heartbeat → entités modifiées:', toFetch.join(', '));
-      await Promise.allSettled(toFetch.map(key => fetchers[key]?.().catch(() => {})));
+      // Séquentiel pour éviter les transactions SQLite concurrentes
+      for (const key of toFetch) {
+        try {
+          await fetchers[key]?.();
+        } catch (err) {
+          if (__DEV__) console.warn(`[sync] pullStale erreur ${key}:`, err.message);
+        }
+      }
 
     } catch (_) {
       // Heartbeat échoue (offline, erreur serveur) → fallback sur staleness locale
@@ -331,7 +370,9 @@ export const syncService = {
         })
       );
       const toRun = tasks.filter(Boolean);
-      if (toRun.length) await Promise.allSettled(toRun.map(f => f().catch(() => {})));
+      for (const f of toRun) {
+        try { await f(); } catch (_) {}
+      }
     }
   },
 
@@ -622,7 +663,7 @@ export const syncService = {
             const toDelete = localRows.filter(
               r => !rejectedNames.has((r.name || '').toLowerCase())
             );
-            await db.withTransactionAsync(async () => {
+            await runInTransaction(async () => {
               for (const r of toDelete) {
                 await db.runAsync(`DELETE FROM produits WHERE id = ?`, [r.id]);
               }

@@ -26,7 +26,7 @@ const ITEM_H = 44;
 // ─── Utilitaires ──────────────────────────────────────────────────────────────
 function fmt(n) {
   if (n === undefined || n === null) return '—';
-  return Number(n).toLocaleString('fr-FR') + ' ₣';
+  return Number(n).toLocaleString('fr-FR') + ' FCFA';
 }
 function fmtShort(n) { return Number(n || 0).toLocaleString('fr-FR'); }
 function dateStr(d) {
@@ -42,21 +42,21 @@ function toAxisLabel(isoStr) {
 // Utilisé quand l'API ne retourne que le tableau de données par jour
 function deriveAggregate(history) {
   if (!Array.isArray(history) || history.length === 0) return null;
-  const posTotal   = history.reduce((s, d) => s + (d.posTotal   ?? 0), 0);
-  const posVentes  = history.reduce((s, d) => s + (d.posVentes  ?? 0), 0);
-  const mkTotal    = history.reduce((s, d) => s + (d.commandeTotal ?? 0), 0);
-  const mkCount    = history.reduce((s, d) => s + (d.commandeCount ?? 0), 0);
-  const articles   = history.reduce((s, d) => s + (d.mkArticlesVendus ?? 0), 0);
+  const posTotal = history.reduce((s, d) => s + (d.posTotal ?? 0), 0);
+  const posVentes = history.reduce((s, d) => s + (d.posVentes ?? 0), 0);
+  const mkTotal = history.reduce((s, d) => s + (d.commandeTotal ?? 0), 0);
+  const mkCount = history.reduce((s, d) => s + (d.commandeCount ?? 0), 0);
+  const articles = history.reduce((s, d) => s + (d.mkArticlesVendus ?? 0), 0);
   return {
     totalGeneral: posTotal + mkTotal,
     pos: {
-      total:         posTotal,
-      ventes:        posVentes,
-      modePaiement:  {},   // non disponible en agrégation locale
+      total: posTotal,
+      ventes: posVentes,
+      modePaiement: {},   // non disponible en agrégation locale
     },
     marketplace: {
-      total:          mkTotal,
-      commandes:      mkCount,
+      total: mkTotal,
+      commandes: mkCount,
       articlesVendus: articles,
     },
     topProduits: [],  // non disponible en agrégation locale
@@ -65,9 +65,9 @@ function deriveAggregate(history) {
 
 // ─── Périodes ─────────────────────────────────────────────────────────────────
 const PERIODS = [
-  { label: "Auj.",  value: 'today' },
-  { label: '7j',    value: '7d'    },
-  { label: '30j',   value: '30d'   },
+  { label: "Auj.", value: 'today' },
+  { label: '7j', value: '7d' },
+  { label: '30j', value: '30d' },
   { label: 'Perso', value: 'custom' },
 ];
 const MONTHS_FR = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
@@ -75,8 +75,8 @@ const SHEET_H = 530;
 
 // ─── Wheel picker ─────────────────────────────────────────────────────────────
 function WheelPicker({ items, selectedIndex, onChange, colors }) {
-  const ref  = useRef(null);
-  const PAD  = 2;
+  const ref = useRef(null);
+  const PAD = 2;
   const padded = [...Array(PAD).fill(null), ...items, ...Array(PAD).fill(null)];
 
   useEffect(() => {
@@ -112,10 +112,10 @@ function WheelPicker({ items, selectedIndex, onChange, colors }) {
               activeOpacity={0.7}
             >
               <Text style={{
-                color:      item === null ? 'transparent' : isSel ? colors.primary : colors.textMuted,
+                color: item === null ? 'transparent' : isSel ? colors.primary : colors.textMuted,
                 fontWeight: isSel ? '800' : '400',
-                fontSize:   isSel ? 16 : 13,
-                textAlign:  'center',
+                fontSize: isSel ? 16 : 13,
+                textAlign: 'center',
               }}>
                 {item ?? '·'}
               </Text>
@@ -129,12 +129,12 @@ function WheelPicker({ items, selectedIndex, onChange, colors }) {
 
 // ─── Sélecteur de date à 3 roues ──────────────────────────────────────────────
 function DateWheelPicker({ label, value, onChange, colors, maxDate }) {
-  const today  = new Date();
-  const cur    = value ? new Date(value + 'T12:00:00') : today;
-  const maxY   = maxDate ? new Date(maxDate + 'T12:00:00').getFullYear() : today.getFullYear();
-  const years  = Array.from({ length: maxY - 2020 + 1 }, (_, i) => String(2020 + i));
+  const today = new Date();
+  const cur = value ? new Date(value + 'T12:00:00') : today;
+  const maxY = maxDate ? new Date(maxDate + 'T12:00:00').getFullYear() : today.getFullYear();
+  const years = Array.from({ length: maxY - 2020 + 1 }, (_, i) => String(2020 + i));
 
-  const [selYear,  setSelYear]  = useState(Math.max(0, years.indexOf(String(cur.getFullYear()))));
+  const [selYear, setSelYear] = useState(Math.max(0, years.indexOf(String(cur.getFullYear()))));
   const [selMonth, setSelMonth] = useState(cur.getMonth());
 
   const daysInMonth = new Date(parseInt(years[selYear] || today.getFullYear()), selMonth + 1, 0).getDate();
@@ -157,11 +157,11 @@ function DateWheelPicker({ label, value, onChange, colors, maxDate }) {
     <View style={{ gap: 6 }}>
       <Text style={[styles.wheelLabel, { color: colors.textMuted }]}>{label}</Text>
       <View style={[styles.wheelRow, { backgroundColor: colors.bgHover, borderRadius: 14 }]}>
-        <WheelPicker items={days}   selectedIndex={selDay}   onChange={setSelDay}   colors={colors} />
+        <WheelPicker items={days} selectedIndex={selDay} onChange={setSelDay} colors={colors} />
         <Text style={[styles.wheelSep, { color: colors.border }]}>|</Text>
         <WheelPicker items={MONTHS_FR} selectedIndex={selMonth} onChange={setSelMonth} colors={colors} />
         <Text style={[styles.wheelSep, { color: colors.border }]}>|</Text>
-        <WheelPicker items={years}  selectedIndex={selYear}  onChange={setSelYear}  colors={colors} />
+        <WheelPicker items={years} selectedIndex={selYear} onChange={setSelYear} colors={colors} />
       </View>
     </View>
   );
@@ -170,12 +170,12 @@ function DateWheelPicker({ label, value, onChange, colors, maxDate }) {
 // ─── Modal période ────────────────────────────────────────────────────────────
 function PeriodModal({ visible, current, customFrom, customTo, onSelect, onClose, colors }) {
   const insets = useSafeAreaInsets();
-  const [tab,   setTab]   = useState(current);
-  const [from,  setFrom]  = useState(customFrom || dateStr(new Date()));
-  const [to,    setTo]    = useState(customTo   || dateStr(new Date()));
+  const [tab, setTab] = useState(current);
+  const [from, setFrom] = useState(customFrom || dateStr(new Date()));
+  const [to, setTo] = useState(customTo || dateStr(new Date()));
   const [mounted, setMounted] = useState(false);
 
-  const slideAnim    = useRef(new Animated.Value(SHEET_H)).current;
+  const slideAnim = useRef(new Animated.Value(SHEET_H)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => { if (visible) { setTab(current); setMounted(true); } }, [visible]);
@@ -184,7 +184,7 @@ function PeriodModal({ visible, current, customFrom, customTo, onSelect, onClose
     if (visible) {
       slideAnim.setValue(SHEET_H); backdropAnim.setValue(0);
       Animated.parallel([
-        Animated.spring(slideAnim,    { toValue: 0, tension: 60, friction: 12, useNativeDriver: true }),
+        Animated.spring(slideAnim, { toValue: 0, tension: 60, friction: 12, useNativeDriver: true }),
         Animated.timing(backdropAnim, { toValue: 1, duration: 220, useNativeDriver: true }),
       ]).start();
     }
@@ -192,8 +192,8 @@ function PeriodModal({ visible, current, customFrom, customTo, onSelect, onClose
 
   const dismiss = cb => {
     Animated.parallel([
-      Animated.timing(slideAnim,    { toValue: SHEET_H, duration: 200, useNativeDriver: true }),
-      Animated.timing(backdropAnim, { toValue: 0,       duration: 200, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: SHEET_H, duration: 200, useNativeDriver: true }),
+      Animated.timing(backdropAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
     ]).start(() => { setMounted(false); cb?.(); });
   };
 
@@ -235,8 +235,8 @@ function PeriodModal({ visible, current, customFrom, customTo, onSelect, onClose
 
         {tab === 'custom' ? (
           <View style={{ paddingHorizontal: 20, gap: 18, marginTop: 18 }}>
-            <DateWheelPicker label="Du"  value={from} onChange={setFrom} colors={colors} maxDate={today} />
-            <DateWheelPicker label="Au"  value={to}   onChange={setTo}   colors={colors} maxDate={today} />
+            <DateWheelPicker label="Du" value={from} onChange={setFrom} colors={colors} maxDate={today} />
+            <DateWheelPicker label="Au" value={to} onChange={setTo} colors={colors} maxDate={today} />
           </View>
         ) : (
           <View style={[styles.periodPreview, { backgroundColor: colors.primaryLight, borderColor: `${colors.primary}30` }]}>
@@ -280,8 +280,8 @@ function DashboardHeader({ planName, isTrial, daysLeft, mkStats, period, customF
   const label = period === 'custom' && customFrom && customTo
     ? `${toAxisLabel(customFrom)} → ${toAxisLabel(customTo)}`
     : period === 'today' ? "Aujourd'hui"
-    : period === '7d'    ? '7 derniers jours'
-    :                      '30 derniers jours';
+      : period === '7d' ? '7 derniers jours'
+        : '30 derniers jours';
 
   return (
     <View style={{ gap: 12 }}>
@@ -360,18 +360,18 @@ function ViewPOS({ bilanData, historyData, loading, hasBilan, period, colors }) 
   const [selPoint, setSelPoint] = useState(null);
   useEffect(() => { setSelPoint(null); }, [historyData]);
 
-  const pos      = bilanData?.pos ?? {};
-  const posTotal = pos.total  ?? 0;
+  const pos = bilanData?.pos ?? {};
+  const posTotal = pos.total ?? 0;
   const posCount = pos.ventes ?? 0;
   const totalGen = bilanData?.totalGeneral ?? 0;
-  const modeP    = pos.modePaiement ?? {};
+  const modeP = pos.modePaiement ?? {};
   const topProds = bilanData?.topProduitsPOS ?? [];
 
   const totalPaid = (modeP.ESPECES || 0) + (modeP.MOBILE_MONEY || 0) + (modeP.AUTRE || 0);
   const modes = [
-    { key: 'ESPECES',      label: 'Espèces',      icon: 'cash-outline',           color: '#10B981', val: modeP.ESPECES      || 0 },
-    { key: 'MOBILE_MONEY', label: 'Mobile Money', icon: 'phone-portrait-outline',  color: '#F59E0B', val: modeP.MOBILE_MONEY || 0 },
-    { key: 'AUTRE',        label: 'Autre',         icon: 'ellipsis-horizontal',    color: '#8B5CF6', val: modeP.AUTRE        || 0 },
+    { key: 'ESPECES', label: 'Espèces', icon: 'cash-outline', color: '#10B981', val: modeP.ESPECES || 0 },
+    { key: 'MOBILE_MONEY', label: 'Mobile Money', icon: 'phone-portrait-outline', color: '#F59E0B', val: modeP.MOBILE_MONEY || 0 },
+    { key: 'AUTRE', label: 'Autre', icon: 'ellipsis-horizontal', color: '#8B5CF6', val: modeP.AUTRE || 0 },
   ].filter(m => m.val > 0);
 
   const hasTimeSeries = period === '7d' || period === '30d' || period === 'custom';
@@ -382,7 +382,7 @@ function ViewPOS({ bilanData, historyData, loading, hasBilan, period, colors }) 
     label: i % every === 0 ? toAxisLabel(d.date) : '',
   })) : [];
   const hasChart = hasTimeSeries && lineData.some(d => d.value > 0);
-  const chartW   = W - 80;
+  const chartW = W - 80;
 
   if (loading) return <ViewSkeleton colors={colors} />;
 
@@ -396,35 +396,35 @@ function ViewPOS({ bilanData, historyData, loading, hasBilan, period, colors }) 
           <Text style={[styles.bilanLockedSub, { color: colors.textMuted }]}>Contactez l'administrateur pour accéder aux statistiques.</Text>
         </View>
       ) : (
-      <LinearGradient colors={['#30A08B', '#1e7a6b']} start={{x:0,y:0}} end={{x:1,y:1}} style={styles.heroCard}>
-        <View style={styles.heroRow}>
-          <View>
-            <Text style={styles.heroCaption}>Total général (toutes sources)</Text>
-            <Text style={styles.heroTotal}>{fmt(totalGen)}</Text>
-          </View>
-          <View style={[styles.heroIcon, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-            <Ionicons name="storefront-outline" size={22} color="#fff" />
-          </View>
-        </View>
-        {/* Ligne séparateur */}
-        <View style={styles.heroDivider} />
-        {/* POS focus */}
-        <View style={styles.heroSub}>
-          <View>
-            <Text style={styles.heroSubLabel}>CA Caisse POS</Text>
-            <Text style={styles.heroSubVal}>{fmt(posTotal)}</Text>
-          </View>
-          <View style={styles.heroSubRight}>
-            <View style={styles.heroChip}>
-              <Ionicons name="receipt-outline" size={11} color="#fff" />
-              <Text style={styles.heroChipText}>{posCount} vente{posCount !== 1 ? 's' : ''}</Text>
+        <LinearGradient colors={['#30A08B', '#1e7a6b']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroCard}>
+          <View style={styles.heroRow}>
+            <View>
+              <Text style={styles.heroCaption}>Total général (toutes sources)</Text>
+              <Text style={styles.heroTotal}>{fmt(totalGen)}</Text>
             </View>
-            <Text style={styles.heroPanier}>
-              Panier moy. {posCount > 0 ? `${fmtShort(Math.round(posTotal / posCount))} ₣` : '—'}
-            </Text>
+            <View style={[styles.heroIcon, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+              <Ionicons name="storefront-outline" size={22} color="#fff" />
+            </View>
           </View>
-        </View>
-      </LinearGradient>
+          {/* Ligne séparateur */}
+          <View style={styles.heroDivider} />
+          {/* POS focus */}
+          <View style={styles.heroSub}>
+            <View>
+              <Text style={styles.heroSubLabel}>CA Caisse POS</Text>
+              <Text style={styles.heroSubVal}>{fmt(posTotal)}</Text>
+            </View>
+            <View style={styles.heroSubRight}>
+              <View style={styles.heroChip}>
+                <Ionicons name="receipt-outline" size={11} color="#fff" />
+                <Text style={styles.heroChipText}>{posCount} vente{posCount !== 1 ? 's' : ''}</Text>
+              </View>
+              <Text style={styles.heroPanier}>
+                Panier moy. {posCount > 0 ? `${fmtShort(Math.round(posTotal / posCount))} FCFA` : '—'}
+              </Text>
+            </View>
+          </View>
+        </LinearGradient>
       )}
 
       {/* Modes de paiement */}
@@ -445,7 +445,7 @@ function ViewPOS({ bilanData, historyData, loading, hasBilan, period, colors }) 
                   <View style={{ flex: 1, gap: 4 }}>
                     <View style={styles.modeTopRow}>
                       <Text style={[styles.modeName, { color: colors.text }]}>{m.label}</Text>
-                      <Text style={[styles.modeAmt, { color: colors.text }]}>{fmtShort(m.val)} ₣</Text>
+                      <Text style={[styles.modeAmt, { color: colors.text }]}>{fmtShort(m.val)} FCFA</Text>
                     </View>
                     <View style={[styles.modeBarBg, { backgroundColor: colors.bgHover }]}>
                       <View style={[styles.modeBarFg, { width: `${pct}%`, backgroundColor: m.color }]} />
@@ -470,7 +470,7 @@ function ViewPOS({ bilanData, historyData, loading, hasBilan, period, colors }) 
             selected={selPoint}
             onClear={() => setSelPoint(null)}
             color="#30A08B"
-            formatVal={v => `${fmtShort(v)} ₣`}
+            formatVal={v => `${fmtShort(v)} FCFA`}
             colors={colors}
           />
           <View style={styles.chartWrap}>
@@ -478,8 +478,8 @@ function ViewPOS({ bilanData, historyData, loading, hasBilan, period, colors }) 
               key={`pos-${lineData.length}-${lineData[0]?.value ?? 0}`}
               data={lineData.map((d, i) => ({
                 ...d,
-                dataPointColor:       '#30A08B',
-                dataPointRadius:      selPoint?.index === i ? 6 : 3,
+                dataPointColor: '#30A08B',
+                dataPointRadius: selPoint?.index === i ? 6 : 3,
                 dataPointBorderColor: selPoint?.index === i ? '#fff' : 'transparent',
                 dataPointBorderWidth: selPoint?.index === i ? 2 : 0,
               }))}
@@ -533,18 +533,18 @@ function ViewPOS({ bilanData, historyData, loading, hasBilan, period, colors }) 
                       contentFit="cover"
                     />
                     <View style={[styles.topRankBadge, { backgroundColor: i === 0 ? '#F59E0B' : '#6B7280' }]}>
-                      <Text style={styles.topRankBadgeText}>{i+1}</Text>
+                      <Text style={styles.topRankBadgeText}>{i + 1}</Text>
                     </View>
                   </>
                 ) : (
                   <View style={[styles.topImg, styles.topImgFallback, { backgroundColor: i === 0 ? '#FCD34D30' : colors.bgHover }]}>
-                    <Text style={[styles.topRankText, { color: i === 0 ? '#D97706' : colors.textMuted }]}>#{i+1}</Text>
+                    <Text style={[styles.topRankText, { color: i === 0 ? '#D97706' : colors.textMuted }]}>#{i + 1}</Text>
                   </View>
                 )}
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.topName, { color: colors.text }]} numberOfLines={1}>{prod.nom}</Text>
-                <Text style={[styles.topSub,  { color: colors.textMuted }]}>{fmtShort(prod.total)} ₣ de CA</Text>
+                <Text style={[styles.topSub, { color: colors.textMuted }]}>{fmtShort(prod.total)} FCFA de CA</Text>
               </View>
               <View style={[styles.topBadge, { backgroundColor: '#30A08B20' }]}>
                 <Text style={styles.topBadgeText}>{prod.quantite} vdu</Text>
@@ -570,12 +570,12 @@ function ViewPOS({ bilanData, historyData, loading, hasBilan, period, colors }) 
 // ─── Répartition statuts pour "aujourd'hui" ───────────────────────────────────
 function TodayStatusBreakdown({ commandes, mkTotal, mkCount, colors }) {
   const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
   const todayOrders = useMemo(() =>
     commandes.filter(o => {
       const d = new Date(o.date || o.createdAt || 0);
-      const s = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      const s = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       return s === todayStr;
     }),
     [commandes, todayStr]
@@ -584,9 +584,9 @@ function TodayStatusBreakdown({ commandes, mkTotal, mkCount, colors }) {
   const total = todayOrders.length;
 
   const STATUTS = [
-    { label: 'Traité',      color: '#10B981', match: o => ['livraison reçu','Traité'].includes(o.etatTraitement) || o.statusLivraison === 'livré' },
-    { label: 'En cours',    color: '#F59E0B', match: o => !['livraison reçu','Traité'].includes(o.etatTraitement) && o.statusLivraison !== 'livré' && !String(o.etatTraitement||'').toLowerCase().includes('annul') && o.statusLivraison !== 'annulé' },
-    { label: 'Annulé',      color: '#EF4444', match: o => String(o.etatTraitement||'').toLowerCase().includes('annul') || o.statusLivraison === 'annulé' },
+    { label: 'Traité', color: '#10B981', match: o => ['livraison reçu', 'Traité'].includes(o.etatTraitement) || o.statusLivraison === 'livré' },
+    { label: 'En cours', color: '#F59E0B', match: o => !['livraison reçu', 'Traité'].includes(o.etatTraitement) && o.statusLivraison !== 'livré' && !String(o.etatTraitement || '').toLowerCase().includes('annul') && o.statusLivraison !== 'annulé' },
+    { label: 'Annulé', color: '#EF4444', match: o => String(o.etatTraitement || '').toLowerCase().includes('annul') || o.statusLivraison === 'annulé' },
   ];
 
   const counts = STATUTS.map(s => ({ ...s, count: todayOrders.filter(s.match).length }));
@@ -608,14 +608,23 @@ function TodayStatusBreakdown({ commandes, mkTotal, mkCount, colors }) {
       </Text>
       {counts.map(s => {
         const pct = total > 0 ? s.count / total : 0;
+        const isCancelled = s.label === 'Annulé';
+        const isZero = s.count <= 0;
+
+        if (isCancelled && isZero) return null;
+
         return (
           <View key={s.label} style={{ gap: 4 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text }}>{s.label}</Text>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: s.color }}>{s.count}</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text }}>
+                {s.label}
+              </Text>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: s.color }}>
+                {s.count}
+              </Text>
             </View>
             <View style={{ height: 8, borderRadius: 4, backgroundColor: colors.bgHover, overflow: 'hidden' }}>
-              <View style={{ width: `${Math.round(pct * 100)}%`, height: '100%', borderRadius: 4, backgroundColor: s.color, minWidth: s.count > 0 ? 8 : 0 }} />
+              <View style={{ width: `${Math.round(pct * 100)}%`, height: '100%', borderRadius: 4, backgroundColor: s.color, minWidth: 8 }} />
             </View>
           </View>
         );
@@ -624,7 +633,7 @@ function TodayStatusBreakdown({ commandes, mkTotal, mkCount, colors }) {
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border }}>
           <Text style={{ fontSize: 12, color: colors.textMuted }}>Panier moyen du jour</Text>
           <Text style={{ fontSize: 13, fontWeight: '800', color: colors.primary }}>
-            {mkCount > 0 ? Number(Math.round(mkTotal / mkCount)).toLocaleString('fr-FR') + ' ₣' : '—'}
+            {mkCount > 0 ? Number(Math.round(mkTotal / mkCount)).toLocaleString('fr-FR') + ' FCFA' : '—'}
           </Text>
         </View>
       )}
@@ -634,7 +643,7 @@ function TodayStatusBreakdown({ commandes, mkTotal, mkCount, colors }) {
 
 // ─── VUE MARKETPLACE ─────────────────────────────────────────────────────────
 const MK_CHART_TABS = [
-  { key: 'revenus',   label: 'Revenus',   color: '#30A08B' },
+  { key: 'revenus', label: 'Revenus', color: '#30A08B' },
   { key: 'commandes', label: 'Commandes', color: '#267a6b' },
 ];
 
@@ -650,8 +659,8 @@ function ViewMarketplace({ bilanData, historyData, commandesLocal, cancelRate, l
     chartScrollRef.current?.scrollTo({ x: tab === 'revenus' ? 0 : CHART_W, animated: true });
   };
 
-  const mkTotal  = bilanData?.marketplace?.total              ?? 0;
-  const mkCount  = bilanData?.marketplace?.commandes          ?? 0;
+  const mkTotal = bilanData?.marketplace?.total ?? 0;
+  const mkCount = bilanData?.marketplace?.commandes ?? 0;
   // Utilise les articles spécifiques marketplace (pas le total qui inclut le POS)
   const articles = bilanData?.marketplace?.articlesVendus ?? 0;
 
@@ -659,31 +668,31 @@ function ViewMarketplace({ bilanData, historyData, commandesLocal, cancelRate, l
   // Le graphe nécessite une série temporelle (7j, 30j, ou custom avec dates)
   // Pour "today" seul → pas de graphe, les KPI suffisent
   const hasTimeSeries = period === '7d' || period === '30d' || period === 'custom';
-  const n     = (historyData || []).length;
+  const n = (historyData || []).length;
   const every = n > 14 ? 5 : n > 7 ? 2 : 1;
 
   let revenusData = [], commandesData = [];
 
   if (hasTimeSeries && n > 0) {
-    revenusData   = historyData.map((d, i) => ({
-      value: d.commandeTotal  ?? 0,
+    revenusData = historyData.map((d, i) => ({
+      value: d.commandeTotal ?? 0,
       label: i % every === 0 ? toAxisLabel(d.date) : '',
     }));
     commandesData = historyData.map((d, i) => ({
-      value:      d.commandeCount ?? 0,
-      label:      i % every === 0 ? toAxisLabel(d.date) : '',
+      value: d.commandeCount ?? 0,
+      label: i % every === 0 ? toAxisLabel(d.date) : '',
       frontColor: '#30A08B',
     }));
   }
 
-  const activeData  = chartTab === 'revenus' ? revenusData : commandesData;
+  const activeData = chartTab === 'revenus' ? revenusData : commandesData;
   const activeColor = MK_CHART_TABS.find(t => t.key === chartTab)?.color || '#30A08B';
-  const hasData     = activeData.length > 0 && activeData.some(d => (d.value ?? 0) > 0);
-  const chartW      = CHART_W;
+  const hasData = activeData.length > 0 && activeData.some(d => (d.value ?? 0) > 0);
+  const chartW = CHART_W;
 
   // Y-axis entier pour le BarChart commandes (évite 0.3, 0.6, etc.)
-  const maxCmdVal   = commandesData.length > 0 ? Math.max(...commandesData.map(d => d.value ?? 0)) : 0;
-  const cmdStep     = Math.max(1, Math.ceil(maxCmdVal / 4));
+  const maxCmdVal = commandesData.length > 0 ? Math.max(...commandesData.map(d => d.value ?? 0)) : 0;
+  const cmdStep = Math.max(1, Math.ceil(maxCmdVal / 4));
   const cmdSections = maxCmdVal > 0 ? Math.min(maxCmdVal, 4) : 4;
 
   // Commandes récentes
@@ -708,34 +717,34 @@ function ViewMarketplace({ bilanData, historyData, commandesLocal, cancelRate, l
           <Text style={[styles.bilanLockedSub, { color: colors.textMuted }]}>Contactez l'administrateur pour accéder aux statistiques.</Text>
         </View>
       ) : (
-      <LinearGradient colors={['#30A08B', '#1e7a6b']} start={{x:0,y:0}} end={{x:1,y:1}} style={styles.heroCard}>
-        <View style={styles.heroRow}>
-          <View>
-            <Text style={styles.heroCaption}>CA Marketplace</Text>
-            <Text style={styles.heroTotal}>{fmt(mkTotal)}</Text>
+        <LinearGradient colors={['#30A08B', '#1e7a6b']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroCard}>
+          <View style={styles.heroRow}>
+            <View>
+              <Text style={styles.heroCaption}>CA Marketplace</Text>
+              <Text style={styles.heroTotal}>{fmt(mkTotal)}</Text>
+            </View>
+            <View style={[styles.heroIcon, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+              <Ionicons name="globe-outline" size={22} color="#fff" />
+            </View>
           </View>
-          <View style={[styles.heroIcon, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-            <Ionicons name="globe-outline" size={22} color="#fff" />
+          <View style={styles.heroDivider} />
+          <View style={styles.heroStatRow}>
+            {[
+              { icon: 'cart-outline', val: String(mkCount), label: 'Commandes' },
+              { icon: 'cube-outline', val: String(articles), label: 'Articles vendus' },
+              { icon: 'trending-up-outline', val: mkCount > 0 ? `${fmtShort(Math.round(mkTotal / mkCount))} FCFA` : '—', label: 'Panier moy.' },
+              ...(cancelRate !== null && mkCount > 0 ? [{ icon: 'close-circle-outline', val: `${cancelRate}%`, label: 'Annulées' }] : []),
+            ].map((s, i, arr) => (
+              <React.Fragment key={s.label}>
+                <View style={styles.heroStat}>
+                  <Text style={styles.heroStatVal}>{s.val}</Text>
+                  <Text style={styles.heroStatLabel}>{s.label}</Text>
+                </View>
+                {i < arr.length - 1 && <View style={styles.heroStatSep} />}
+              </React.Fragment>
+            ))}
           </View>
-        </View>
-        <View style={styles.heroDivider} />
-        <View style={styles.heroStatRow}>
-          {[
-            { icon: 'cart-outline',        val: String(mkCount),   label: 'Commandes' },
-            { icon: 'cube-outline',        val: String(articles),  label: 'Articles vendus' },
-            { icon: 'trending-up-outline', val: mkCount > 0 ? `${fmtShort(Math.round(mkTotal / mkCount))} ₣` : '—', label: 'Panier moy.' },
-            ...(cancelRate !== null && mkCount > 0 ? [{ icon: 'close-circle-outline', val: `${cancelRate}%`, label: 'Annulées' }] : []),
-          ].map((s, i, arr) => (
-            <React.Fragment key={s.label}>
-              <View style={styles.heroStat}>
-                <Text style={styles.heroStatVal}>{s.val}</Text>
-                <Text style={styles.heroStatLabel}>{s.label}</Text>
-              </View>
-              {i < arr.length - 1 && <View style={styles.heroStatSep} />}
-            </React.Fragment>
-          ))}
-        </View>
-      </LinearGradient>
+        </LinearGradient>
       )}
 
       {/* Graphique avec switch */}
@@ -764,7 +773,7 @@ function ViewMarketplace({ bilanData, historyData, commandesLocal, cancelRate, l
           selected={selPoint}
           onClear={() => setSelPoint(null)}
           color={activeColor}
-          formatVal={v => chartTab === 'revenus' ? `${fmtShort(v)} ₣` : `${v} cmd`}
+          formatVal={v => chartTab === 'revenus' ? `${fmtShort(v)} FCFA` : `${v} cmd`}
           colors={colors}
         />
 
@@ -788,8 +797,8 @@ function ViewMarketplace({ bilanData, historyData, commandesLocal, cancelRate, l
                 key={`mk-rev-${revenusData.length}-${revenusData[0]?.value ?? 0}`}
                 data={revenusData.map((d, i) => ({
                   ...d,
-                  dataPointColor:       '#30A08B',
-                  dataPointRadius:      selPoint?.index === i ? 6 : 4,
+                  dataPointColor: '#30A08B',
+                  dataPointRadius: selPoint?.index === i ? 6 : 4,
                   dataPointBorderColor: selPoint?.index === i ? '#fff' : 'transparent',
                   dataPointBorderWidth: selPoint?.index === i ? 2 : 0,
                 }))}
@@ -871,18 +880,18 @@ function ViewMarketplace({ bilanData, historyData, commandesLocal, cancelRate, l
                     <>
                       <CachedImage uri={prod.image} style={styles.topImg} contentFit="cover" />
                       <View style={[styles.topRankBadge, { backgroundColor: i === 0 ? '#F59E0B' : '#6B7280' }]}>
-                        <Text style={styles.topRankBadgeText}>{i+1}</Text>
+                        <Text style={styles.topRankBadgeText}>{i + 1}</Text>
                       </View>
                     </>
                   ) : (
                     <View style={[styles.topImg, styles.topImgFallback, { backgroundColor: i === 0 ? '#FCD34D30' : colors.bgHover }]}>
-                      <Text style={[styles.topRankText, { color: i === 0 ? '#D97706' : colors.textMuted }]}>#{i+1}</Text>
+                      <Text style={[styles.topRankText, { color: i === 0 ? '#D97706' : colors.textMuted }]}>#{i + 1}</Text>
                     </View>
                   )}
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.topName, { color: colors.text }]} numberOfLines={1}>{prod.nom}</Text>
-                  <Text style={[styles.topSub, { color: colors.textMuted }]}>{fmtShort(prod.total)} ₣ de CA</Text>
+                  <Text style={[styles.topSub, { color: colors.textMuted }]}>{fmtShort(prod.total)} FCFA de CA</Text>
                 </View>
                 <View style={[styles.topBadge, { backgroundColor: '#30A08B20' }]}>
                   <Text style={styles.topBadgeText}>{prod.quantite} vdu</Text>
@@ -901,8 +910,8 @@ function ViewMarketplace({ bilanData, historyData, commandesLocal, cancelRate, l
         </View>
         {recentOrders.length === 0
           ? <View style={styles.emptyBlock}>
-              <Text style={[styles.emptySub, { color: colors.textMuted }]}>Aucune commande.</Text>
-            </View>
+            <Text style={[styles.emptySub, { color: colors.textMuted }]}>Aucune commande.</Text>
+          </View>
           : recentOrders.map((o, i) => <OrderRow key={String(o._id || i)} order={o} colors={colors} />)
         }
       </View>
@@ -929,10 +938,10 @@ function OrderRow({ order, colors }) {
   const date = new Date(order.date || order.createdAt || Date.now()).toLocaleDateString('fr-FR');
   const etat = order.etatTraitement || '';
   const livraison = order.statusLivraison || '';
-  const isAnnule  = livraison === 'annulé' || etat.toLowerCase().includes('annul');
-  const isDone    = ['livraison reçu', 'Traité'].includes(etat) || livraison === 'livré';
-  const statusBg    = isAnnule ? colors.bgDanger  : isDone ? colors.bgSuccess  : colors.bgWarning;
-  const statusColor = isAnnule ? colors.dangerText : isDone ? colors.successText: colors.warningText;
+  const isAnnule = livraison === 'annulé' || etat.toLowerCase().includes('annul');
+  const isDone = ['livraison reçu', 'Traité'].includes(etat) || livraison === 'livré';
+  const statusBg = isAnnule ? colors.bgDanger : isDone ? colors.bgSuccess : colors.bgWarning;
+  const statusColor = isAnnule ? colors.dangerText : isDone ? colors.successText : colors.warningText;
 
   return (
     <View style={[styles.orderRow, { borderBottomColor: colors.border }]}>
@@ -941,10 +950,10 @@ function OrderRow({ order, colors }) {
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={[styles.orderClient, { color: colors.text }]} numberOfLines={1}>{client}</Text>
-        <Text style={[styles.orderDate,   { color: colors.textMuted }]}>{date}</Text>
+        <Text style={[styles.orderDate, { color: colors.textMuted }]}>{date}</Text>
       </View>
       <View style={{ alignItems: 'flex-end', gap: 4 }}>
-        <Text style={[styles.orderTotal, { color: colors.text }]}>{fmtShort(order.sellerTotal || 0)} ₣</Text>
+        <Text style={[styles.orderTotal, { color: colors.text }]}>{fmtShort(order.sellerTotal || 0)} FCFA</Text>
         <View style={[styles.orderBadge, { backgroundColor: statusBg }]}>
           <Text style={[styles.orderBadgeText, { color: statusColor }]} numberOfLines={1}>
             {etat || livraison || 'En attente'}
@@ -957,19 +966,19 @@ function OrderRow({ order, colors }) {
 
 // ─── DASHBOARD PRINCIPAL ──────────────────────────────────────────────────────
 const VIEWS = [
-  { key: 'pos',         label: 'Caisse POS',  icon: 'storefront-outline', color: '#30A08B' },
-  { key: 'marketplace', label: 'Marketplace', icon: 'globe-outline',       color: '#267a6b' },
+  { key: 'pos', label: 'Caisse POS', icon: 'storefront-outline', color: '#30A08B' },
+  { key: 'marketplace', label: 'Marketplace', icon: 'globe-outline', color: '#267a6b' },
 ];
 
 export default function DashboardScreen() {
   const { tourDone, markTourDone, pendingTour, consumeTour } = useTutorial();
-  const [showTour,    setShowTour]    = useState(false);
+  const [showTour, setShowTour] = useState(false);
   const [tourTargets, setTourTargets] = useState({});
   const tourTabCtx = useTourTabContext();
 
   // Refs pour mesurer chaque élément à highlighter
   const refViewSelector = useRef(null);
-  const refPeriodBtn    = useRef(null);
+  const refPeriodBtn = useRef(null);
 
   const measureTarget = useCallback((key, ref) => {
     if (!ref?.current) return;
@@ -995,8 +1004,8 @@ export default function DashboardScreen() {
 
   // Refs toujours à jour pour les callbacks asynchrones (timers)
   const handleTourDoneRef = useRef(null);
-  const doMeasureRef      = useRef(doMeasure);
-  doMeasureRef.current    = doMeasure;
+  const doMeasureRef = useRef(doMeasure);
+  doMeasureRef.current = doMeasure;
 
   // Quand viewSelector est mesuré, on attend periodBtn
   useEffect(() => {
@@ -1028,10 +1037,10 @@ export default function DashboardScreen() {
   useEffect(() => {
     if (showTour) {
       useTourOverlayStore.getState().mount({
-        targets:      tourTargets,
+        targets: tourTargets,
         hasPosAccess,
-        onDone:       handleTourDone,
-        onRemeasure:  doMeasure,
+        onDone: handleTourDone,
+        onRemeasure: doMeasure,
       });
     } else {
       useTourOverlayStore.getState().unmount();
@@ -1060,10 +1069,10 @@ export default function DashboardScreen() {
         const sub = useAuthStore.getState().subscription;
         const hpa = SUBSCRIPTION_CONFIG.hasPosAccess(sub?.planName || 'Starter');
         useTourOverlayStore.getState().mount({
-          targets:      {},
+          targets: {},
           hasPosAccess: hpa,
-          onDone:       handleTourDoneRef.current,
-          onRemeasure:  doMeasureRef.current,
+          onDone: handleTourDoneRef.current,
+          onRemeasure: doMeasureRef.current,
         });
         setShowTour(true);
       }, 300);
@@ -1071,27 +1080,27 @@ export default function DashboardScreen() {
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [pendingTour]));
 
-  const commandes      = useSyncStore(s => s.commandes)      ?? [];
-  const produits       = useSyncStore(s => s.produits)       ?? [];
-  const produitsStats  = useSyncStore(s => s.produitsStats);
+  const commandes = useSyncStore(s => s.commandes) ?? [];
+  const produits = useSyncStore(s => s.produits) ?? [];
+  const produitsStats = useSyncStore(s => s.produitsStats);
   const commandesStats = useSyncStore(s => s.commandesStats);
-  const bilanToday     = useSyncStore(s => s.bilanToday);
+  const bilanToday = useSyncStore(s => s.bilanToday);
   const { triggerSync, isSyncing, isOffline } = useSync();
-  const { colors }     = useTheme();
+  const { colors } = useTheme();
   const { subscription } = useAuthStore();
 
   // ── Vue active — démarre sur marketplace si pas d'accès POS ────────────
   // hasPosAccess est calculé plus bas mais useState/useRef s'initialisent une seule fois
   // On lit directement subscription ici pour éviter la dépendance de l'ordre
-  const _planNameInit   = subscription?.planName || 'Starter';
-  const _hasPosInit     = SUBSCRIPTION_CONFIG.hasPosAccess(_planNameInit);
-  const defaultView     = _hasPosInit ? 'pos' : 'marketplace';
+  const _planNameInit = subscription?.planName || 'Starter';
+  const _hasPosInit = SUBSCRIPTION_CONFIG.hasPosAccess(_planNameInit);
+  const defaultView = _hasPosInit ? 'pos' : 'marketplace';
   const [activeView, setActiveView] = useState(defaultView);
   // Sans accès POS, il n'y a qu'une seule vue (marketplace à 0) — pas besoin de slide
   const slideAnim = useRef(new Animated.Value(0)).current;
 
-  const activeViewRef   = useRef(defaultView);
-  const userInteracted  = useRef(false); // l'user a-t-il manuellement changé de vue ?
+  const activeViewRef = useRef(defaultView);
+  const userInteracted = useRef(false); // l'user a-t-il manuellement changé de vue ?
 
   const switchView = (key) => {
     userInteracted.current = true;
@@ -1114,7 +1123,7 @@ export default function DashboardScreen() {
       activeViewRef.current = 'pos';
       slideAnim.setValue(0);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subscription?.planName]);
 
   const panResponder = useRef(
@@ -1151,16 +1160,16 @@ export default function DashboardScreen() {
   ).current;
 
   // ── Période globale ───────────────────────────────────────────────────────
-  const [period,     setPeriod]     = useState('today');
+  const [period, setPeriod] = useState('today');
   const [customFrom, setCustomFrom] = useState('');
-  const [customTo,   setCustomTo]   = useState('');
+  const [customTo, setCustomTo] = useState('');
   const [showPeriod, setShowPeriod] = useState(false);
 
   // ── Données centralisées ──────────────────────────────────────────────────
-  const [bilanData,      setBilanData]      = useState(null);
-  const [historyData,    setHistoryData]    = useState(null);
-  const [dataLoading,    setDataLoading]    = useState(true);
-  const [customOffline,  setCustomOffline]  = useState(false);
+  const [bilanData, setBilanData] = useState(null);
+  const [historyData, setHistoryData] = useState(null);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [customOffline, setCustomOffline] = useState(false);
   const prefetchCache = useRef({});
 
   // Quand une vente POS est faite offline, VenteScreen met à jour bilanToday
@@ -1182,7 +1191,7 @@ export default function DashboardScreen() {
       let { bilan, history } = prefetchCache.current[p];
       // Sécurité : si le cache contient un tableau brut, dériver les agrégats
       if (Array.isArray(bilan)) bilan = deriveAggregate(bilan);
-      if (!bilan && history)    bilan = deriveAggregate(history);
+      if (!bilan && history) bilan = deriveAggregate(history);
       if (bilan) setBilanData(bilan);
       setHistoryData(history ?? null);
       setDataLoading(false);
@@ -1224,7 +1233,7 @@ export default function DashboardScreen() {
         }
 
         if (Array.isArray(bilanToSet)) bilanToSet = deriveAggregate(bilanToSet);
-        if (!bilanToSet && hist)        bilanToSet = deriveAggregate(hist);
+        if (!bilanToSet && hist) bilanToSet = deriveAggregate(hist);
       }
 
       if (hist !== null) setHistoryData(hist);
@@ -1234,7 +1243,7 @@ export default function DashboardScreen() {
       if (p !== 'custom') {
         prefetchCache.current[p] = { bilan: bilanToSet ?? null, history: hist };
       }
-    } catch (_) {}
+    } catch (_) { }
     setDataLoading(false);
   }, []);
 
@@ -1285,17 +1294,20 @@ export default function DashboardScreen() {
 
   // ── Stats KPI locales (Marketplace, mois courant) ─────────────────────────
   const mkStats = useMemo(() => {
-    const activeProducts = produitsStats?.totalPublished ?? produits.filter(p => p.isPublished === 'Published').length;
+    const localPublished = produits.filter(p => p.isPublished === 'Published').length;
+    const activeProducts = (produitsStats?.totalPublished && produitsStats.totalPublished > 0)
+      ? produitsStats.totalPublished
+      : localPublished;
     let lowStock = 0;
     produits.forEach(p => {
       if (p.variants?.length > 0) p.variants.forEach(v => { if ((v.stock ?? 0) < 5) lowStock++; });
       else if ((p.quantite ?? 0) < 5) lowStock++;
     });
     // Taux d'annulation sur les 50 dernières commandes disponibles en local
-    const total     = commandes.length;
-    const annulees  = commandes.filter(o => {
+    const total = commandes.length;
+    const annulees = commandes.filter(o => {
       const liv = (o.statusLivraison || '').toLowerCase();
-      const eta = (o.etatTraitement  || '').toLowerCase();
+      const eta = (o.etatTraitement || '').toLowerCase();
       return liv === 'annulé' || eta.includes('annul');
     }).length;
     const cancelRate = total > 0 ? Math.round((annulees / total) * 100) : null;
@@ -1303,18 +1315,18 @@ export default function DashboardScreen() {
   }, [commandes, produits, produitsStats]);
 
   const { has: hasModule } = useModules();
-  const hasBilan     = hasModule('bilanJournalier');
-  const planName     = subscription?.planName || 'Starter';
-  const isTrial      = subscription?.status === 'trial';
+  const hasBilan = hasModule('bilanJournalier');
+  const planName = subscription?.planName || 'Starter';
+  const isTrial = subscription?.status === 'trial';
   const daysLeft = (() => {
     const end = subscription?.endDate;
     if (end) return Math.ceil((new Date(end) - new Date()) / (1000 * 60 * 60 * 24));
     return subscription?.daysRemaining ?? null;
   })();
-  const hasPosAccess         = SUBSCRIPTION_CONFIG.hasPosAccess(planName);
+  const hasPosAccess = SUBSCRIPTION_CONFIG.hasPosAccess(planName);
   const hasMarketplaceAccess = SUBSCRIPTION_CONFIG.hasMarketplaceAccess(planName);
   const visibleViews = VIEWS.filter(v => {
-    if (v.key === 'pos')         return hasPosAccess;
+    if (v.key === 'pos') return hasPosAccess;
     if (v.key === 'marketplace') return hasMarketplaceAccess;
     return true;
   });
@@ -1410,58 +1422,64 @@ export default function DashboardScreen() {
           <Animated.View style={[styles.slidingContainer, { width: W * visibleViews.length, transform: [{ translateX: slideAnim }] }]} {...panResponder.panHandlers}>
             {/* Vue POS — rendue uniquement si le plan le permet */}
             {hasPosAccess && (
-            <View style={styles.viewPane}>
-              <ScrollView
-                showsVerticalScrollIndicator={false}
-                refreshControl={
-                  <RefreshControl
-                    refreshing={isSyncing}
-                    onRefresh={() => { triggerSync(); loadData(period, customFrom, customTo, true); }}
-                    tintColor="#30A08B"
+              <View style={styles.viewPane}>
+                <ScrollView
+                  showsVerticalScrollIndicator={false}
+                  refreshControl={
+                    <RefreshControl
+                      refreshing={isSyncing}
+                      onRefresh={() => {
+                        useSyncStore.getState().triggerFullSync();
+                        loadData(period, customFrom, customTo, true);
+                      }}
+                      tintColor="#30A08B"
+                    />
+                  }
+                  contentContainerStyle={styles.viewScroll}
+                >
+                  <DashboardHeader {...headerProps} />
+                  <ViewPOS
+                    bilanData={bilanData}
+                    historyData={historyData}
+                    loading={dataLoading}
+                    hasBilan={hasBilan}
+                    period={period}
+                    colors={colors}
                   />
-                }
-                contentContainerStyle={styles.viewScroll}
-              >
-                <DashboardHeader {...headerProps} />
-                <ViewPOS
-                  bilanData={bilanData}
-                  historyData={historyData}
-                  loading={dataLoading}
-                  hasBilan={hasBilan}
-                  period={period}
-                  colors={colors}
-                />
-              </ScrollView>
-            </View>
+                </ScrollView>
+              </View>
             )}
 
             {/* Vue Marketplace — Pro & Business uniquement */}
             {hasMarketplaceAccess && (
-            <View style={styles.viewPane}>
-              <ScrollView
-                showsVerticalScrollIndicator={false}
-                refreshControl={
-                  <RefreshControl
-                    refreshing={isSyncing}
-                    onRefresh={() => { triggerSync(); loadData(period, customFrom, customTo, true); }}
-                    tintColor="#267a6b"
+              <View style={styles.viewPane}>
+                <ScrollView
+                  showsVerticalScrollIndicator={false}
+                  refreshControl={
+                    <RefreshControl
+                      refreshing={isSyncing}
+                      onRefresh={() => {
+                        useSyncStore.getState().triggerFullSync();
+                        loadData(period, customFrom, customTo, true);
+                      }}
+                      tintColor="#267a6b"
+                    />
+                  }
+                  contentContainerStyle={styles.viewScroll}
+                >
+                  <DashboardHeader {...headerPropsBase} />
+                  <ViewMarketplace
+                    bilanData={bilanData}
+                    historyData={historyData}
+                    commandesLocal={commandes}
+                    cancelRate={mkStats.cancelRate}
+                    loading={dataLoading}
+                    period={period}
+                    hasBilan={hasBilan}
+                    colors={colors}
                   />
-                }
-                contentContainerStyle={styles.viewScroll}
-              >
-                <DashboardHeader {...headerPropsBase} />
-                <ViewMarketplace
-                  bilanData={bilanData}
-                  historyData={historyData}
-                  commandesLocal={commandes}
-                  cancelRate={mkStats.cancelRate}
-                  loading={dataLoading}
-                  period={period}
-                  hasBilan={hasBilan}
-                  colors={colors}
-                />
-              </ScrollView>
-            </View>
+                </ScrollView>
+              </View>
             )}
           </Animated.View>
         )}
@@ -1489,141 +1507,141 @@ const styles = StyleSheet.create({
   viewSelectorWrap: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 10, borderBottomWidth: 1 },
 
   // (ancien header supprimé — le contenu est maintenant dans le scroll)
-  badgeRow:       { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  quickStatsRow:  { flexDirection: 'row', gap: 8 },
-  quickStat:      { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7 },
-  quickStatVal:   { fontSize: 13, fontWeight: '800' },
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  quickStatsRow: { flexDirection: 'row', gap: 8 },
+  quickStat: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7 },
+  quickStatVal: { fontSize: 13, fontWeight: '800' },
   quickStatLabel: { fontSize: 10, fontWeight: '500' },
-  planBadge:    { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
-  planDot:      { width: 6, height: 6, borderRadius: 3 },
-  planText:     { fontSize: 11, fontWeight: '700' },
-  trialChip:    { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 8 },
-  trialText:    { fontSize: 9, fontWeight: '800' },
-  commBadge:    { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
-  commText:     { fontSize: 10, fontWeight: '600' },
-  daysBadge:    { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
-  daysText:     { fontSize: 10, fontWeight: '600' },
+  planBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
+  planDot: { width: 6, height: 6, borderRadius: 3 },
+  planText: { fontSize: 11, fontWeight: '700' },
+  trialChip: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 8 },
+  trialText: { fontSize: 9, fontWeight: '800' },
+  commBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
+  commText: { fontSize: 10, fontWeight: '600' },
+  daysBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
+  daysText: { fontSize: 10, fontWeight: '600' },
 
   // Barre période
-  periodBar:        { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, borderWidth: 1 },
-  periodBarLeft:    { width: 30, height: 30, borderRadius: 9, justifyContent: 'center', alignItems: 'center' },
+  periodBar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, borderWidth: 1 },
+  periodBarLeft: { width: 30, height: 30, borderRadius: 9, justifyContent: 'center', alignItems: 'center' },
   periodBarCaption: { fontSize: 10, fontWeight: '500', marginBottom: 1 },
-  periodBarValue:   { fontSize: 13, fontWeight: '700' },
-  periodBarChip:    { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  periodBarChipText:{ fontSize: 11, fontWeight: '700' },
+  periodBarValue: { fontSize: 13, fontWeight: '700' },
+  periodBarChip: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  periodBarChipText: { fontSize: 11, fontWeight: '700' },
 
   // Sélecteur de vue
   viewSelector: { flexDirection: 'row', borderRadius: 12, borderWidth: 1, padding: 4, gap: 4 },
-  viewTab:      { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, borderRadius: 9, position: 'relative' },
-  viewTabText:  { fontSize: 13 },
-  viewTabDot:   { position: 'absolute', bottom: 3, width: 4, height: 4, borderRadius: 2 },
+  viewTab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, borderRadius: 9, position: 'relative' },
+  viewTabText: { fontSize: 13 },
+  viewTabDot: { position: 'absolute', bottom: 3, width: 4, height: 4, borderRadius: 2 },
 
   // Conteneur slide
   slidingContainer: { flexDirection: 'row', width: W * 2 },
-  viewPane:         { width: W },
-  viewScroll:       { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 40, gap: 14 },
+  viewPane: { width: W },
+  viewScroll: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 40, gap: 14 },
 
   // Sheet modal
-  backdrop:    { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
-  sheet:       { position: 'absolute', bottom: 0, left: 0, right: 0, borderTopLeftRadius: 28, borderTopRightRadius: 28, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.12, shadowRadius: 20, elevation: 24 },
-  handleArea:  { alignItems: 'center', paddingTop: 14, paddingBottom: 8 },
-  handle:      { width: 40, height: 4, borderRadius: 2 },
-  sheetTitle:  { fontSize: 16, fontWeight: '800', paddingHorizontal: 24, marginBottom: 16 },
-  pillRow:     { flexDirection: 'row', marginHorizontal: 20, borderRadius: 12, borderWidth: 1, overflow: 'hidden' },
-  pill:        { flex: 1, paddingVertical: 10, alignItems: 'center' },
-  pillText:    { fontSize: 13, fontWeight: '700' },
-  periodPreview:     { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 20, marginTop: 20, padding: 14, borderRadius: 12, borderWidth: 1 },
+  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
+  sheet: { position: 'absolute', bottom: 0, left: 0, right: 0, borderTopLeftRadius: 28, borderTopRightRadius: 28, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.12, shadowRadius: 20, elevation: 24 },
+  handleArea: { alignItems: 'center', paddingTop: 14, paddingBottom: 8 },
+  handle: { width: 40, height: 4, borderRadius: 2 },
+  sheetTitle: { fontSize: 16, fontWeight: '800', paddingHorizontal: 24, marginBottom: 16 },
+  pillRow: { flexDirection: 'row', marginHorizontal: 20, borderRadius: 12, borderWidth: 1, overflow: 'hidden' },
+  pill: { flex: 1, paddingVertical: 10, alignItems: 'center' },
+  pillText: { fontSize: 13, fontWeight: '700' },
+  periodPreview: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 20, marginTop: 20, padding: 14, borderRadius: 12, borderWidth: 1 },
   periodPreviewText: { fontSize: 14, fontWeight: '600' },
-  applyBtn:     { marginHorizontal: 20, marginTop: 20, borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
+  applyBtn: { marginHorizontal: 20, marginTop: 20, borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
   applyBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
 
   // Wheel
-  wheelBand:    { position: 'absolute', left: 0, right: 0, height: ITEM_H, borderTopWidth: 1, borderBottomWidth: 1 },
-  wheelRow:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10, paddingVertical: 4 },
-  wheelCell:    { height: ITEM_H, justifyContent: 'center', alignItems: 'center' },
-  wheelSep:     { fontSize: 18, marginHorizontal: 2, opacity: 0.3 },
-  wheelLabel:   { fontSize: 12, fontWeight: '700', marginLeft: 2 },
+  wheelBand: { position: 'absolute', left: 0, right: 0, height: ITEM_H, borderTopWidth: 1, borderBottomWidth: 1 },
+  wheelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10, paddingVertical: 4 },
+  wheelCell: { height: ITEM_H, justifyContent: 'center', alignItems: 'center' },
+  wheelSep: { fontSize: 18, marginHorizontal: 2, opacity: 0.3 },
+  wheelLabel: { fontSize: 12, fontWeight: '700', marginLeft: 2 },
 
   // Bilan locked
-  bilanLocked:      { borderRadius: 18, borderWidth: 1, padding: 24, alignItems: 'center', justifyContent: 'center' },
+  bilanLocked: { borderRadius: 18, borderWidth: 1, padding: 24, alignItems: 'center', justifyContent: 'center' },
   bilanLockedTitle: { fontSize: 14, fontWeight: '700', marginBottom: 4, textAlign: 'center' },
-  bilanLockedSub:   { fontSize: 12, textAlign: 'center' },
+  bilanLockedSub: { fontSize: 12, textAlign: 'center' },
 
   // Hero card
-  heroCard:     { borderRadius: 18, padding: 18, gap: 14 },
-  heroRow:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  heroCaption:  { fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: '600', marginBottom: 4 },
-  heroTotal:    { fontSize: 28, fontWeight: '800', color: '#fff' },
-  heroIcon:     { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-  heroDivider:  { height: 1, backgroundColor: 'rgba(255,255,255,0.2)' },
-  heroSub:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
+  heroCard: { borderRadius: 18, padding: 18, gap: 14 },
+  heroRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  heroCaption: { fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: '600', marginBottom: 4 },
+  heroTotal: { fontSize: 28, fontWeight: '800', color: '#fff' },
+  heroIcon: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+  heroDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.2)' },
+  heroSub: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   heroSubLabel: { fontSize: 11, color: 'rgba(255,255,255,0.7)' },
-  heroSubVal:   { fontSize: 18, fontWeight: '800', color: '#fff', marginTop: 2 },
+  heroSubVal: { fontSize: 18, fontWeight: '800', color: '#fff', marginTop: 2 },
   heroSubRight: { alignItems: 'flex-end', gap: 4 },
-  heroChip:     { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  heroChip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
   heroChipText: { fontSize: 11, color: '#fff', fontWeight: '700' },
-  heroPanier:   { fontSize: 11, color: 'rgba(255,255,255,0.7)' },
+  heroPanier: { fontSize: 11, color: 'rgba(255,255,255,0.7)' },
   // Marketplace hero stats
-  heroStatRow:  { flexDirection: 'row', alignItems: 'center' },
-  heroStat:     { flex: 1, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 10, paddingVertical: 8 },
-  heroStatSep:  { width: 6 },
-  heroStatVal:  { fontSize: 14, fontWeight: '800', color: '#fff' },
-  heroStatLabel:{ fontSize: 9, color: 'rgba(255,255,255,0.7)', fontWeight: '600', marginTop: 2 },
+  heroStatRow: { flexDirection: 'row', alignItems: 'center' },
+  heroStat: { flex: 1, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 10, paddingVertical: 8 },
+  heroStatSep: { width: 6 },
+  heroStatVal: { fontSize: 14, fontWeight: '800', color: '#fff' },
+  heroStatLabel: { fontSize: 9, color: 'rgba(255,255,255,0.7)', fontWeight: '600', marginTop: 2 },
 
   // Card générique
-  card:     { borderRadius: 16, borderWidth: 1, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, elevation: 2 },
+  card: { borderRadius: 16, borderWidth: 1, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, elevation: 2 },
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 14, paddingBottom: 12 },
-  cardTitle:{ fontSize: 14, fontWeight: '700', flex: 1 },
+  cardTitle: { fontSize: 14, fontWeight: '700', flex: 1 },
 
   // Switch tab inline (ancien usage éventuel)
-  switchRow:  { flexDirection: 'row', borderRadius: 9, borderWidth: 1, overflow: 'hidden' },
-  switchBtn:  { paddingHorizontal: 10, paddingVertical: 5 },
+  switchRow: { flexDirection: 'row', borderRadius: 9, borderWidth: 1, overflow: 'hidden' },
+  switchBtn: { paddingHorizontal: 10, paddingVertical: 5 },
   switchText: { fontSize: 13, fontWeight: '700' },
   // Switch tab pleine largeur (sous le titre de carte)
-  switchRowFull:  { flexDirection: 'row', borderBottomWidth: 1, marginHorizontal: 0 },
-  switchBtnFull:  { flex: 1, alignItems: 'center', paddingVertical: 10, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  switchRowFull: { flexDirection: 'row', borderBottomWidth: 1, marginHorizontal: 0 },
+  switchBtnFull: { flex: 1, alignItems: 'center', paddingVertical: 10, borderBottomWidth: 2, borderBottomColor: 'transparent' },
 
   // Tooltip
-  tooltipBar:  { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 14, marginBottom: 4, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, borderWidth: 1 },
-  tooltipDot:  { width: 8, height: 8, borderRadius: 4 },
+  tooltipBar: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 14, marginBottom: 4, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, borderWidth: 1 },
+  tooltipDot: { width: 8, height: 8, borderRadius: 4 },
   tooltipDate: { fontSize: 12, fontWeight: '600', flex: 1 },
-  tooltipVal:  { fontSize: 14, fontWeight: '800' },
+  tooltipVal: { fontSize: 14, fontWeight: '800' },
 
   // Modes paiement
-  modeRow:    { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingBottom: 10 },
-  modeIcon:   { width: 30, height: 30, borderRadius: 9, justifyContent: 'center', alignItems: 'center' },
+  modeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingBottom: 10 },
+  modeIcon: { width: 30, height: 30, borderRadius: 9, justifyContent: 'center', alignItems: 'center' },
   modeTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  modeName:   { fontSize: 13, fontWeight: '600' },
-  modeAmt:    { fontSize: 13, fontWeight: '700' },
-  modeBarBg:  { height: 5, borderRadius: 3 },
-  modeBarFg:  { height: 5, borderRadius: 3, minWidth: 4 },
-  modePct:    { fontSize: 11, fontWeight: '600', width: 32, textAlign: 'right' },
+  modeName: { fontSize: 13, fontWeight: '600' },
+  modeAmt: { fontSize: 13, fontWeight: '700' },
+  modeBarBg: { height: 5, borderRadius: 3 },
+  modeBarFg: { height: 5, borderRadius: 3, minWidth: 4 },
+  modePct: { fontSize: 11, fontWeight: '600', width: 32, textAlign: 'right' },
 
   // Top produits
-  topRow:          { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1, gap: 10 },
-  topImgWrap:      { position: 'relative', width: 42, height: 42, flexShrink: 0 },
-  topImg:          { width: 42, height: 42, borderRadius: 10 },
-  topImgFallback:  { justifyContent: 'center', alignItems: 'center' },
-  topRankBadge:    { position: 'absolute', bottom: -4, right: -4, width: 16, height: 16, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  topRankBadgeText:{ fontSize: 9, fontWeight: '900', color: '#fff' },
-  topRank:         { width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  topRankText:     { fontSize: 11, fontWeight: '800' },
-  topName:         { fontSize: 13, fontWeight: '700' },
-  topSub:          { fontSize: 10, marginTop: 1 },
-  topBadge:        { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  topBadgeText:    { fontSize: 11, fontWeight: '700', color: '#30A08B' },
+  topRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1, gap: 10 },
+  topImgWrap: { position: 'relative', width: 42, height: 42, flexShrink: 0 },
+  topImg: { width: 42, height: 42, borderRadius: 10 },
+  topImgFallback: { justifyContent: 'center', alignItems: 'center' },
+  topRankBadge: { position: 'absolute', bottom: -4, right: -4, width: 16, height: 16, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  topRankBadgeText: { fontSize: 9, fontWeight: '900', color: '#fff' },
+  topRank: { width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  topRankText: { fontSize: 11, fontWeight: '800' },
+  topName: { fontSize: 13, fontWeight: '700' },
+  topSub: { fontSize: 10, marginTop: 1 },
+  topBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  topBadgeText: { fontSize: 11, fontWeight: '700', color: '#30A08B' },
 
   // Charts
-  chartWrap:  { paddingTop: 8, paddingBottom: 8, paddingLeft: 4, overflow: 'hidden' },
+  chartWrap: { paddingTop: 8, paddingBottom: 8, paddingLeft: 4, overflow: 'hidden' },
 
   // Orders
-  orderRow:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, gap: 10 },
+  orderRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, gap: 10 },
   orderIconWrap: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
-  orderClient:   { fontSize: 13, fontWeight: '700' },
-  orderDate:     { fontSize: 11, marginTop: 1 },
-  orderTotal:    { fontSize: 13, fontWeight: '800' },
-  orderBadge:    { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 },
-  orderBadgeText:{ fontSize: 9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.3 },
+  orderClient: { fontSize: 13, fontWeight: '700' },
+  orderDate: { fontSize: 11, marginTop: 1 },
+  orderTotal: { fontSize: 13, fontWeight: '800' },
+  orderBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 },
+  orderBadgeText: { fontSize: 9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.3 },
 
   // Skeleton
   skBlock: { borderRadius: 14, marginBottom: 0 },
@@ -1631,14 +1649,14 @@ const styles = StyleSheet.create({
   // Offline custom
   offlineCustomWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
   offlineCustomCard: { width: '100%', borderRadius: 20, borderWidth: 1, padding: 28, alignItems: 'center', gap: 12 },
-  offlineCustomTitle:{ fontSize: 16, fontWeight: '700', textAlign: 'center' },
-  offlineCustomSub:  { fontSize: 13, textAlign: 'center', lineHeight: 20 },
-  offlineCustomBtn:  { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, marginTop: 4 },
+  offlineCustomTitle: { fontSize: 16, fontWeight: '700', textAlign: 'center' },
+  offlineCustomSub: { fontSize: 13, textAlign: 'center', lineHeight: 20 },
+  offlineCustomBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, marginTop: 4 },
   offlineCustomBtnText: { fontSize: 13, fontWeight: '600' },
 
   // Empty
-  emptyBlock:   { alignItems: 'center', paddingVertical: 32, gap: 10 },
-  emptyIconWrap:{ width: 56, height: 56, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
-  emptyTitle:   { fontSize: 15, fontWeight: '700' },
-  emptySub:     { fontSize: 13, textAlign: 'center', paddingHorizontal: 24 },
+  emptyBlock: { alignItems: 'center', paddingVertical: 32, gap: 10 },
+  emptyIconWrap: { width: 56, height: 56, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
+  emptyTitle: { fontSize: 15, fontWeight: '700' },
+  emptySub: { fontSize: 13, textAlign: 'center', paddingHorizontal: 24 },
 });

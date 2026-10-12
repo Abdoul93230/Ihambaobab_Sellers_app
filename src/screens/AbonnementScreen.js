@@ -52,24 +52,24 @@ const { width: SCREEN_W } = Dimensions.get('window');
 // ITEM_W = largeur du conteneur FlatList (sans padding interne)
 // CARD_W = largeur visuelle de la plan card (avec 12px de marge chaque côté)
 const CONTAINER_W = SCREEN_W - 32;
-const ITEM_W      = CONTAINER_W;
-const CARD_W      = CONTAINER_W - 24; // 12px marge chaque côté
+const ITEM_W = CONTAINER_W;
+const CARD_W = CONTAINER_W - 24; // 12px marge chaque côté
 
 // ─── Couleurs / icônes par plan ───────────────────────────────────────────────
 const PLAN_META = {
-  Starter:  { color: '#10B981', bg: '#ECFDF5', darkBg: '#064E3B', icon: 'leaf-outline',     rank: 1 },
-  Pro:      { color: '#6366F1', bg: '#EEF2FF', darkBg: '#1E1B4B', icon: 'rocket-outline',   rank: 2, popular: true },
+  Starter: { color: '#10B981', bg: '#ECFDF5', darkBg: '#064E3B', icon: 'leaf-outline', rank: 1 },
+  Pro: { color: '#6366F1', bg: '#EEF2FF', darkBg: '#1E1B4B', icon: 'rocket-outline', rank: 2, popular: true },
   Business: { color: '#F59E0B', bg: '#FFFBEB', darkBg: '#1C1204', icon: 'business-outline', rank: 3 },
 };
 
 // ─── Utilitaires ──────────────────────────────────────────────────────────────
 function fmtPrice(n) {
-  return Number(n || 0).toLocaleString('fr-FR') + ' ₣';
+  return Number(n || 0).toLocaleString('fr-FR') + ' FCFA';
 }
 function fmtDate(d) {
   if (!d) return '—';
   const dt = new Date(d);
-  return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`;
+  return `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()}`;
 }
 function daysLeft(dateStr) {
   if (!dateStr) return 0;
@@ -79,12 +79,12 @@ function planRank(name) { return PLAN_META[name]?.rank || 0; }
 
 // ─── Badge statut requête ─────────────────────────────────────────────────────
 const REQ_STATUS_META = {
-  pending_payment:   { label: 'En attente paiement', color: '#F59E0B', bg: '#FFFBEB' },
-  payment_submitted: { label: 'Paiement soumis',     color: '#6366F1', bg: '#EEF2FF' },
-  payment_verified:  { label: 'Paiement vérifié',    color: '#10B981', bg: '#ECFDF5' },
-  activated:         { label: 'Activé',              color: '#10B981', bg: '#ECFDF5' },
-  rejected:          { label: 'Rejeté',              color: '#EF4444', bg: '#FEF2F2' },
-  cancelled:         { label: 'Annulé',              color: '#9CA3AF', bg: '#F9FAFB' },
+  pending_payment: { label: 'En attente paiement', color: '#F59E0B', bg: '#FFFBEB' },
+  payment_submitted: { label: 'Paiement soumis', color: '#6366F1', bg: '#EEF2FF' },
+  payment_verified: { label: 'Paiement vérifié', color: '#10B981', bg: '#ECFDF5' },
+  activated: { label: 'Activé', color: '#10B981', bg: '#ECFDF5' },
+  rejected: { label: 'Rejeté', color: '#EF4444', bg: '#FEF2F2' },
+  cancelled: { label: 'Annulé', color: '#9CA3AF', bg: '#F9FAFB' },
 };
 function ReqBadge({ status }) {
   const m = REQ_STATUS_META[status] || { label: status, color: '#9CA3AF', bg: '#F9FAFB' };
@@ -111,11 +111,11 @@ function UsageBar({ current, limit, color }) {
 // CARTES DE STATUT
 // ═══════════════════════════════════════════════════════════════════════════════
 function StatusCard({ subData, statusInfo, subscription, productCount, queuedSubs, colors }) {
-  const status    = statusInfo?.status || subscription?.status;
+  const status = statusInfo?.status || subscription?.status;
   const activeSub = subData?.activeSubscription;
-  const planName  = activeSub?.planType || subscription?.planName || 'Starter';
-  const meta      = PLAN_META[planName] || PLAN_META.Starter;
-  const cfg       = SUBSCRIPTION_CONFIG.getPlan(planName);
+  const planName = activeSub?.planType || subscription?.planName || 'Starter';
+  const meta = PLAN_META[planName] || PLAN_META.Starter;
+  const cfg = SUBSCRIPTION_CONFIG.getPlan(planName);
 
   if (status === 'no_subscription' || (!status && !activeSub)) {
     return (
@@ -132,7 +132,7 @@ function StatusCard({ subData, statusInfo, subscription, productCount, queuedSub
         <View style={s.tripleGrid}>
           {[
             { val: '2', label: 'mois gratuits', sub: 'Plan Starter' },
-            { val: '1', label: 'mois gratuit',  sub: 'Pro & Business' },
+            { val: '1', label: 'mois gratuit', sub: 'Pro & Business' },
             { val: '0', label: 'carte requise', sub: 'Paiement après essai' },
           ].map((item, i) => (
             <View key={i} style={[s.tripleItem, { backgroundColor: colors.bgCard, borderColor: '#10B981' }]}>
@@ -172,8 +172,12 @@ function StatusCard({ subData, statusInfo, subscription, productCount, queuedSub
           </View>
           <View style={[s.tripleItem, { backgroundColor: colors.bgCard, borderColor: '#6366F1' }]}>
             <Ionicons name="trending-down-outline" size={14} color="#8B5CF6" />
-            <Text style={[s.tripleVal, { color: '#8B5CF6', fontSize: 15 }]}>{cfg?.commission}%</Text>
-            <Text style={[s.tripleSub, { color: colors.textMuted }]}>commission</Text>
+            <Text style={[s.tripleVal, { color: '#8B5CF6', fontSize: 15 }]}>
+              {cfg?.commission != null ? `${cfg.commission}%` : '—'}
+            </Text>
+            <Text style={[s.tripleSub, { color: colors.textMuted }]}>
+              {cfg?.commission != null ? 'commission' : 'marketplace'}
+            </Text>
           </View>
           <View style={[s.tripleItem, { backgroundColor: colors.bgCard, borderColor: '#6366F1' }]}>
             <Ionicons name="time-outline" size={14} color="#10B981" />
@@ -225,8 +229,12 @@ function StatusCard({ subData, statusInfo, subscription, productCount, queuedSub
           </View>
           <View style={[s.tripleItem, { backgroundColor: colors.bgCard, borderColor: soon ? '#F97316' : '#10B981' }]}>
             <Ionicons name="trending-down-outline" size={14} color={meta.color} />
-            <Text style={[s.tripleVal, { color: meta.color, fontSize: 15 }]}>{cfg?.commission}%</Text>
-            <Text style={[s.tripleSub, { color: colors.textMuted }]}>commission</Text>
+            <Text style={[s.tripleVal, { color: meta.color, fontSize: 15 }]}>
+              {cfg?.commission != null ? `${cfg.commission}%` : '—'}
+            </Text>
+            <Text style={[s.tripleSub, { color: colors.textMuted }]}>
+              {cfg?.commission != null ? 'commission' : 'marketplace'}
+            </Text>
           </View>
           <View style={[s.tripleItem, { backgroundColor: colors.bgCard, borderColor: soon ? '#F97316' : '#10B981' }]}>
             <Ionicons name={cfg?.features?.pos ? 'storefront-outline' : 'close-circle-outline'} size={14}
@@ -251,7 +259,7 @@ function StatusCard({ subData, statusInfo, subscription, productCount, queuedSub
             <View style={{ flex: 1 }}>
               <Text style={[s.posBannerTitle, { color: '#1E3A8A' }]}>Publiez vos produits sur la marketplace</Text>
               <Text style={[s.posBannerSub, { color: '#1D4ED8' }]}>
-                Plan Pro (5 000 ₣/mois) — vos produits visibles par tous les acheteurs sur IhamBaobab.
+                Plan Pro (2 500 FCFA/mois) — vos produits visibles par tous les acheteurs sur IhamBaobab.
               </Text>
             </View>
           </View>
@@ -279,9 +287,9 @@ function StatusCard({ subData, statusInfo, subscription, productCount, queuedSub
         <View style={[s.infoBox, { backgroundColor: '#fff', borderColor: '#FECACA' }]}>
           {[
             { icon: 'alert-circle-outline', text: '🚨 Votre abonnement a expiré' },
-            { icon: 'time-outline',         text: statusInfo?.message || 'Période de grâce en cours' },
-            { icon: 'card-outline',         text: '💳 Renouvelez maintenant pour conserver l\'accès' },
-            { icon: 'save-outline',         text: '💾 Toutes vos données seront conservées' },
+            { icon: 'time-outline', text: statusInfo?.message || 'Période de grâce en cours' },
+            { icon: 'card-outline', text: '💳 Renouvelez maintenant pour conserver l\'accès' },
+            { icon: 'save-outline', text: '💾 Toutes vos données seront conservées' },
           ].map((item, i) => (
             <View key={i} style={s.infoBoxRow}>
               <Ionicons name={item.icon} size={14} color="#EF4444" />
@@ -307,7 +315,7 @@ function StatusCard({ subData, statusInfo, subscription, productCount, queuedSub
 
 // ─── Mini file d'attente dans status card ─────────────────────────────────────
 function QueueMini({ subs, colors }) {
-  const visible = subs.filter(s => !['cancelled','rejected'].includes(s.status));
+  const visible = subs.filter(s => !['cancelled', 'rejected'].includes(s.status));
   if (!visible.length) return null;
   return (
     <View style={[s.queueMini, { borderColor: colors.primary + '40', backgroundColor: colors.bg }]}>
@@ -374,7 +382,7 @@ function SuspendedCard({ code, setCode, onActivate, loading, isOffline, colors, 
           placeholder="Code reçu de l'administration"
           placeholderTextColor={colors.textMuted}
           value={code}
-          onChangeText={t => setCode(t.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8))}
+          onChangeText={t => setCode(t.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8))}
           autoCapitalize="characters"
           maxLength={8}
         />
@@ -443,12 +451,12 @@ function PlansCarousel({
   };
 
   const renderPlan = ({ item: plan }) => {
-    const cfg    = SUBSCRIPTION_CONFIG.getPlan(plan.name);
-    const meta   = PLAN_META[plan.name] || PLAN_META.Starter;
+    const cfg = SUBSCRIPTION_CONFIG.getPlan(plan.name);
+    const meta = PLAN_META[plan.name] || PLAN_META.Starter;
     const isSelected = selectedPlan?.name === plan.name;
-    const isCurrent  = plan.name === activePlanType;
+    const isCurrent = plan.name === activePlanType;
     const price = billingCycle === 'annual'
-      ? (plan.pricing?.annual  || cfg?.pricing?.annual  || 0)
+      ? (plan.pricing?.annual || cfg?.pricing?.annual || 0)
       : (plan.pricing?.monthly || cfg?.pricing?.monthly || 0);
     const savings = SUBSCRIPTION_CONFIG.calculateAnnualSavings(plan.name);
     const featuresRaw = SUBSCRIPTION_CONFIG.generateFeatureList(plan.name, billingCycle);
@@ -478,153 +486,153 @@ function PlansCarousel({
 
     return (
       <View style={{ width: ITEM_W, alignItems: 'center', paddingVertical: 4 }}>
-      <TouchableOpacity
-        activeOpacity={isPlanDisabled ? 1 : 0.92}
-        style={[
-          s.planCard,
-          isCurrentBlocked
-            ? { width: CARD_W, borderColor: colors.primary, borderWidth: 2, opacity: 0.65 }
-            : isProductIncompatible
-              ? { width: CARD_W, borderColor: '#FED7AA', borderWidth: 1, opacity: 0.7 }
-              : isLowerPlan
-                ? { width: CARD_W, borderColor: '#CBD5E1', borderWidth: 1, opacity: 0.75 }
-                : { width: CARD_W, borderColor: isSelected ? meta.color : colors.border, borderWidth: isSelected ? 2 : 1 },
-        ]}
-        onPress={() => !isPlanDisabled && setSelectedPlan(isSelected ? null : plan)}
-      >
-        {/* Badges */}
-        {meta.popular && !isCurrent && !isLowerPlan && (
-          <View style={[s.popularBadge, { backgroundColor: meta.color }]}>
-            <Text style={s.badgeText}>⭐ Populaire</Text>
-          </View>
-        )}
-        {isCurrent && isCurrentBlocked && (
-          <View style={[s.currentBadge, { backgroundColor: colors.primary }]}>
-            <Text style={s.badgeText}>Plan actuel</Text>
-          </View>
-        )}
-        {isCurrent && !isCurrentBlocked && (
-          <View style={[s.currentBadge, { backgroundColor: '#4F46E5' }]}>
-            <Text style={s.badgeText}>↻ Renouveler</Text>
-          </View>
-        )}
-        {isLowerPlan && !isProductIncompatible && (
-          <View style={[s.currentBadge, { backgroundColor: '#9CA3AF' }]}>
-            <Text style={s.badgeText}>↓ Downgrade</Text>
-          </View>
-        )}
-        {isLowerPlan && isProductIncompatible && (
-          <View style={[s.currentBadge, { backgroundColor: '#EF4444' }]}>
-            <Text style={s.badgeText}>Incompatible</Text>
-          </View>
-        )}
-        {isLastUsed && !isLowerPlan && (
-          <View style={[s.currentBadge, { backgroundColor: '#B17236' }]}>
-            <Text style={s.badgeText}>↺ Réabonnement</Text>
-          </View>
-        )}
-        {/* Header coloré */}
-        <View style={[s.planCardTop, { backgroundColor: meta.color }]}>
-          <View style={[s.planIconWrap, { backgroundColor: meta.bg }]}>
-            <Ionicons name={meta.icon} size={22} color={meta.color} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={s.planCardName}>{plan.name}</Text>
-            <Text style={s.planCardDesc} numberOfLines={2}>{plan.description || cfg?.description}</Text>
-          </View>
-          <View style={[s.radioCircle, { borderColor: isSelected ? '#fff' : 'rgba(255,255,255,0.5)' }]}>
-            {isSelected && <View style={s.radioDot} />}
-          </View>
-        </View>
-
-        {/* Prix */}
-        <View style={s.planPriceRow}>
-          <Text style={[s.planPrice, { color: meta.color }]}>{fmtPrice(price)}</Text>
-          <Text style={[s.planPricePer, { color: colors.textMuted }]}>/{billingCycle === 'annual' ? 'an' : 'mois'}</Text>
-          {billingCycle === 'annual' && savings > 0 && (
-            <View style={[s.discountChip, { backgroundColor: meta.bg }]}>
-              <Text style={[s.discountChipText, { color: meta.color }]}>-10%</Text>
+        <TouchableOpacity
+          activeOpacity={isPlanDisabled ? 1 : 0.92}
+          style={[
+            s.planCard,
+            isCurrentBlocked
+              ? { width: CARD_W, borderColor: colors.primary, borderWidth: 2, opacity: 0.65 }
+              : isProductIncompatible
+                ? { width: CARD_W, borderColor: '#FED7AA', borderWidth: 1, opacity: 0.7 }
+                : isLowerPlan
+                  ? { width: CARD_W, borderColor: '#CBD5E1', borderWidth: 1, opacity: 0.75 }
+                  : { width: CARD_W, borderColor: isSelected ? meta.color : colors.border, borderWidth: isSelected ? 2 : 1 },
+          ]}
+          onPress={() => !isPlanDisabled && setSelectedPlan(isSelected ? null : plan)}
+        >
+          {/* Badges */}
+          {meta.popular && !isCurrent && !isLowerPlan && (
+            <View style={[s.popularBadge, { backgroundColor: meta.color }]}>
+              <Text style={s.badgeText}>⭐ Populaire</Text>
             </View>
           )}
-        </View>
-        {billingCycle === 'annual' && savings > 0 && (
-          <Text style={[s.savingsText, { color: '#10B981' }]}>Économisez {fmtPrice(savings)}/an</Text>
-        )}
-
-        {/* Essai gratuit — premier abonnement uniquement (pas d'historique) */}
-        {isTrialMode && !lastUsedPlanType && (cfg?.pricing?.trialMonths || 0) > 0 && (
-          <View style={[s.trialChip, { backgroundColor: meta.bg, borderColor: meta.color + '50' }]}>
-            <Ionicons name="gift-outline" size={13} color={meta.color} />
-            <Text style={[s.trialChipText, { color: meta.color }]}>
-              {cfg.pricing.trialMonths} mois d'essai gratuit
-            </Text>
+          {isCurrent && isCurrentBlocked && (
+            <View style={[s.currentBadge, { backgroundColor: colors.primary }]}>
+              <Text style={s.badgeText}>Plan actuel</Text>
+            </View>
+          )}
+          {isCurrent && !isCurrentBlocked && (
+            <View style={[s.currentBadge, { backgroundColor: '#4F46E5' }]}>
+              <Text style={s.badgeText}>↻ Renouveler</Text>
+            </View>
+          )}
+          {isLowerPlan && !isProductIncompatible && (
+            <View style={[s.currentBadge, { backgroundColor: '#9CA3AF' }]}>
+              <Text style={s.badgeText}>↓ Downgrade</Text>
+            </View>
+          )}
+          {isLowerPlan && isProductIncompatible && (
+            <View style={[s.currentBadge, { backgroundColor: '#EF4444' }]}>
+              <Text style={s.badgeText}>Incompatible</Text>
+            </View>
+          )}
+          {isLastUsed && !isLowerPlan && (
+            <View style={[s.currentBadge, { backgroundColor: '#B17236' }]}>
+              <Text style={s.badgeText}>↺ Réabonnement</Text>
+            </View>
+          )}
+          {/* Header coloré */}
+          <View style={[s.planCardTop, { backgroundColor: meta.color }]}>
+            <View style={[s.planIconWrap, { backgroundColor: meta.bg }]}>
+              <Ionicons name={meta.icon} size={22} color={meta.color} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.planCardName}>{plan.name}</Text>
+              <Text style={s.planCardDesc} numberOfLines={2}>{plan.description || cfg?.description}</Text>
+            </View>
+            <View style={[s.radioCircle, { borderColor: isSelected ? '#fff' : 'rgba(255,255,255,0.5)' }]}>
+              {isSelected && <View style={s.radioDot} />}
+            </View>
           </View>
-        )}
 
-        {/* Réabonnement — plan déjà souscrit par le passé */}
-        {isLastUsed && (
-          <View style={[s.trialChip, { backgroundColor: '#B1723612', borderColor: '#B1723640' }]}>
-            <Ionicons name="refresh-outline" size={13} color="#B17236" />
-            <Text style={[s.trialChipText, { color: '#B17236' }]}>Déjà souscrit — réabonnement</Text>
+          {/* Prix */}
+          <View style={s.planPriceRow}>
+            <Text style={[s.planPrice, { color: meta.color }]}>{fmtPrice(price)}</Text>
+            <Text style={[s.planPricePer, { color: colors.textMuted }]}>/{billingCycle === 'annual' ? 'an' : 'mois'}</Text>
+            {billingCycle === 'annual' && savings > 0 && (
+              <View style={[s.discountChip, { backgroundColor: meta.bg }]}>
+                <Text style={[s.discountChipText, { color: meta.color }]}>-10%</Text>
+              </View>
+            )}
           </View>
-        )}
+          {billingCycle === 'annual' && savings > 0 && (
+            <Text style={[s.savingsText, { color: '#10B981' }]}>Économisez {fmtPrice(savings)}/an</Text>
+          )}
 
-        {/* Plan actif en cours */}
-        {isCurrent && !isTrialMode && (
-          <View style={[s.trialChip, { backgroundColor: meta.bg, borderColor: meta.color + '50' }]}>
-            <Ionicons name="checkmark-circle-outline" size={13} color={meta.color} />
-            <Text style={[s.trialChipText, { color: meta.color }]}>Abonnement en cours</Text>
-          </View>
-        )}
-
-        {/* Features */}
-        <View style={s.featureList}>
-          {features.map((f, i) => (
-            <View key={i} style={s.featureRow}>
-              <Ionicons
-                name={f.included ? (f.highlight ? 'star' : 'checkmark-circle') : 'close-circle-outline'}
-                size={14}
-                color={f.included ? (f.highlight ? meta.color : '#10B981') : '#D1D5DB'}
-              />
-              <Text style={[
-                s.featureText,
-                { color: f.included ? (f.highlight ? meta.color : colors.text) : colors.textMuted },
-                f.highlight && { fontWeight: '700' },
-                !f.included && { textDecorationLine: 'line-through' },
-              ]}>
-                {f.name}
+          {/* Essai gratuit — premier abonnement uniquement (pas d'historique) */}
+          {isTrialMode && !lastUsedPlanType && (cfg?.pricing?.trialMonths || 0) > 0 && (
+            <View style={[s.trialChip, { backgroundColor: meta.bg, borderColor: meta.color + '50' }]}>
+              <Ionicons name="gift-outline" size={13} color={meta.color} />
+              <Text style={[s.trialChipText, { color: meta.color }]}>
+                {cfg.pricing.trialMonths} mois d'essai gratuit
               </Text>
             </View>
-          ))}
-        </View>
+          )}
 
-        {isCurrent && isCurrentBlocked && (
-          <View style={[s.alertBox, { backgroundColor: '#ECFDF5', borderColor: '#6EE7B7', marginTop: 8 }]}>
-            <Ionicons name="checkmark-circle-outline" size={14} color="#059669" />
-            <Text style={[s.alertText, { color: '#065F46', textAlign: 'center' }]}>Votre plan actuel</Text>
+          {/* Réabonnement — plan déjà souscrit par le passé */}
+          {isLastUsed && (
+            <View style={[s.trialChip, { backgroundColor: '#B1723612', borderColor: '#B1723640' }]}>
+              <Ionicons name="refresh-outline" size={13} color="#B17236" />
+              <Text style={[s.trialChipText, { color: '#B17236' }]}>Déjà souscrit — réabonnement</Text>
+            </View>
+          )}
+
+          {/* Plan actif en cours */}
+          {isCurrent && !isTrialMode && (
+            <View style={[s.trialChip, { backgroundColor: meta.bg, borderColor: meta.color + '50' }]}>
+              <Ionicons name="checkmark-circle-outline" size={13} color={meta.color} />
+              <Text style={[s.trialChipText, { color: meta.color }]}>Abonnement en cours</Text>
+            </View>
+          )}
+
+          {/* Features */}
+          <View style={s.featureList}>
+            {features.map((f, i) => (
+              <View key={i} style={s.featureRow}>
+                <Ionicons
+                  name={f.included ? (f.highlight ? 'star' : 'checkmark-circle') : 'close-circle-outline'}
+                  size={14}
+                  color={f.included ? (f.highlight ? meta.color : '#10B981') : '#D1D5DB'}
+                />
+                <Text style={[
+                  s.featureText,
+                  { color: f.included ? (f.highlight ? meta.color : colors.text) : colors.textMuted },
+                  f.highlight && { fontWeight: '700' },
+                  !f.included && { textDecorationLine: 'line-through' },
+                ]}>
+                  {f.name}
+                </Text>
+              </View>
+            ))}
           </View>
-        )}
-        {isCurrent && !isCurrentBlocked && (
-          <View style={[s.alertBox, { backgroundColor: '#EEF2FF', borderColor: '#C7D2FE', marginTop: 8 }]}>
-            <Ionicons name="refresh-outline" size={14} color="#4F46E5" />
-            <Text style={[s.alertText, { color: '#3730A3', textAlign: 'center' }]}>Renouveler ce plan</Text>
-          </View>
-        )}
-        {isLowerPlan && !isProductIncompatible && (
-          <View style={[s.alertBox, { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', marginTop: 8 }]}>
-            <Ionicons name="arrow-down-outline" size={14} color="#94A3B8" />
-            <Text style={[s.alertText, { color: '#64748B' }]}>Downgrade possible — vous perdrez certaines fonctionnalités</Text>
-          </View>
-        )}
-        {isProductIncompatible && (
-          <View style={[s.alertBox, { backgroundColor: '#FEF2F2', borderColor: '#FECACA', marginTop: 8 }]}>
-            <Ionicons name="warning-outline" size={14} color="#DC2626" />
-            <Text style={[s.alertText, { color: '#991B1B' }]}>
-              Incompatible — vous avez {productCount} produits, ce plan est limité à {maxProducts}.
-            </Text>
-          </View>
-        )}
-      </TouchableOpacity>
+
+          {isCurrent && isCurrentBlocked && (
+            <View style={[s.alertBox, { backgroundColor: '#ECFDF5', borderColor: '#6EE7B7', marginTop: 8 }]}>
+              <Ionicons name="checkmark-circle-outline" size={14} color="#059669" />
+              <Text style={[s.alertText, { color: '#065F46', textAlign: 'center' }]}>Votre plan actuel</Text>
+            </View>
+          )}
+          {isCurrent && !isCurrentBlocked && (
+            <View style={[s.alertBox, { backgroundColor: '#EEF2FF', borderColor: '#C7D2FE', marginTop: 8 }]}>
+              <Ionicons name="refresh-outline" size={14} color="#4F46E5" />
+              <Text style={[s.alertText, { color: '#3730A3', textAlign: 'center' }]}>Renouveler ce plan</Text>
+            </View>
+          )}
+          {isLowerPlan && !isProductIncompatible && (
+            <View style={[s.alertBox, { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', marginTop: 8 }]}>
+              <Ionicons name="arrow-down-outline" size={14} color="#94A3B8" />
+              <Text style={[s.alertText, { color: '#64748B' }]}>Downgrade possible — vous perdrez certaines fonctionnalités</Text>
+            </View>
+          )}
+          {isProductIncompatible && (
+            <View style={[s.alertBox, { backgroundColor: '#FEF2F2', borderColor: '#FECACA', marginTop: 8 }]}>
+              <Ionicons name="warning-outline" size={14} color="#DC2626" />
+              <Text style={[s.alertText, { color: '#991B1B' }]}>
+                Incompatible — vous avez {productCount} produits, ce plan est limité à {maxProducts}.
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
     );
   };
@@ -640,7 +648,7 @@ function PlansCarousel({
         </Text>
         <Text style={s.plansHeaderSub}>
           {isTrialMode
-            ? 'Démarrez gratuitement — Starter (2 mois) ou Pro/Business (1 mois). Aucun paiement requis.'
+            ? 'Démarrez gratuitement — 1 mois d\'essai offert sur tous les plans. Aucun paiement requis.'
             : upgradeOnly
               ? `Votre activité grandit — débloquez de nouvelles capacités dès aujourd'hui.`
               : 'Faites glisser pour explorer tous les plans'}
@@ -650,7 +658,7 @@ function PlansCarousel({
       {/* Toggle cycle mensuel / annuel */}
       {!isTrialMode && (
         <View style={[s.cycleToggle, { backgroundColor: colors.bg, borderColor: colors.border, margin: 12, marginBottom: 0 }]}>
-          {[['monthly','Mensuel'],['annual','Annuel  (-10%)']].map(([val, lbl]) => (
+          {[['monthly', 'Mensuel'], ['annual', 'Annuel  (-10%)']].map(([val, lbl]) => (
             <TouchableOpacity
               key={val}
               style={[s.cycleBtn, billingCycle === val && { backgroundColor: colors.primary }]}
@@ -724,8 +732,8 @@ function ActionPanel({
 }) {
   if (!selectedPlan) return null;
 
-  const cfg      = SUBSCRIPTION_CONFIG.getPlan(selectedPlan.name);
-  const meta     = PLAN_META[selectedPlan.name] || PLAN_META.Starter;
+  const cfg = SUBSCRIPTION_CONFIG.getPlan(selectedPlan.name);
+  const meta = PLAN_META[selectedPlan.name] || PLAN_META.Starter;
   const isUpgrade = activePlanType && planRank(selectedPlan.name) > planRank(activePlanType);
 
   const maxProducts = selectedPlan.features?.productManagement?.maxProducts
@@ -733,9 +741,9 @@ function ActionPanel({
     ?? cfg?.productLimit
     ?? -1;
   const isIncompatible = maxProducts !== -1 && (productCount || 0) > maxProducts;
-  const urgent   = !!statusInfo?.urgent;
-  const price    = billingCycle === 'annual'
-    ? (selectedPlan.pricing?.annual  || cfg?.pricing?.annual  || 0)
+  const urgent = !!statusInfo?.urgent;
+  const price = billingCycle === 'annual'
+    ? (selectedPlan.pricing?.annual || cfg?.pricing?.annual || 0)
     : (selectedPlan.pricing?.monthly || cfg?.pricing?.monthly || 0);
 
   const pmList = Object.entries(SUBSCRIPTION_CONFIG.PAYMENT_METHODS)
@@ -864,7 +872,7 @@ function ActionPanel({
                 <View style={[s.transferInfo, { backgroundColor: colors.bg, borderColor: colors.border }]}>
                   <Ionicons name="information-circle-outline" size={14} color={colors.textMuted} />
                   <Text style={[s.transferInfoText, { color: colors.textMuted }]}>
-                    Envoyez {fmtPrice(price)} au {pm.name.replace('iHambaObab ','')} · {pm.phone}
+                    Envoyez {fmtPrice(price)} au {pm.name.replace('iHambaObab ', '')} · {pm.phone}
                   </Text>
                 </View>
               ) : null;
@@ -890,10 +898,10 @@ function ActionPanel({
                 {submitting
                   ? <ActivityIndicator size="small" color="#fff" />
                   : <><Ionicons name="card-outline" size={16} color="#fff" />
-                      <Text style={s.bigBtnText}>
-                        {isUpgrade && upgradeMode === 'immediate' ? '⚡ Upgrader maintenant' : urgent ? '🚨 Demande Urgente' : 'Créer la Demande'}
-                      </Text>
-                    </>
+                    <Text style={s.bigBtnText}>
+                      {isUpgrade && upgradeMode === 'immediate' ? '⚡ Upgrader maintenant' : urgent ? '🚨 Demande Urgente' : 'Créer la Demande'}
+                    </Text>
+                  </>
                 }
               </TouchableOpacity>
             )}
@@ -923,11 +931,11 @@ function PendingRequestCard({
   submitting, isOffline, colors,
 }) {
   const canSubmitFirst = request.status === 'pending_payment';
-  const canModify      = request.status === 'payment_submitted';
-  const isRejected     = request.status === 'rejected';
-  const isVerified     = request.status === 'payment_verified';
-  const canCancel      = ['pending_payment','payment_submitted'].includes(request.status);
-  const canShowForm    = canSubmitFirst || canModify;
+  const canModify = request.status === 'payment_submitted';
+  const isRejected = request.status === 'rejected';
+  const isVerified = request.status === 'payment_verified';
+  const canCancel = ['pending_payment', 'payment_submitted'].includes(request.status);
+  const canShowForm = canSubmitFirst || canModify;
 
   const pd = request.paymentDetails;
 
@@ -1209,7 +1217,7 @@ function PendingRequestCard({
               <Text style={[s.proofCancelText, { color: colors.textMuted }]}>Annuler</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[s.proofSubmitBtn, { backgroundColor: colors.primary, opacity: (submitting||isOffline) ? 0.5 : 1 }]}
+              style={[s.proofSubmitBtn, { backgroundColor: colors.primary, opacity: (submitting || isOffline) ? 0.5 : 1 }]}
               onPress={onSubmitProof}
               disabled={submitting || isOffline}
               activeOpacity={0.8}
@@ -1230,7 +1238,7 @@ function PendingRequestCard({
 // FILE D'ATTENTE COMPLÈTE
 // ═══════════════════════════════════════════════════════════════════════════════
 function QueueCard({ subs, colors }) {
-  const visible = subs.filter(s => !['cancelled','rejected'].includes(s.status));
+  const visible = subs.filter(s => !['cancelled', 'rejected'].includes(s.status));
   if (!visible.length) return null;
   return (
     <View style={[s.card, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
@@ -1270,12 +1278,12 @@ function QueueCard({ subs, colors }) {
 // HISTORIQUE
 // ═══════════════════════════════════════════════════════════════════════════════
 const HIST_META = {
-  created:     { label: 'Abonnement créé',      icon: 'star-outline',            color: '#10B981' },
-  renewed:     { label: 'Abonnement renouvelé', icon: 'refresh-outline',         color: '#30A08B' },
-  activated:   { label: 'Abonnement activé',    icon: 'checkmark-circle-outline',color: '#10B981' },
-  reactivated: { label: 'Compte réactivé',      icon: 'flash-outline',           color: '#14B8A6' },
-  expired:     { label: 'Abonnement expiré',    icon: 'time-outline',            color: '#EF4444' },
-  suspended:   { label: 'Compte suspendu',      icon: 'warning-outline',         color: '#F59E0B' },
+  created: { label: 'Abonnement créé', icon: 'star-outline', color: '#10B981' },
+  renewed: { label: 'Abonnement renouvelé', icon: 'refresh-outline', color: '#30A08B' },
+  activated: { label: 'Abonnement activé', icon: 'checkmark-circle-outline', color: '#10B981' },
+  reactivated: { label: 'Compte réactivé', icon: 'flash-outline', color: '#14B8A6' },
+  expired: { label: 'Abonnement expiré', icon: 'time-outline', color: '#EF4444' },
+  suspended: { label: 'Compte suspendu', icon: 'warning-outline', color: '#F59E0B' },
 };
 
 const INIT_VISIBLE = 5;
@@ -1310,22 +1318,22 @@ function HistorySectionList({ title, items, renderItem, colors, initVisible = IN
 }
 
 function HistoryCard({ history, paymentHistory = [], colors }) {
-  const PAID_TYPES  = ['created','renewed','activated'];
+  const PAID_TYPES = ['created', 'renewed', 'activated'];
   const paidEntries = history.filter(h => PAID_TYPES.includes(h.actionType));
-  const sysEntries  = history.filter(h => !PAID_TYPES.includes(h.actionType));
+  const sysEntries = history.filter(h => !PAID_TYPES.includes(h.actionType));
 
   const activatedPayments = paymentHistory.filter(p => p.status === 'activated');
   const confirmedPayments = paymentHistory.filter(p => p.status === 'payment_verified' || p.status === 'activated');
   const totalPaid = confirmedPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
 
-  const sysActivations = history.filter(h => ['created','activated','renewed','reactivated'].includes(h.actionType));
+  const sysActivations = history.filter(h => ['created', 'activated', 'renewed', 'reactivated'].includes(h.actionType));
   const nbAbonnements = activatedPayments.length > 0 ? activatedPayments.length : sysActivations.length;
 
-  const sysConfirmed = history.filter(h => ['activated','reactivated'].includes(h.actionType));
+  const sysConfirmed = history.filter(h => ['activated', 'reactivated'].includes(h.actionType));
   const nbConfirmed = confirmedPayments.length > 0 ? confirmedPayments.length : sysConfirmed.length;
 
-  const oldest = history.map(h => h.createdAt).filter(Boolean).sort((a,b) => new Date(a)-new Date(b))[0];
-  const tenure = oldest ? Math.max(0, Math.round((Date.now() - new Date(oldest)) / (1000*60*60*24*30))) : 0;
+  const oldest = history.map(h => h.createdAt).filter(Boolean).sort((a, b) => new Date(a) - new Date(b))[0];
+  const tenure = oldest ? Math.max(0, Math.round((Date.now() - new Date(oldest)) / (1000 * 60 * 60 * 24 * 30))) : 0;
 
   if (!history.length && !paymentHistory.length) {
     return (
@@ -1349,9 +1357,9 @@ function HistoryCard({ history, paymentHistory = [], colors }) {
       </View>
       <View style={[s.histStats, { backgroundColor: colors.bgHover, borderBottomColor: colors.border }]}>
         {[
-          { val: nbAbonnements,       label: 'Abonnements' },
-          { val: nbConfirmed,         label: 'Confirmés' },
-          { val: `${tenure}m`,        label: 'Ancienneté' },
+          { val: nbAbonnements, label: 'Abonnements' },
+          { val: nbConfirmed, label: 'Confirmés' },
+          { val: `${tenure}m`, label: 'Ancienneté' },
           { val: fmtPrice(totalPaid), label: 'Total payé', small: true },
         ].map((item, i) => (
           <View key={i} style={s.histStat}>
@@ -1405,7 +1413,7 @@ function HistoryCard({ history, paymentHistory = [], colors }) {
 }
 
 function HistoryItem({ entry, colors }) {
-  const m         = HIST_META[entry.actionType] || { label: entry.actionType, icon: 'document-outline', color: '#9CA3AF' };
+  const m = HIST_META[entry.actionType] || { label: entry.actionType, icon: 'document-outline', color: '#9CA3AF' };
   const planLabel = entry?.actionDetails?.newPlan?.planType || entry?.actionDetails?.previousPlan?.planType || entry?.planType;
   return (
     <View style={[s.histItem, { borderLeftColor: m.color, backgroundColor: m.color + '12' }]}>
@@ -1429,38 +1437,38 @@ function HistoryItem({ entry, colors }) {
 // ÉCRAN PRINCIPAL
 // ═══════════════════════════════════════════════════════════════════════════════
 export default function AbonnementScreen() {
-  const { colors }                              = useTheme();
+  const { colors } = useTheme();
   const { seller, subscription, updateSubscription, token } = useAuthStore();
-  const { isOffline }                           = useSync();
+  const { isOffline } = useSync();
 
   // ─── State ──────────────────────────────────────────────────────────────────
-  const [loading, setLoading]                 = useState(true);
-  const [refreshing, setRefreshing]           = useState(false);
-  const [subData, setSubData]                 = useState(null);
-  const [availablePlans, setAvailablePlans]   = useState([]);
-  const [paymentHistory, setPaymentHistory]   = useState([]);
-  const [tab, setTab]                         = useState('historique');
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [subData, setSubData] = useState(null);
+  const [availablePlans, setAvailablePlans] = useState([]);
+  const [paymentHistory, setPaymentHistory] = useState([]);
+  const [tab, setTab] = useState('historique');
 
   // Sélection plan
-  const [selectedPlan, setSelectedPlan]       = useState(null);
-  const [billingCycle, setBillingCycle]       = useState('monthly');
-  const [paymentMethod, setPaymentMethod]     = useState('mynita');
-  const [upgradeMode, setUpgradeMode]         = useState('scheduled');
+  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [billingCycle, setBillingCycle] = useState('monthly');
+  const [paymentMethod, setPaymentMethod] = useState('mynita');
+  const [upgradeMode, setUpgradeMode] = useState('scheduled');
 
   // Formulaire preuve
-  const [showProof, setShowProof]             = useState(false);
+  const [showProof, setShowProof] = useState(false);
   const [dismissedRejected, setDismissedRejected] = useState(false);
-  const [transferCode, setTransferCode]       = useState('');
-  const [senderPhone, setSenderPhone]         = useState('');
-  const [receipt, setReceipt]                 = useState(null);
-  const [submitting, setSubmitting]           = useState(false);
+  const [transferCode, setTransferCode] = useState('');
+  const [senderPhone, setSenderPhone] = useState('');
+  const [receipt, setReceipt] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
   // Réactivation
   const [reactivationCode, setReactivationCode] = useState('');
-  const [reactivating, setReactivating]         = useState(false);
+  const [reactivating, setReactivating] = useState(false);
 
-  const scrollRef    = useRef(null);
-  const tabsYRef     = useRef(0);
+  const scrollRef = useRef(null);
+  const tabsYRef = useRef(0);
   const isOfflineRef = useRef(isOffline);
   useEffect(() => { isOfflineRef.current = isOffline; }, [isOffline]);
 
@@ -1508,8 +1516,8 @@ export default function AbonnementScreen() {
     try {
       const [statusRes, plansRes, payHistRes] = await Promise.allSettled([
         apiClient.get('/api/seller/subscription/complete-status', { timeout: TIMEOUTS.DEFAULT }),
-        apiClient.get('/api/seller/subscription/available-plans',  { timeout: TIMEOUTS.DEFAULT }),
-        apiClient.get('/api/seller/subscription/payment-history',  { timeout: TIMEOUTS.DEFAULT }),
+        apiClient.get('/api/seller/subscription/available-plans', { timeout: TIMEOUTS.DEFAULT }),
+        apiClient.get('/api/seller/subscription/payment-history', { timeout: TIMEOUTS.DEFAULT }),
       ]);
 
       // Si le token est expiré (401 sur l'une des requêtes protégées) → forceLogout
@@ -1601,7 +1609,7 @@ export default function AbonnementScreen() {
     if (isOfflineRef.current) { Toast.show({ type: 'error', text1: 'Hors ligne' }); return; }
     if (!transferCode.trim()) { Toast.show({ type: 'error', text1: 'Code requis', text2: 'Saisissez le code de transfert' }); return; }
     const pending = subData?.queueInfo?.nextSubscriptions?.find(
-      sub => ['pending_payment','payment_submitted','rejected'].includes(sub.status)
+      sub => ['pending_payment', 'payment_submitted', 'rejected'].includes(sub.status)
     );
     if (!pending?.paymentRequestId) { Toast.show({ type: 'error', text1: 'Aucune demande en attente' }); return; }
     setSubmitting(true);
@@ -1630,20 +1638,22 @@ export default function AbonnementScreen() {
     if (!requestId || isOfflineRef.current) return;
     Alert.alert('Annuler la demande', 'Cette action est irréversible. Vous pourrez créer une nouvelle demande après.', [
       { text: 'Retour', style: 'cancel' },
-      { text: 'Annuler la demande', style: 'destructive', onPress: async () => {
-        setSubmitting(true);
-        try {
-          const res = await apiClient.delete(`/api/seller/subscription/cancel-request/${requestId}`);
-          if (res.data?.status === 'success') {
-            Toast.show({ type: 'success', text1: 'Demande annulée' });
-            setShowProof(false);
-            fetchAll(true);
-          } else {
-            Toast.show({ type: 'error', text1: 'Erreur', text2: res.data?.message });
-          }
-        } catch { Toast.show({ type: 'error', text1: 'Erreur réseau' }); }
-        finally { setSubmitting(false); }
-      }},
+      {
+        text: 'Annuler la demande', style: 'destructive', onPress: async () => {
+          setSubmitting(true);
+          try {
+            const res = await apiClient.delete(`/api/seller/subscription/cancel-request/${requestId}`);
+            if (res.data?.status === 'success') {
+              Toast.show({ type: 'success', text1: 'Demande annulée' });
+              setShowProof(false);
+              fetchAll(true);
+            } else {
+              Toast.show({ type: 'error', text1: 'Erreur', text2: res.data?.message });
+            }
+          } catch { Toast.show({ type: 'error', text1: 'Erreur réseau' }); }
+          finally { setSubmitting(false); }
+        }
+      },
     ]);
   };
 
@@ -1666,29 +1676,29 @@ export default function AbonnementScreen() {
   };
 
   // ─── Données dérivées ────────────────────────────────────────────────────────
-  const statusInfo     = subData?.statusInfo;
-  const status         = statusInfo?.status || subscription?.status || null;
-  const activeSub      = subData?.activeSubscription;
-  const productCount   = subData?.productCount || 0;
-  const history        = subData?.history || [];
-  const allQueued        = subData?.queueInfo?.nextSubscriptions || [];
-  const activeQueued     = allQueued.filter(s => !['cancelled','rejected'].includes(s.status));
+  const statusInfo = subData?.statusInfo;
+  const status = statusInfo?.status || subscription?.status || null;
+  const activeSub = subData?.activeSubscription;
+  const productCount = subData?.productCount || 0;
+  const history = subData?.history || [];
+  const allQueued = subData?.queueInfo?.nextSubscriptions || [];
+  const activeQueued = allQueued.filter(s => !['cancelled', 'rejected'].includes(s.status));
   // Uniquement les abonnements déjà validés en attente de démarrage (PendingRequestCard gère les autres)
-  const scheduledQueued  = allQueued.filter(s => ['queued','payment_verified'].includes(s.status));
+  const scheduledQueued = allQueued.filter(s => ['queued', 'payment_verified'].includes(s.status));
 
-  const STATUS_PRIO    = ['pending_payment','payment_submitted','rejected','payment_verified','cancelled'];
+  const STATUS_PRIO = ['pending_payment', 'payment_submitted', 'rejected', 'payment_verified', 'cancelled'];
   const pendingRequest = allQueued
     .filter(s => STATUS_PRIO.includes(s.status))
-    .sort((a,b) => STATUS_PRIO.indexOf(a.status) - STATUS_PRIO.indexOf(b.status))[0];
+    .sort((a, b) => STATUS_PRIO.indexOf(a.status) - STATUS_PRIO.indexOf(b.status))[0];
 
   // rejected n'est pas une demande "en cours" — le vendeur peut refaire une demande
-  const hasPendingRequest = allQueued.some(s => ['pending_payment','payment_submitted','payment_verified'].includes(s.status));
-  const canCreateRequest  = statusInfo?.canCreateRequest;
-  const canUpgradeNow     = statusInfo?.canUpgradeNow;
-  const isSuspended       = status === 'suspended';
-  const isTrialMode       = status === 'no_subscription';
-  const upgradeOnly       = !isTrialMode && !isSuspended && !canCreateRequest && !!canUpgradeNow;
-  const activePlanType    = activeSub?.planType;
+  const hasPendingRequest = allQueued.some(s => ['pending_payment', 'payment_submitted', 'payment_verified'].includes(s.status));
+  const canCreateRequest = statusInfo?.canCreateRequest;
+  const canUpgradeNow = statusInfo?.canUpgradeNow;
+  const isSuspended = status === 'suspended';
+  const isTrialMode = status === 'no_subscription';
+  const upgradeOnly = !isTrialMode && !isSuspended && !canCreateRequest && !!canUpgradeNow;
+  const activePlanType = activeSub?.planType;
 
   const hasHigherPlans = upgradeOnly
     ? availablePlans.some(p => planRank(p.name) > planRank(activePlanType))
@@ -1705,10 +1715,10 @@ export default function AbonnementScreen() {
     if (availablePlans.length > 0) return availablePlans;
     return Object.entries(SUBSCRIPTION_CONFIG.PLANS).map(([name, cfg]) => ({
       name,
-      description:  cfg.description,
-      pricing:      { monthly: cfg.pricing.monthly, annual: cfg.pricing.annual },
-      trialMonths:  cfg.pricing.trialMonths,
-      commission:   cfg.commission,
+      description: cfg.description,
+      pricing: { monthly: cfg.pricing.monthly, annual: cfg.pricing.annual },
+      trialMonths: cfg.pricing.trialMonths,
+      commission: cfg.commission,
       productLimit: cfg.productLimit,
     }));
   }, [availablePlans]);
@@ -1799,7 +1809,7 @@ export default function AbonnementScreen() {
               setShowProof(open);
             }}
             transferCode={transferCode} setTransferCode={setTransferCode}
-            senderPhone={senderPhone}  setSenderPhone={setSenderPhone}
+            senderPhone={senderPhone} setSenderPhone={setSenderPhone}
             receipt={receipt} setReceipt={setReceipt}
             onSubmitProof={submitProof}
             onCancelRequest={() => cancelRequest(pendingRequest.paymentRequestId || pendingRequest._id)}
@@ -1860,7 +1870,7 @@ export default function AbonnementScreen() {
               upgradeOnly={upgradeOnly}
               billingCycle={billingCycle}
               paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod}
-              upgradeMode={upgradeMode}     setUpgradeMode={setUpgradeMode}
+              upgradeMode={upgradeMode} setUpgradeMode={setUpgradeMode}
               onSubmit={isTrialMode ? startTrial : createRequest}
               submitting={submitting}
               isOffline={isOffline}
@@ -1891,8 +1901,8 @@ export { AbonnementScreen as AbonnementWallScreen };
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  scroll:      { padding: 16, gap: 12 },
-  centered:    { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
+  scroll: { padding: 16, gap: 12 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
   loadingText: { fontSize: 13 },
 
   offlineBanner: {
@@ -1900,14 +1910,14 @@ const s = StyleSheet.create({
     borderRadius: 12, borderWidth: 1, padding: 12,
   },
   offlineBannerTitle: { fontSize: 12, fontWeight: '700' },
-  offlineBannerSub:   { fontSize: 11, marginTop: 2, lineHeight: 16 },
+  offlineBannerSub: { fontSize: 11, marginTop: 2, lineHeight: 16 },
 
   reconnectBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     borderRadius: 14, borderWidth: 2, padding: 14,
   },
   reconnectBannerTitle: { fontSize: 13, fontWeight: '700' },
-  reconnectBannerSub:   { fontSize: 11, marginTop: 2, lineHeight: 16 },
+  reconnectBannerSub: { fontSize: 11, marginTop: 2, lineHeight: 16 },
   reconnectBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     borderRadius: 10, paddingVertical: 10, paddingHorizontal: 14,
@@ -1921,61 +1931,61 @@ const s = StyleSheet.create({
   returnLoginText: { fontSize: 13, fontWeight: '600', color: '#6B7280' },
 
   // Status card
-  statusCard:       { borderRadius: 16, borderWidth: 2, padding: 16, gap: 12 },
+  statusCard: { borderRadius: 16, borderWidth: 2, padding: 16, gap: 12 },
   statusCardHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  statusIcon:       { width: 48, height: 48, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  statusTitle:      { fontSize: 15, fontWeight: '800', marginBottom: 2 },
-  statusSub:        { fontSize: 13, fontWeight: '600' },
-  statusDate:       { fontSize: 11, marginTop: 2 },
+  statusIcon: { width: 48, height: 48, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  statusTitle: { fontSize: 15, fontWeight: '800', marginBottom: 2 },
+  statusSub: { fontSize: 13, fontWeight: '600' },
+  statusDate: { fontSize: 11, marginTop: 2 },
 
   tripleGrid: { flexDirection: 'row', gap: 8 },
   tripleItem: { flex: 1, borderRadius: 10, borderWidth: 1, padding: 10, alignItems: 'center', gap: 2 },
-  tripleVal:  { fontSize: 18, fontWeight: '900' },
-  tripleLabel:{ fontSize: 11, fontWeight: '700', textAlign: 'center' },
-  tripleSub:  { fontSize: 10, textAlign: 'center' },
+  tripleVal: { fontSize: 18, fontWeight: '900' },
+  tripleLabel: { fontSize: 11, fontWeight: '700', textAlign: 'center' },
+  tripleSub: { fontSize: 10, textAlign: 'center' },
 
-  usageBarBg:   { width: '100%', height: 4, backgroundColor: '#E5E7EB', borderRadius: 2, marginTop: 4 },
+  usageBarBg: { width: '100%', height: 4, backgroundColor: '#E5E7EB', borderRadius: 2, marginTop: 4 },
   usageBarFill: { height: 4, borderRadius: 2 },
 
   hintText: { fontSize: 12, fontWeight: '600', textAlign: 'center' },
 
-  infoBox:      { borderRadius: 10, borderWidth: 1, padding: 12, gap: 4 },
-  infoBoxRow:   { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
+  infoBox: { borderRadius: 10, borderWidth: 1, padding: 12, gap: 4 },
+  infoBoxRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
   infoBoxTitle: { fontSize: 13, fontWeight: '700', marginBottom: 4 },
-  infoBoxLine:  { fontSize: 12, lineHeight: 18, flex: 1 },
-  infoRow:      { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  infoRowText:  { fontSize: 13, lineHeight: 18, flex: 1 },
+  infoBoxLine: { fontSize: 12, lineHeight: 18, flex: 1 },
+  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  infoRowText: { fontSize: 13, lineHeight: 18, flex: 1 },
 
   // Bloc instructions de paiement
-  payInstr:           { marginHorizontal: 12, marginBottom: 12, borderRadius: 14, overflow: 'hidden', borderWidth: 1.5, borderColor: '#30A08B' },
-  payInstrHeader:     { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#30A08B', paddingVertical: 10, paddingHorizontal: 14 },
+  payInstr: { marginHorizontal: 12, marginBottom: 12, borderRadius: 14, overflow: 'hidden', borderWidth: 1.5, borderColor: '#30A08B' },
+  payInstrHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#30A08B', paddingVertical: 10, paddingHorizontal: 14 },
   payInstrHeaderText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   // payInstrAmount et payInstrDetails : bg passé en inline via colors
-  payInstrAmount:     { alignItems: 'center', paddingVertical: 18, paddingHorizontal: 14 },
-  payInstrAmountLabel:{ fontSize: 11, color: '#30A08B', fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4 },
-  payInstrAmountValue:{ fontSize: 28, fontWeight: '800', color: '#1A6B5A', letterSpacing: -0.5 },
-  payInstrDetails:    { paddingHorizontal: 14, paddingVertical: 6 },
-  payInstrRow:        { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#E6F5F2' },
-  payInstrIconWrap:   { width: 32, height: 32, borderRadius: 8, backgroundColor: '#E6F5F2', alignItems: 'center', justifyContent: 'center' },
-  payInstrRowLabel:   { fontSize: 10, color: '#6B7280', fontWeight: '600', letterSpacing: 0.3, textTransform: 'uppercase', marginBottom: 2 },
-  payInstrRowValue:   { fontSize: 14, fontWeight: '700', color: '#111827' },
-  payInstrHint:       { backgroundColor: '#FFFBEB', paddingVertical: 10, paddingHorizontal: 14, borderTopWidth: 1, borderTopColor: '#FDE68A' },
-  payInstrHintText:   { fontSize: 12, color: '#92400E', lineHeight: 17 },
+  payInstrAmount: { alignItems: 'center', paddingVertical: 18, paddingHorizontal: 14 },
+  payInstrAmountLabel: { fontSize: 11, color: '#30A08B', fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4 },
+  payInstrAmountValue: { fontSize: 28, fontWeight: '800', color: '#1A6B5A', letterSpacing: -0.5 },
+  payInstrDetails: { paddingHorizontal: 14, paddingVertical: 6 },
+  payInstrRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#E6F5F2' },
+  payInstrIconWrap: { width: 32, height: 32, borderRadius: 8, backgroundColor: '#E6F5F2', alignItems: 'center', justifyContent: 'center' },
+  payInstrRowLabel: { fontSize: 10, color: '#6B7280', fontWeight: '600', letterSpacing: 0.3, textTransform: 'uppercase', marginBottom: 2 },
+  payInstrRowValue: { fontSize: 14, fontWeight: '700', color: '#111827' },
+  payInstrHint: { backgroundColor: '#FFFBEB', paddingVertical: 10, paddingHorizontal: 14, borderTopWidth: 1, borderTopColor: '#FDE68A' },
+  payInstrHintText: { fontSize: 12, color: '#92400E', lineHeight: 17 },
 
-  warnBanner:     { borderRadius: 10, borderWidth: 1, padding: 10 },
+  warnBanner: { borderRadius: 10, borderWidth: 1, padding: 10 },
   warnBannerText: { fontSize: 12, fontWeight: '600', textAlign: 'center' },
 
-  posBanner:      { borderRadius: 10, borderWidth: 1, padding: 10, flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
+  posBanner: { borderRadius: 10, borderWidth: 1, padding: 10, flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
   posBannerTitle: { fontSize: 12, fontWeight: '700' },
-  posBannerSub:   { fontSize: 11, lineHeight: 16, marginTop: 2 },
+  posBannerSub: { fontSize: 11, lineHeight: 16, marginTop: 2 },
 
   // Queue mini
-  queueMini:       { borderRadius: 10, borderWidth: 1, padding: 10, gap: 6 },
-  queueMiniTitle:  { fontSize: 12, fontWeight: '700' },
-  queueMiniRow:    { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  queueMiniNum:    { width: 20, height: 20, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  queueMiniNumText:{ fontSize: 10, fontWeight: '800', color: '#fff' },
-  queueMiniPlan:   { flex: 1, fontSize: 12, fontWeight: '600' },
+  queueMini: { borderRadius: 10, borderWidth: 1, padding: 10, gap: 6 },
+  queueMiniTitle: { fontSize: 12, fontWeight: '700' },
+  queueMiniRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  queueMiniNum: { width: 20, height: 20, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  queueMiniNumText: { fontSize: 10, fontWeight: '800', color: '#fff' },
+  queueMiniPlan: { flex: 1, fontSize: 12, fontWeight: '600' },
 
   // Generic card
   card: {
@@ -1984,50 +1994,50 @@ const s = StyleSheet.create({
   cardTitle: { fontSize: 14, fontWeight: '800', padding: 14, paddingBottom: 8 },
 
   // Section header
-  sectionHeader:     { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 14 },
-  sectionHeaderTitle:{ fontSize: 15, fontWeight: '800', color: '#fff' },
-  sectionHeaderSub:  { fontSize: 11, color: '#ffffffcc', marginTop: 2 },
+  sectionHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 14 },
+  sectionHeaderTitle: { fontSize: 15, fontWeight: '800', color: '#fff' },
+  sectionHeaderSub: { fontSize: 11, color: '#ffffffcc', marginTop: 2 },
 
   // Queue full
-  queueFullRow:  { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 10, borderWidth: 1, padding: 10 },
-  queueFullNum:  { width: 32, height: 32, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  queueNote:     { borderRadius: 10, borderWidth: 1, padding: 10, marginTop: 4 },
+  queueFullRow: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 10, borderWidth: 1, padding: 10 },
+  queueFullNum: { width: 32, height: 32, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  queueNote: { borderRadius: 10, borderWidth: 1, padding: 10, marginTop: 4 },
   queueNoteText: { fontSize: 12, lineHeight: 17 },
 
-  chip:     { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
+  chip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
   chipText: { fontSize: 10, fontWeight: '700' },
 
   // Plans carousel
-  plansHeader:     { padding: 16, gap: 4 },
-  plansHeaderTitle:{ fontSize: 15, fontWeight: '800', color: '#fff' },
-  plansHeaderSub:  { fontSize: 12, color: '#ffffffcc' },
+  plansHeader: { padding: 16, gap: 4 },
+  plansHeaderTitle: { fontSize: 15, fontWeight: '800', color: '#fff' },
+  plansHeaderSub: { fontSize: 12, color: '#ffffffcc' },
 
   cycleToggle: { flexDirection: 'row', borderRadius: 10, borderWidth: 1, overflow: 'hidden', padding: 3, gap: 3 },
-  cycleBtn:    { flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
-  cycleBtnText:{ fontSize: 12, fontWeight: '700' },
+  cycleBtn: { flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
+  cycleBtnText: { fontSize: 12, fontWeight: '700' },
 
   // Plan card
   planCard: {
     borderRadius: 14, overflow: 'hidden', marginVertical: 4,
   },
-  planCardTop:  { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 14 },
+  planCardTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 14 },
   planIconWrap: { width: 38, height: 38, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
   planCardName: { fontSize: 18, fontWeight: '900', color: '#fff' },
   planCardDesc: { fontSize: 11, color: 'rgba(255,255,255,0.85)', marginTop: 2, lineHeight: 15 },
 
   popularBadge: { position: 'absolute', top: 0, right: 0, zIndex: 2, paddingHorizontal: 10, paddingVertical: 4, borderBottomLeftRadius: 10 },
-  currentBadge: { position: 'absolute', top: 0, left: 0,  zIndex: 2, paddingHorizontal: 10, paddingVertical: 4, borderBottomRightRadius: 10 },
-  badgeText:    { fontSize: 10, fontWeight: '800', color: '#fff' },
+  currentBadge: { position: 'absolute', top: 0, left: 0, zIndex: 2, paddingHorizontal: 10, paddingVertical: 4, borderBottomRightRadius: 10 },
+  badgeText: { fontSize: 10, fontWeight: '800', color: '#fff' },
 
   radioCircle: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, justifyContent: 'center', alignItems: 'center' },
-  radioDot:    { width: 11, height: 11, borderRadius: 6, backgroundColor: '#fff' },
+  radioDot: { width: 11, height: 11, borderRadius: 6, backgroundColor: '#fff' },
 
   planPriceRow: { flexDirection: 'row', alignItems: 'baseline', gap: 3, paddingHorizontal: 14, paddingTop: 12 },
-  planPrice:    { fontSize: 26, fontWeight: '900' },
+  planPrice: { fontSize: 26, fontWeight: '900' },
   planPricePer: { fontSize: 13 },
   discountChip: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginLeft: 4 },
   discountChipText: { fontSize: 10, fontWeight: '800' },
-  savingsText:  { fontSize: 11, fontWeight: '700', color: '#10B981', paddingHorizontal: 14, marginTop: 2 },
+  savingsText: { fontSize: 11, fontWeight: '700', color: '#10B981', paddingHorizontal: 14, marginTop: 2 },
 
   trialChip: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
@@ -2037,43 +2047,43 @@ const s = StyleSheet.create({
   trialChipText: { fontSize: 12, fontWeight: '700' },
 
   featureList: { padding: 14, gap: 7 },
-  featureRow:  { flexDirection: 'row', alignItems: 'flex-start', gap: 7 },
+  featureRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 7 },
   featureText: { fontSize: 12, flex: 1, lineHeight: 17 },
 
   // Dots
   dotsRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5, paddingBottom: 14 },
-  dot:     { width: 8, height: 8, borderRadius: 4 },
+  dot: { width: 8, height: 8, borderRadius: 4 },
 
   // Action panel
   radioCircle2: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, justifyContent: 'center', alignItems: 'center' },
-  radioDot2:    { width: 10, height: 10, borderRadius: 5 },
+  radioDot2: { width: 10, height: 10, borderRadius: 5 },
 
   trialActionBox: { borderRadius: 12, borderWidth: 2, overflow: 'hidden' },
   trialActionTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 12 },
-  trialActionTitle:{ fontSize: 14, fontWeight: '700', flex: 1 },
-  trialActionSub:  { fontSize: 12, marginTop: 4, lineHeight: 17, flex: 1 },
+  trialActionTitle: { fontSize: 14, fontWeight: '700', flex: 1 },
+  trialActionSub: { fontSize: 12, marginTop: 4, lineHeight: 17, flex: 1 },
 
-  upgradeBox:        { borderRadius: 12, borderWidth: 2, overflow: 'hidden' },
-  upgradeBoxTop:     { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 10 },
+  upgradeBox: { borderRadius: 12, borderWidth: 2, overflow: 'hidden' },
+  upgradeBoxTop: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 10 },
   upgradeBoxTopText: { fontSize: 13, fontWeight: '700', color: '#fff', flex: 1 },
-  upgradeTag:        { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.25)' },
-  upgradeTagText:    { fontSize: 10, fontWeight: '700', color: '#fff' },
-  upgradeModeRow:    { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB' },
-  upgradeModeTitle:  { fontSize: 13, fontWeight: '600' },
-  upgradeModeDesc:   { fontSize: 11, marginTop: 2, lineHeight: 16 },
+  upgradeTag: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.25)' },
+  upgradeTagText: { fontSize: 10, fontWeight: '700', color: '#fff' },
+  upgradeModeRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB' },
+  upgradeModeTitle: { fontSize: 13, fontWeight: '600' },
+  upgradeModeDesc: { fontSize: 11, marginTop: 2, lineHeight: 16 },
 
   pmLabel: { fontSize: 11, fontWeight: '700' },
-  pmGrid:  { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  pmCard:  { flex: 1, minWidth: '44%', borderRadius: 10, padding: 10, alignItems: 'center', gap: 3 },
+  pmGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  pmCard: { flex: 1, minWidth: '44%', borderRadius: 10, padding: 10, alignItems: 'center', gap: 3 },
   pmCardLabel: { fontSize: 12, fontWeight: '700', textAlign: 'center' },
   pmCardPhone: { fontSize: 10, textAlign: 'center' },
 
-  transferInfo:     { flexDirection: 'row', alignItems: 'flex-start', gap: 7, borderRadius: 10, borderWidth: 1, padding: 10 },
+  transferInfo: { flexDirection: 'row', alignItems: 'flex-start', gap: 7, borderRadius: 10, borderWidth: 1, padding: 10 },
   transferInfoText: { flex: 1, fontSize: 12, lineHeight: 17 },
 
   urgentNote: { borderRadius: 10, borderWidth: 1, padding: 10 },
 
-  bigBtn:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 12, paddingVertical: 14 },
+  bigBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 12, paddingVertical: 14 },
   bigBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
 
   // Suspended / code
@@ -2083,51 +2093,51 @@ const s = StyleSheet.create({
     fontSize: 18, fontWeight: '800', letterSpacing: 4, textAlign: 'center',
     marginBottom: 10,
   },
-  helpBox:  { borderRadius: 8, borderWidth: 1, padding: 10, marginTop: 10 },
+  helpBox: { borderRadius: 8, borderWidth: 1, padding: 10, marginTop: 10 },
   helpText: { fontSize: 12, lineHeight: 17 },
 
   // Pending request
-  reqRow:    { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 10, borderWidth: 1, padding: 10, margin: 12, marginTop: 0 },
-  reqPlan:   { fontSize: 13, fontWeight: '700' },
-  reqDate:   { fontSize: 11, marginTop: 2 },
-  alertBox:  { flexDirection: 'row', alignItems: 'flex-start', gap: 7, borderRadius: 8, borderWidth: 1, padding: 10, marginHorizontal: 12, marginBottom: 4 },
+  reqRow: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 10, borderWidth: 1, padding: 10, margin: 12, marginTop: 0 },
+  reqPlan: { fontSize: 13, fontWeight: '700' },
+  reqDate: { fontSize: 11, marginTop: 2 },
+  alertBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 7, borderRadius: 8, borderWidth: 1, padding: 10, marginHorizontal: 12, marginBottom: 4 },
   alertText: { fontSize: 12, flex: 1, lineHeight: 17 },
-  reqActions:   { flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingBottom: 12 },
-  proofBtn:     { flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 10, paddingVertical: 10 },
+  reqActions: { flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingBottom: 12 },
+  proofBtn: { flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 10, paddingVertical: 10 },
   proofBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 },
-  cancelBtn:     { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 10, borderWidth: 1, paddingVertical: 10 },
+  cancelBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 10, borderWidth: 1, paddingVertical: 10 },
   cancelBtnText: { fontSize: 12, fontWeight: '600' },
 
-  proofForm:      { borderTopWidth: 1, padding: 12, gap: 6 },
+  proofForm: { borderTopWidth: 1, padding: 12, gap: 6 },
   proofFormTitle: { fontSize: 14, fontWeight: '800' },
-  proofFormSub:   { fontSize: 12, lineHeight: 17 },
-  inputLabel:     { fontSize: 11, fontWeight: '600', marginTop: 4 },
-  input:          { borderRadius: 10, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 10, fontSize: 13 },
-  receiptPicker:  { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 10, borderWidth: 1, borderStyle: 'dashed', paddingVertical: 12, paddingHorizontal: 14 },
+  proofFormSub: { fontSize: 12, lineHeight: 17 },
+  inputLabel: { fontSize: 11, fontWeight: '600', marginTop: 4 },
+  input: { borderRadius: 10, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 10, fontSize: 13 },
+  receiptPicker: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 10, borderWidth: 1, borderStyle: 'dashed', paddingVertical: 12, paddingHorizontal: 14 },
   receiptPickerText: { fontSize: 13 },
-  proofBtns:      { flexDirection: 'row', gap: 8, marginTop: 4 },
+  proofBtns: { flexDirection: 'row', gap: 8, marginTop: 4 },
   proofCancelBtn: { flex: 1, borderRadius: 10, borderWidth: 1, paddingVertical: 11, alignItems: 'center', justifyContent: 'center' },
-  proofCancelText:{ fontSize: 13, fontWeight: '600' },
+  proofCancelText: { fontSize: 13, fontWeight: '600' },
   proofSubmitBtn: { flex: 2, borderRadius: 10, paddingVertical: 11, alignItems: 'center', justifyContent: 'center' },
-  proofSubmitText:{ color: '#fff', fontSize: 13, fontWeight: '800' },
+  proofSubmitText: { color: '#fff', fontSize: 13, fontWeight: '800' },
 
   // Tabs
-  tabRow:    { flexDirection: 'row', borderRadius: 12, borderWidth: 1, overflow: 'hidden' },
-  tabBtn:    { flex: 1, paddingVertical: 11, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  tabBtnText:{ fontSize: 13, fontWeight: '700' },
+  tabRow: { flexDirection: 'row', borderRadius: 12, borderWidth: 1, overflow: 'hidden' },
+  tabBtn: { flex: 1, paddingVertical: 11, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  tabBtnText: { fontSize: 13, fontWeight: '700' },
 
   // History
-  histStats:     { flexDirection: 'row', padding: 12, borderBottomWidth: 1, gap: 4 },
-  histStat:      { flex: 1, alignItems: 'center', gap: 2 },
-  histStatVal:   { fontWeight: '800' },
+  histStats: { flexDirection: 'row', padding: 12, borderBottomWidth: 1, gap: 4 },
+  histStat: { flex: 1, alignItems: 'center', gap: 2 },
+  histStatVal: { fontWeight: '800' },
   histStatLabel: { fontSize: 9, textAlign: 'center' },
-  histSection:   { fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
-  histItem:      { flexDirection: 'row', alignItems: 'flex-start', gap: 10, borderLeftWidth: 4, borderRadius: 8, padding: 10 },
+  histSection: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
+  histItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, borderLeftWidth: 4, borderRadius: 8, padding: 10 },
   histItemTitle: { fontSize: 13, fontWeight: '700' },
-  histItemSub:   { fontSize: 11, marginTop: 2 },
-  histItemNote:  { fontSize: 10, marginTop: 2, fontStyle: 'italic' },
-  histItemDate:  { fontSize: 11, fontWeight: '600' },
-  histItemAmount:{ fontSize: 11, fontWeight: '700', marginTop: 2 },
+  histItemSub: { fontSize: 11, marginTop: 2 },
+  histItemNote: { fontSize: 10, marginTop: 2, fontStyle: 'italic' },
+  histItemDate: { fontSize: 11, fontWeight: '600' },
+  histItemAmount: { fontSize: 11, fontWeight: '700', marginTop: 2 },
 
   emptyText: { fontSize: 13 },
 });

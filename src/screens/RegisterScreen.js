@@ -488,7 +488,11 @@ function Step1({ form, setField, errors, onOtpVerified }) {
       {/* Choix méthode — masqué une fois le code envoyé */}
       {!otpSent && (
         <View style={st.methodRow}>
-          {[{ v: 'email', icon: 'mail-outline', label: 'Email' }, { v: 'phone', icon: 'phone-portrait-outline', label: 'Téléphone' }].map(m => (
+          {[
+            { v: 'email', icon: 'mail-outline',           label: 'Email' },
+            { v: 'phone', icon: 'phone-portrait-outline', label: 'SMS'   },
+            // { v: 'whatsapp', icon: 'logo-whatsapp', label: 'WhatsApp' }, // DÉSACTIVÉ
+          ].map(m => (
             <TouchableOpacity
               key={m.v}
               style={[st.methodBtn, method === m.v && st.methodBtnActive]}
@@ -565,9 +569,9 @@ function Step1({ form, setField, errors, onOtpVerified }) {
               maxLength={country.format.length}
             />
           </View>
-          {!smsAvailable && (
+          {method === 'phone' && !smsAvailable && (
             <Text style={{ fontSize: 11, color: '#F59E0B', marginTop: 5 }}>
-              SMS uniquement pour Niger (+227) et Bénin (+229). Utilisez email pour les autres pays.
+              SMS disponible uniquement pour Niger (+227) et Bénin (+229). Utilisez votre Email.
             </Text>
           )}
           <FieldError msg={localErr} />

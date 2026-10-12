@@ -27,6 +27,24 @@ const resetSyncStore = async () => {
   } catch (_) {}
 };
 
+const BLOCKED_KEY = 'sellerBlockedInfo';
+
+const loadBlockedInfo = async () => {
+  try {
+    const raw = await AsyncStorage.getItem(BLOCKED_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch { return null; }
+};
+
+const saveBlockedInfo = async (reason) => {
+  try { await AsyncStorage.setItem(BLOCKED_KEY, JSON.stringify({ blocked: true, reason: reason || null })); } catch (_) {}
+};
+
+const clearBlockedInfo = async () => {
+  try { await AsyncStorage.removeItem(BLOCKED_KEY); } catch (_) {}
+};
+
 export const useAuthStore = create((set) => ({
   seller: null,
   token: null,
@@ -36,10 +54,23 @@ export const useAuthStore = create((set) => ({
   loading: false,
   error: null,
   isResubscriptionToken: false, // true = token limité abonnement uniquement (1h)
+  blockedByAdmin: false,        // compte bloqué manuellement par un admin (≠ abonnement expiré)
+  adminBlockReason: null,       // raison communiquée par l'admin
 
   // ─── Vérification au démarrage de l'app ───────────────────────────────────
   verifyAuth: async () => {
     try {
+      // Vérifie d'abord si le compte a été bloqué par un admin (persiste entre les redémarrages)
+      const blockedInfo = await loadBlockedInfo();
+      if (blockedInfo?.blocked) {
+        return set({
+          authChecked: true,
+          isAuthenticated: false,
+          blockedByAdmin: true,
+          adminBlockReason: blockedInfo.reason || null,
+        });
+      }
+
       const raw = await AsyncStorage.getItem(STORAGE_KEY);
       if (!raw) return set({ authChecked: true });
 
@@ -56,8 +87,16 @@ export const useAuthStore = create((set) => ({
             timeout: 8000,
           });
 
-          if (res.data?.code === 'ACCOUNT_SUSPENDED') {
-            // Garde la session avec statut suspendu → le navigator affiche le mur
+          if (res.data?.code === 'ACCOUNT_SUSPENDED' || res.data?.code === 'ACCOUNT_BLOCKED' || res.data?.isAdminBlock === true) {
+            const isAdminBlock = res.data?.code === 'ACCOUNT_BLOCKED' || res.data?.isAdminBlock === true;
+            if (isAdminBlock) {
+              // Bloc admin : déconnecte + persiste la raison
+              const reason = res.data?.reason || res.data?.message || null;
+              await saveBlockedInfo(reason);
+              await clearSession();
+              return set({ seller: null, token: null, isAuthenticated: false, authChecked: true, blockedByAdmin: true, adminBlockReason: reason });
+            }
+            // Garde la session avec statut suspendu → le navigator affiche le mur abonnement
             return set({
               seller: stored.seller, token: stored.token,
               subscription: { ...(stored.subscription || {}), status: 'suspended' },
@@ -233,6 +272,21 @@ export const useAuthStore = create((set) => ({
             || errData?.statusInfo?.status === 'no_subscription'
             || errData?.accessibility?.canResubscribe === true);
 
+      // 403 bloc admin : compte désactivé manuellement par un admin
+      const isAdminBlock = status === 403
+        && (errData?.code === 'ACCOUNT_BLOCKED'
+            || errData?.isAdminBlock === true
+            || (!errData?.token && (
+                errData?.message === 'Compte vendeur inactif'
+                || errData?.error?.includes('actif'))));
+
+      if (isAdminBlock) {
+        const reason = errData?.suspensionReason || errData?.message || errData?.error || null;
+        await saveBlockedInfo(reason);
+        set({ loading: false, blockedByAdmin: true, adminBlockReason: reason });
+        return { success: false, blocked: true, reason };
+      }
+
       if (isSubscriptionBlock) {
         const seller = errData.user || errData.seller || {};
         const subStatus = errData.statusInfo?.status || errData.completeStatus?.statusInfo?.status || 'suspended';
@@ -253,22 +307,44 @@ export const useAuthStore = create((set) => ({
     }
   },
 
-  // ─── Déconnexion ──────────────────────────────────────────────────────────
-  logout: async () => {
+  // ─── Bloc admin : déconnecte + persiste la raison ───────────────────────
+  markBlockedByAdmin: async (reason = null) => {
+    await saveBlockedInfo(reason);
     await clearSession();
     await resetSyncStore();
     try {
       const { mutationQueue } = require('../services/mutationQueue');
       mutationQueue.reset();
     } catch (_) {}
-    set({ seller: null, token: null, isAuthenticated: false, authChecked: true, error: null, isResubscriptionToken: false });
+    set({ seller: null, token: null, isAuthenticated: false, authChecked: true,
+          isResubscriptionToken: false, blockedByAdmin: true, adminBlockReason: reason || null });
+  },
+
+  // Efface le flag de blocage admin (appelé quand l'utilisateur clique "Retour à la connexion")
+  clearBlockedFlag: async () => {
+    await clearBlockedInfo();
+    set({ blockedByAdmin: false, adminBlockReason: null });
+  },
+
+  // ─── Déconnexion ──────────────────────────────────────────────────────────
+  logout: async () => {
+    await clearSession();
+    await clearBlockedInfo();
+    await resetSyncStore();
+    try {
+      const { mutationQueue } = require('../services/mutationQueue');
+      mutationQueue.reset();
+    } catch (_) {}
+    set({ seller: null, token: null, isAuthenticated: false, authChecked: true, error: null,
+          isResubscriptionToken: false, blockedByAdmin: false, adminBlockReason: null });
   },
 
   // Logout forcé (401 intercepté par axios)
   forceLogout: async () => {
     await clearSession();
     await resetSyncStore();
-    set({ seller: null, token: null, isAuthenticated: false, authChecked: true, isResubscriptionToken: false });
+    set({ seller: null, token: null, isAuthenticated: false, authChecked: true,
+          isResubscriptionToken: false });
   },
 
   updateSeller: async (data) => {

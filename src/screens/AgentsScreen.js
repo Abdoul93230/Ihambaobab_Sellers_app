@@ -204,6 +204,7 @@ export default function AgentsScreen() {
   const { colors }     = useTheme();
   const { token, subscription } = useAuthStore();
   const { isOffline }  = useSync();
+  const insets         = useSafeAreaInsets();
 
   const planType = subscription?.planName || 'Starter';
   const quota    = PLAN_QUOTA[planType] ?? 0;
@@ -411,7 +412,7 @@ export default function AgentsScreen() {
           </Text>
           {quota > 0 && (
             <Text style={[styles.emptyHint, { color: colors.textDisabled }]}>
-              Vous pouvez créer jusqu'à {quota} agent{quota > 1 ? 's' : ''} caissier
+              Vous pouvez créer jusqu'à {quota} agent{quota > 1 ? 's' : ''} caissier{quota > 1 ? 's' : ''}
             </Text>
           )}
         </View>
@@ -534,7 +535,7 @@ export default function AgentsScreen() {
               style={StyleSheet.absoluteFillObject}
               onPress={() => { setShowModal(false); resetForm(); }}
             />
-            <View style={[styles.modalContent, { backgroundColor: colors.bgCard }]}>
+            <View style={[styles.modalContent, { backgroundColor: colors.bgCard, paddingBottom: Math.max(insets.bottom, 20) }]}>
               <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
               <Text style={[styles.modalTitle, { color: colors.text }]}>Nouvel agent caissier</Text>
 

@@ -268,7 +268,12 @@ export default function AgentLoginScreen() {
       clearError();
       setStep(2);
     } catch (e) {
-      setVerifyError(e.response?.data?.message || 'Impossible de vérifier les informations');
+      const backMsg = e.response?.data?.message;
+      setVerifyError(
+        e.response?.status === 403
+          ? (backMsg || 'Votre compte a été désactivé par l\'administrateur de la boutique.')
+          : (backMsg || 'Impossible de vérifier les informations. Vérifiez votre connexion.')
+      );
     } finally {
       setVerifying(false);
     }

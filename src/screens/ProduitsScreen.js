@@ -81,11 +81,11 @@ function ProduitCard({ produit, onPress, colors }) {
           <View>
             {hasPromo ? (
               <>
-                <Text style={[styles.cardPrixOld, { color: colors.textMuted }]}>{fmt(produit.prix)} ₣</Text>
-                <Text style={[styles.cardPrix, { color: '#EF4444' }]}>{fmt(produit.prixPromo)} ₣</Text>
+                <Text style={[styles.cardPrixOld, { color: colors.textMuted }]}>{fmt(produit.prix)} FCFA</Text>
+                <Text style={[styles.cardPrix, { color: '#EF4444' }]}>{fmt(produit.prixPromo)} FCFA</Text>
               </>
             ) : (
-              <Text style={[styles.cardPrix, { color: colors.primary }]}>{fmt(produit.prix)} ₣</Text>
+              <Text style={[styles.cardPrix, { color: colors.primary }]}>{fmt(produit.prix)} FCFA</Text>
             )}
           </View>
           <View style={[styles.stockBadge, { backgroundColor: stock < 5 ? '#FEF2F2' : colors.bgHover }]}>
@@ -128,11 +128,11 @@ function ProduitRow({ produit, onPress, colors }) {
       <View style={styles.rowRight}>
         {hasPromo ? (
           <>
-            <Text style={[styles.rowPrixOld, { color: colors.textMuted }]}>{fmt(produit.prix)} ₣</Text>
-            <Text style={[styles.rowPrix, { color: '#EF4444' }]}>{fmt(produit.prixPromo)} ₣</Text>
+            <Text style={[styles.rowPrixOld, { color: colors.textMuted }]}>{fmt(produit.prix)} FCFA</Text>
+            <Text style={[styles.rowPrix, { color: '#EF4444' }]}>{fmt(produit.prixPromo)} FCFA</Text>
           </>
         ) : (
-          <Text style={[styles.rowPrix, { color: colors.primary }]}>{fmt(produit.prix)} ₣</Text>
+          <Text style={[styles.rowPrix, { color: colors.primary }]}>{fmt(produit.prix)} FCFA</Text>
         )}
         <Text style={[styles.rowStock, { color: stock < 5 ? '#EF4444' : colors.textMuted }]}>
           {stock} en stock
@@ -280,11 +280,11 @@ function ProduitDetailModal({ produit, visible, onClose, onEdit, onEtiquette, on
                 <View style={styles.detailPrixRow}>
                   {hasPromo ? (
                     <>
-                      <Text style={[styles.detailPrix, { color: '#EF4444' }]}>{fmt(produit.prixPromo)} ₣</Text>
-                      <Text style={[styles.detailPrixOld, { color: colors.textMuted }]}>{fmt(produit.prix)} ₣</Text>
+                      <Text style={[styles.detailPrix, { color: '#EF4444' }]}>{fmt(produit.prixPromo)} FCFA</Text>
+                      <Text style={[styles.detailPrixOld, { color: colors.textMuted }]}>{fmt(produit.prix)} FCFA</Text>
                     </>
                   ) : (
-                    <Text style={[styles.detailPrix, { color: colors.primary }]}>{fmt(produit.prix)} ₣</Text>
+                    <Text style={[styles.detailPrix, { color: colors.primary }]}>{fmt(produit.prix)} FCFA</Text>
                   )}
                 </View>
               </View>
@@ -424,9 +424,9 @@ function EtiquetteModal({ produit, visible, onClose, colors }) {
     setPrinting(true);
     try {
       const prixHtml = hasPromo
-        ? `<span style="color:#DC2626;font-size:22px;font-weight:800;">${fmt(produit.prixPromo)} ₣</span>
-           <span style="text-decoration:line-through;color:#9CA3AF;font-size:14px;margin-left:8px;">${fmt(produit.prix)} ₣</span>`
-        : `<span style="color:#1D4ED8;font-size:22px;font-weight:800;">${fmt(produit.prix)} ₣</span>`;
+        ? `<span style="color:#DC2626;font-size:22px;font-weight:800;">${fmt(produit.prixPromo)} FCFA</span>
+           <span style="text-decoration:line-through;color:#9CA3AF;font-size:14px;margin-left:8px;">${fmt(produit.prix)} FCFA</span>`
+        : `<span style="color:#1D4ED8;font-size:22px;font-weight:800;">${fmt(produit.prix)} FCFA</span>`;
 
       const qrSvgData = await QRCode.toString(qrData, { type: 'svg', width: 200, margin: 2 });
 
@@ -470,9 +470,9 @@ function EtiquetteModal({ produit, visible, onClose, colors }) {
     try {
       const qrSvgData = await QRCode.toString(qrData, { type: 'svg', width: 200, margin: 2 });
       const prixHtml = hasPromo
-        ? `<span style="color:#DC2626;font-size:22px;font-weight:800;">${fmt(produit.prixPromo)} ₣</span>
-           <span style="text-decoration:line-through;color:#9CA3AF;font-size:14px;margin-left:8px;">${fmt(produit.prix)} ₣</span>`
-        : `<span style="color:#1D4ED8;font-size:22px;font-weight:800;">${fmt(produit.prix)} ₣</span>`;
+        ? `<span style="color:#DC2626;font-size:22px;font-weight:800;">${fmt(produit.prixPromo)} FCFA</span>
+           <span style="text-decoration:line-through;color:#9CA3AF;font-size:14px;margin-left:8px;">${fmt(produit.prix)} FCFA</span>`
+        : `<span style="color:#1D4ED8;font-size:22px;font-weight:800;">${fmt(produit.prix)} FCFA</span>`;
 
       const html = `<!DOCTYPE html>
 <html>
@@ -552,11 +552,11 @@ function EtiquetteModal({ produit, visible, onClose, colors }) {
               <View style={styles.etPrixRow}>
                 {hasPromo ? (
                   <>
-                    <Text style={styles.etPrixPromo}>{fmt(produit.prixPromo)} ₣</Text>
-                    <Text style={[styles.etPrixOld, { color: colors.textMuted }]}>{fmt(produit.prix)} ₣</Text>
+                    <Text style={styles.etPrixPromo}>{fmt(produit.prixPromo)} FCFA</Text>
+                    <Text style={[styles.etPrixOld, { color: colors.textMuted }]}>{fmt(produit.prix)} FCFA</Text>
                   </>
                 ) : (
-                  <Text style={[styles.etPrix, { color: colors.primary }]}>{fmt(produit.prix)} ₣</Text>
+                  <Text style={[styles.etPrix, { color: colors.primary }]}>{fmt(produit.prix)} FCFA</Text>
                 )}
               </View>
               {produit.barcode ? (

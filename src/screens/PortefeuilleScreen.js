@@ -24,22 +24,22 @@ const { width: W } = Dimensions.get('window');
 // ─── Utilitaires ──────────────────────────────────────────────────────────────
 function fmt(n) {
   if (n === undefined || n === null) return '—';
-  return Number(n).toLocaleString('fr-FR') + ' ₣';
+  return Number(n).toLocaleString('fr-FR') + ' FCFA';
 }
 function fmtShort(n) { return Number(n || 0).toLocaleString('fr-FR'); }
-function fmtNum(n)   { return new Intl.NumberFormat('fr-FR').format(n || 0); }
+function fmtNum(n) { return new Intl.NumberFormat('fr-FR').format(n || 0); }
 // Indicatifs téléphoniques
 const COUNTRY_CODES = [
-  { code: '+227', flag: '🇳🇪', name: 'Niger',       digits: 8,  placeholder: 'XX XX XX XX' },
-  { code: '+226', flag: '🇧🇫', name: 'Burkina',     digits: 8,  placeholder: 'XX XX XX XX' },
+  { code: '+227', flag: '🇳🇪', name: 'Niger', digits: 8, placeholder: 'XX XX XX XX' },
+  { code: '+226', flag: '🇧🇫', name: 'Burkina', digits: 8, placeholder: 'XX XX XX XX' },
   { code: '+225', flag: '🇨🇮', name: 'Côte d\'Ivoire', digits: 10, placeholder: 'XX XX XX XX XX' },
-  { code: '+223', flag: '🇲🇱', name: 'Mali',        digits: 8,  placeholder: 'XX XX XX XX' },
-  { code: '+221', flag: '🇸🇳', name: 'Sénégal',     digits: 9,  placeholder: 'XX XXX XX XX' },
-  { code: '+237', flag: '🇨🇲', name: 'Cameroun',    digits: 9,  placeholder: 'XXX XXX XXX' },
-  { code: '+229', flag: '🇧🇯', name: 'Bénin',       digits: 8,  placeholder: 'XX XX XX XX' },
-  { code: '+228', flag: '🇹🇬', name: 'Togo',        digits: 8,  placeholder: 'XX XX XX XX' },
-  { code: '+224', flag: '🇬🇳', name: 'Guinée',      digits: 9,  placeholder: 'XXX XX XX XX' },
-  { code: '+222', flag: '🇲🇷', name: 'Mauritanie',  digits: 8,  placeholder: 'XX XX XX XX' },
+  { code: '+223', flag: '🇲🇱', name: 'Mali', digits: 8, placeholder: 'XX XX XX XX' },
+  { code: '+221', flag: '🇸🇳', name: 'Sénégal', digits: 9, placeholder: 'XX XXX XX XX' },
+  { code: '+237', flag: '🇨🇲', name: 'Cameroun', digits: 9, placeholder: 'XXX XXX XXX' },
+  { code: '+229', flag: '🇧🇯', name: 'Bénin', digits: 8, placeholder: 'XX XX XX XX' },
+  { code: '+228', flag: '🇹🇬', name: 'Togo', digits: 8, placeholder: 'XX XX XX XX' },
+  { code: '+224', flag: '🇬🇳', name: 'Guinée', digits: 9, placeholder: 'XXX XX XX XX' },
+  { code: '+222', flag: '🇲🇷', name: 'Mauritanie', digits: 8, placeholder: 'XX XX XX XX' },
 ];
 
 // Formate un numéro brut en groupes de 2 (standard Afrique de l'Ouest)
@@ -69,65 +69,65 @@ function fmtDateHour(iso) {
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 const TX_CONFIG = {
-  CREDIT_COMMANDE: { label: 'Vente marketplace', icon: 'bag-outline',           color: '#10B981' },
-  CREDIT_POS:      { label: 'Vente caisse',       icon: 'storefront-outline',    color: '#30A08B' },
-  RETRAIT:         { label: 'Retrait',             icon: 'arrow-up-outline',      color: '#EF4444' },
-  COMMISSION:      { label: 'Commission',          icon: 'remove-circle-outline', color: '#F59E0B' },
-  ANNULATION:      { label: 'Annulation',          icon: 'close-circle-outline',  color: '#6B7280' },
-  ANNULATION_POS:  { label: 'Annulation caisse',   icon: 'close-circle-outline',  color: '#6B7280' },
-  CORRECTION:      { label: 'Correction',          icon: 'construct-outline',     color: '#6366F1' },
+  CREDIT_COMMANDE: { label: 'Vente marketplace', icon: 'bag-outline', color: '#10B981' },
+  CREDIT_POS: { label: 'Vente caisse', icon: 'storefront-outline', color: '#30A08B' },
+  RETRAIT: { label: 'Retrait', icon: 'arrow-up-outline', color: '#EF4444' },
+  COMMISSION: { label: 'Commission', icon: 'remove-circle-outline', color: '#F59E0B' },
+  ANNULATION: { label: 'Annulation', icon: 'close-circle-outline', color: '#6B7280' },
+  ANNULATION_POS: { label: 'Annulation caisse', icon: 'close-circle-outline', color: '#6B7280' },
+  CORRECTION: { label: 'Correction', icon: 'construct-outline', color: '#6366F1' },
 };
 const STATUT_CONFIG = {
-  CONFIRME:   { label: 'Confirmé',   color: '#10B981', bg: '#ECFDF5' },
+  CONFIRME: { label: 'Confirmé', color: '#10B981', bg: '#ECFDF5' },
   EN_ATTENTE: { label: 'En attente', color: '#F59E0B', bg: '#FFFBEB' },
-  ANNULE:     { label: 'Annulé',     color: '#EF4444', bg: '#FEF2F2' },
-  EXPIRE:     { label: 'Expiré',     color: '#6B7280', bg: '#F3F4F6' },
-  APPROUVE:   { label: 'Approuvé',   color: '#3B82F6', bg: '#EFF6FF' },
-  TRAITE:     { label: 'Traité',     color: '#10B981', bg: '#ECFDF5' },
-  REJETE:     { label: 'Rejeté',     color: '#EF4444', bg: '#FEF2F2' },
+  ANNULE: { label: 'Annulé', color: '#EF4444', bg: '#FEF2F2' },
+  EXPIRE: { label: 'Expiré', color: '#6B7280', bg: '#F3F4F6' },
+  APPROUVE: { label: 'Approuvé', color: '#3B82F6', bg: '#EFF6FF' },
+  TRAITE: { label: 'Traité', color: '#10B981', bg: '#ECFDF5' },
+  REJETE: { label: 'Rejeté', color: '#EF4444', bg: '#FEF2F2' },
 };
 
 const VIEWS = [
-  { key: 'pos',         label: 'Caisse POS',  icon: 'storefront-outline', color: '#30A08B' },
-  { key: 'marketplace', label: 'Marketplace', icon: 'globe-outline',      color: '#267a6b' },
+  { key: 'pos', label: 'Caisse POS', icon: 'storefront-outline', color: '#30A08B' },
+  { key: 'marketplace', label: 'Marketplace', icon: 'globe-outline', color: '#267a6b' },
 ];
 
 const PERIODES = [
-  { label: '7j',  value: 7   },
-  { label: '30j', value: 30  },
-  { label: '90j', value: 90  },
+  { label: '7j', value: 7 },
+  { label: '30j', value: 30 },
+  { label: '90j', value: 90 },
   { label: '1an', value: 365 },
 ];
 
 const POS_PERIODES = [
-  { label: 'Auj.',  value: 1   },
-  { label: '7j',    value: 7   },
-  { label: '30j',   value: 30  },
-  { label: '90j',   value: 90  },
+  { label: 'Auj.', value: 1 },
+  { label: '7j', value: 7 },
+  { label: '30j', value: 30 },
+  { label: '90j', value: 90 },
 ];
 
 // ─── Reçu PDF — identique à VenteScreen ──────────────────────────────────────
 const WEB_URL = 'https://ihambaobab.com';
 
 function calcReceiptHeight(vente) {
-  const header      = 90;
-  const colHeader   = 22;
-  const ligneBase   = 30;
-  const ligneExtra  = 12;
-  const totaux      = 55;
-  const paiement    = 20;
+  const header = 90;
+  const colHeader = 22;
+  const ligneBase = 30;
+  const ligneExtra = 12;
+  const totaux = 55;
+  const paiement = 20;
   const montantRecu = vente.modePaiement === 'ESPECES' ? 16 : 0;
-  const monnaie     = (vente.modePaiement === 'ESPECES' && vente.monnaie > 0) ? 16 : 0;
-  const remise      = vente.remise > 0 ? 16 : 0;
-  const qrcode      = 95;
-  const footer      = 30;
-  const padding     = 44;
+  const monnaie = (vente.modePaiement === 'ESPECES' && vente.monnaie > 0) ? 16 : 0;
+  const remise = vente.remise > 0 ? 16 : 0;
+  const qrcode = 95;
+  const footer = 30;
+  const padding = 44;
   const lignesHauteur = (vente.lignes || []).reduce((h, l) => {
     const extraLines = Math.max(0, Math.floor((l.nom || '').length / 30));
     return h + ligneBase + extraLines * ligneExtra;
   }, 0);
   return header + colHeader + lignesHauteur + totaux + remise +
-         paiement + montantRecu + monnaie + qrcode + footer + padding;
+    paiement + montantRecu + monnaie + qrcode + footer + padding;
 }
 
 async function buildReceiptHtml(vente, storeName = 'Ma Boutique', pageHeight) {
@@ -208,29 +208,29 @@ async function buildReceiptHtml(vente, storeName = 'Ma Boutique', pageHeight) {
 function VenteDetailModal({ vente, storeName, onClose, onAnnuler, annulLoading, colors }) {
   const insets = useSafeAreaInsets();
   const [confirmAnnul, setConfirmAnnul] = useState(false);
-  const [motif,        setMotif]        = useState('');
-  const [showRecu,     setShowRecu]     = useState(false);
-  const [printing,     setPrinting]     = useState(false);
+  const [motif, setMotif] = useState('');
+  const [showRecu, setShowRecu] = useState(false);
+  const [printing, setPrinting] = useState(false);
 
   if (!vente) return null;
-  const isAnnulee   = vente.statut === 'ANNULEE';
+  const isAnnulee = vente.statut === 'ANNULEE';
   const peutAnnuler = !isAnnulee;
 
   const buildMessage = () => {
     const verifyUrl = `${WEB_URL}/verifier-recu/${vente.reference}`;
     const lignesText = vente.lignes
-      .map(l => `  • ${l.nom}${l.varianteLabel ? ` (${l.varianteLabel})` : ''} ×${l.quantite} — ${fmtNum(l.sousTotal)} ₣`)
+      .map(l => `  • ${l.nom}${l.varianteLabel ? ` (${l.varianteLabel})` : ''} ×${l.quantite} — ${fmtNum(l.sousTotal)} FCFA`)
       .join('\n');
     const monnaieText = vente.modePaiement === 'ESPECES' && vente.monnaie > 0
-      ? `\n💵 Monnaie rendue : ${fmtNum(vente.monnaie)} ₣` : '';
+      ? `\n💵 Monnaie rendue : ${fmtNum(vente.monnaie)} FCFA` : '';
     return (
       `🌿 *Reçu IHAMBAOBAB — ${storeName}*\n` +
       `📅 ${fmtDate(vente.createdAt)}\n` +
       `📋 Réf : ${vente.reference}\n\n` +
       `*Articles :*\n${lignesText}\n\n` +
-      (vente.remise > 0 ? `🏷️ Remise : -${fmtNum(vente.remise)} ₣\n` : '') +
-      `💰 *Total : ${fmtNum(vente.total)} ₣*\n` +
-      `${vente.modePaiement === 'ESPECES' ? `💵 Reçu : ${fmtNum(vente.montantRecu || vente.total)} ₣` : '📱 Mobile Money'}` +
+      (vente.remise > 0 ? `🏷️ Remise : -${fmtNum(vente.remise)} FCFA\n` : '') +
+      `💰 *Total : ${fmtNum(vente.total)} FCFA*\n` +
+      `${vente.modePaiement === 'ESPECES' ? `💵 Reçu : ${fmtNum(vente.montantRecu || vente.total)} FCFA` : '📱 Mobile Money'}` +
       monnaieText + `\n\n✅ Vérifier l'authenticité :\n${verifyUrl}`
     );
   };
@@ -253,7 +253,7 @@ function VenteDetailModal({ vente, storeName, onClose, onAnnuler, annulLoading, 
     setPrinting(true);
     try {
       const height = calcReceiptHeight(vente);
-      const html   = await buildReceiptHtml(vente, storeName, height);
+      const html = await buildReceiptHtml(vente, storeName, height);
       let shared = false;
       try {
         const { uri } = await Print.printToFileAsync({ html, width: 302, height });
@@ -262,7 +262,7 @@ function VenteDetailModal({ vente, storeName, onClose, onAnnuler, annulLoading, 
           await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: `Reçu ${vente.reference}`, UTI: 'com.adobe.pdf' });
           shared = true;
         }
-      } catch (_) {}
+      } catch (_) { }
       if (!shared) {
         await Print.printAsync({ html });
       }
@@ -337,9 +337,9 @@ function VenteDetailModal({ vente, storeName, onClose, onAnnuler, annulLoading, 
             <View style={[styles.lignesTable, { borderColor: colors.border }]}>
               <View style={[styles.lignesHeader, { backgroundColor: colors.bgHover }]}>
                 <Text style={[styles.colArticle, styles.colLabel, { color: colors.textMuted }]}>Article</Text>
-                <Text style={[styles.colPu,      styles.colLabel, { color: colors.textMuted }]}>P.U</Text>
-                <Text style={[styles.colQte,     styles.colLabel, { color: colors.textMuted }]}>Qté</Text>
-                <Text style={[styles.colTotal,   styles.colLabel, { color: colors.textMuted }]}>Total</Text>
+                <Text style={[styles.colPu, styles.colLabel, { color: colors.textMuted }]}>P.U</Text>
+                <Text style={[styles.colQte, styles.colLabel, { color: colors.textMuted }]}>Qté</Text>
+                <Text style={[styles.colTotal, styles.colLabel, { color: colors.textMuted }]}>Total</Text>
               </View>
               {vente.lignes.map((l, i) => (
                 <View key={i} style={[styles.ligneRow, { borderTopColor: colors.border }]}>
@@ -365,28 +365,28 @@ function VenteDetailModal({ vente, storeName, onClose, onAnnuler, annulLoading, 
               {vente.remise > 0 && (
                 <View style={styles.totauxRow}>
                   <Text style={{ fontSize: 13, color: colors.textMuted }}>Remise</Text>
-                  <Text style={{ fontSize: 13, color: '#EF4444', fontWeight: '700' }}>−{fmtNum(vente.remise)} ₣</Text>
+                  <Text style={{ fontSize: 13, color: '#EF4444', fontWeight: '700' }}>−{fmtNum(vente.remise)} FCFA</Text>
                 </View>
               )}
               <View style={[styles.totauxRow, { marginTop: vente.remise > 0 ? 4 : 0 }]}>
                 <Text style={{ fontSize: 15, fontWeight: '900', color: colors.text }}>Total</Text>
-                <Text style={{ fontSize: 17, fontWeight: '900', color: '#10B981' }}>{fmtNum(vente.total)} ₣</Text>
+                <Text style={{ fontSize: 17, fontWeight: '900', color: '#10B981' }}>{fmtNum(vente.total)} FCFA</Text>
               </View>
               {vente.modePaiement === 'ESPECES' && vente.montantRecu > 0 && (
                 <View style={[styles.totauxRow, { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }]}>
                   <Text style={{ fontSize: 12, color: colors.textMuted }}>Montant reçu</Text>
-                  <Text style={{ fontSize: 12, color: colors.text, fontWeight: '600' }}>{fmtNum(vente.montantRecu)} ₣</Text>
+                  <Text style={{ fontSize: 12, color: colors.text, fontWeight: '600' }}>{fmtNum(vente.montantRecu)} FCFA</Text>
                 </View>
               )}
               {vente.modePaiement === 'ESPECES' && vente.monnaie > 0 && (
                 <View style={styles.totauxRow}>
                   <Text style={{ fontSize: 12, color: '#059669', fontWeight: '700' }}>Monnaie rendue</Text>
-                  <Text style={{ fontSize: 12, color: '#059669', fontWeight: '800' }}>{fmtNum(vente.monnaie)} ₣</Text>
+                  <Text style={{ fontSize: 12, color: '#059669', fontWeight: '800' }}>{fmtNum(vente.monnaie)} FCFA</Text>
                 </View>
               )}
               <View style={[styles.totauxRow, { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }]}>
                 <Text style={{ fontSize: 10, color: colors.textMuted }}>Commission (0%)</Text>
-                <Text style={{ fontSize: 10, color: '#10B981', fontWeight: '700' }}>0 ₣</Text>
+                <Text style={{ fontSize: 10, color: '#10B981', fontWeight: '700' }}>0 FCFA</Text>
               </View>
             </View>
 
@@ -469,7 +469,7 @@ function VenteDetailModal({ vente, storeName, onClose, onAnnuler, annulLoading, 
                       {vente.modePaiement === 'ESPECES' && vente.monnaie > 0 && (
                         <View style={[styles.receiptTotalRow, { backgroundColor: '#ECFDF5', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 6, marginTop: 4 }]}>
                           <Text style={{ color: '#059669', fontWeight: '700', fontSize: 13 }}>💵 Monnaie rendue</Text>
-                          <Text style={{ color: '#059669', fontWeight: '800', fontSize: 14 }}>{fmtNum(vente.monnaie)} ₣</Text>
+                          <Text style={{ color: '#059669', fontWeight: '800', fontSize: 14 }}>{fmtNum(vente.monnaie)} FCFA</Text>
                         </View>
                       )}
                       <View style={[styles.receiptDivider, { marginTop: 10 }]} />
@@ -600,7 +600,7 @@ function PulseWrap({ active, children, style }) {
       const loop = Animated.loop(
         Animated.sequence([
           Animated.timing(anim, { toValue: 0.35, duration: 500, useNativeDriver: true }),
-          Animated.timing(anim, { toValue: 1,    duration: 500, useNativeDriver: true }),
+          Animated.timing(anim, { toValue: 1, duration: 500, useNativeDriver: true }),
         ])
       );
       loop.start();
@@ -627,7 +627,7 @@ function PosKpiCard({ val, icon, color, bg, sub, colors }) {
 
 // ─── MiniStat ─────────────────────────────────────────────────────────────────
 function MiniStat({ label, val, icon, color, bg, visible, isMoney, colors }) {
-  const display = !visible ? '••••' : isMoney ? `${fmtShort(val)} ₣` : String(val);
+  const display = !visible ? '••••' : isMoney ? `${fmtShort(val)} FCFA` : String(val);
   return (
     <View style={styles.miniStat}>
       <View style={[styles.miniStatIcon, { backgroundColor: bg }]}>
@@ -641,7 +641,7 @@ function MiniStat({ label, val, icon, color, bg, visible, isMoney, colors }) {
 
 // ─── TxRow ────────────────────────────────────────────────────────────────────
 function TxRow({ tx, colors, onPress }) {
-  const cfg  = TX_CONFIG[tx.type]       || { label: tx.type,   icon: 'ellipsis-horizontal', color: '#6B7280' };
+  const cfg = TX_CONFIG[tx.type] || { label: tx.type, icon: 'ellipsis-horizontal', color: '#6B7280' };
   const sCfg = STATUT_CONFIG[tx.statut] || { label: tx.statut, color: '#6B7280', bg: '#F3F4F6' };
   const isDebit = ['RETRAIT', 'COMMISSION', 'ANNULATION', 'ANNULATION_POS'].includes(tx.type);
   return (
@@ -655,7 +655,7 @@ function TxRow({ tx, colors, onPress }) {
       </View>
       <View style={{ alignItems: 'flex-end', gap: 4 }}>
         <Text style={[styles.rowAmount, { color: isDebit ? '#EF4444' : '#10B981' }]}>
-          {isDebit ? '−' : '+'}{fmtShort(Math.abs(tx.montantNet ?? tx.montant))} ₣
+          {isDebit ? '−' : '+'}{fmtShort(Math.abs(tx.montantNet ?? tx.montant))} FCFA
         </Text>
         <View style={[styles.badge, { backgroundColor: sCfg.bg }]}>
           <Text style={[styles.badgeText, { color: sCfg.color }]}>{sCfg.label}</Text>
@@ -685,31 +685,31 @@ function CustomBottomSheet({ visible, onClose, children, maxHeight = '90%', bgCo
   );
 }
 const bsStyles = StyleSheet.create({
-  sheet:      { borderTopLeftRadius: 28, borderTopRightRadius: 28, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.15, elevation: 24 },
+  sheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.15, elevation: 24 },
   handleArea: { alignItems: 'center', paddingTop: 12, paddingBottom: 8 },
-  handle:     { width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(0,0,0,0.15)' },
+  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(0,0,0,0.15)' },
 });
 
 // ─── TxDetailModal ────────────────────────────────────────────────────────────
 function TxDetailModal({ tx, onClose, colors }) {
   if (!tx) return null;
-  const cfg     = TX_CONFIG[tx.type]       || { label: tx.type,   icon: 'ellipsis-horizontal', color: '#6B7280' };
-  const sCfg    = STATUT_CONFIG[tx.statut] || { label: tx.statut, color: '#6B7280', bg: '#F3F4F6' };
+  const cfg = TX_CONFIG[tx.type] || { label: tx.type, icon: 'ellipsis-horizontal', color: '#6B7280' };
+  const sCfg = STATUT_CONFIG[tx.statut] || { label: tx.statut, color: '#6B7280', bg: '#F3F4F6' };
   const isDebit = ['RETRAIT', 'COMMISSION', 'ANNULATION', 'ANNULATION_POS'].includes(tx.type);
   const amtColor = isDebit ? '#EF4444' : '#10B981';
 
   const cmdRef = tx.commandeId?.reference || (typeof tx.commandeId === 'string' ? null : null);
 
   const rows = [
-    tx.reference        && { label: 'Référence',         val: tx.reference,                   mono: true },
-    tx.description      && { label: 'Description',        val: tx.description },
-    tx.dateTransaction  && { label: 'Date',               val: fmtDateHour(tx.dateTransaction) },
-    tx.montant != null  && { label: 'Montant brut',       val: fmt(Math.abs(tx.montant)),            color: amtColor },
+    tx.reference && { label: 'Référence', val: tx.reference, mono: true },
+    tx.description && { label: 'Description', val: tx.description },
+    tx.dateTransaction && { label: 'Date', val: fmtDateHour(tx.dateTransaction) },
+    tx.montant != null && { label: 'Montant brut', val: fmt(Math.abs(tx.montant)), color: amtColor },
     tx.commission != null && tx.commission > 0 && { label: tx.type === 'RETRAIT' ? 'Frais de transfert' : 'Commission', val: `−${fmt(Math.abs(tx.commission))}`, color: '#F59E0B' },
     tx.montantNet != null && tx.montantNet !== tx.montant && { label: 'Montant net', val: fmt(Math.abs(tx.montantNet)), color: amtColor },
     tx.tauxCommission != null && tx.tauxCommission > 0 && { label: tx.type === 'RETRAIT' ? 'Taux frais' : 'Taux commission', val: `${tx.tauxCommission}%` },
-    cmdRef              && { label: 'Commande',           val: cmdRef,                          mono: true },
-    tx.dateDisponibilite && { label: 'Disponible le',     val: fmtDate(tx.dateDisponibilite) },
+    cmdRef && { label: 'Commande', val: cmdRef, mono: true },
+    tx.dateDisponibilite && { label: 'Disponible le', val: fmtDate(tx.dateDisponibilite) },
   ].filter(Boolean);
 
   return (
@@ -720,7 +720,7 @@ function TxDetailModal({ tx, onClose, colors }) {
           <Ionicons name={cfg.icon} size={26} color={cfg.color} />
         </View>
         <Text style={{ fontSize: 22, fontWeight: '800', color: isDebit ? '#EF4444' : '#10B981' }}>
-          {isDebit ? '−' : '+'}{fmtShort(Math.abs(tx.montantNet ?? tx.montant))} ₣
+          {isDebit ? '−' : '+'}{fmtShort(Math.abs(tx.montantNet ?? tx.montant))} FCFA
         </Text>
         <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text }}>{cfg.label}</Text>
         <View style={[styles.badge, { backgroundColor: sCfg.bg, paddingHorizontal: 12, paddingVertical: 5 }]}>
@@ -748,16 +748,16 @@ function TxDetailModal({ tx, onClose, colors }) {
 // ─── OrderFinRow ──────────────────────────────────────────────────────────────
 function OrderFinRow({ order, colors, onPress }) {
   const etat = (order.etatTraitement || '').toLowerCase();
-  const isAnnule  = order.statusLivraison === 'annulé'  || etat.includes('annul');
-  const isLivre   = order.statusLivraison === 'livré'   || order.statusLivraison === 'recu';
+  const isAnnule = order.statusLivraison === 'annulé' || etat.includes('annul');
+  const isLivre = order.statusLivraison === 'livré' || order.statusLivraison === 'recu';
   const isEnCours = etat.includes('livraison');
   const isPrepare = etat.includes('préparer') || etat.includes('preparer');
 
-  const statusInfo = isAnnule  ? { label: 'Annulée',     color: '#EF4444', bg: '#FEF2F2' }
-                   : isLivre   ? { label: 'Livrée',       color: '#10B981', bg: '#ECFDF5' }
-                   : isEnCours ? { label: 'En livraison', color: '#0EA5E9', bg: '#E0F2FE' }
-                   : isPrepare ? { label: 'Préparée',      color: '#8B5CF6', bg: '#F5F3FF' }
-                   :             { label: 'En attente',    color: '#F59E0B', bg: '#FFFBEB' };
+  const statusInfo = isAnnule ? { label: 'Annulée', color: '#EF4444', bg: '#FEF2F2' }
+    : isLivre ? { label: 'Livrée', color: '#10B981', bg: '#ECFDF5' }
+      : isEnCours ? { label: 'En livraison', color: '#0EA5E9', bg: '#E0F2FE' }
+        : isPrepare ? { label: 'Préparée', color: '#8B5CF6', bg: '#F5F3FF' }
+          : { label: 'En attente', color: '#F59E0B', bg: '#FFFBEB' };
 
   const paymentOk = isLivre || order.statusPayment === 'payé' || order.statusPayment === 'reçu';
 
@@ -794,7 +794,7 @@ function OrderFinRow({ order, colors, onPress }) {
 }
 
 // ─── OrderDetailModal ─────────────────────────────────────────────────────────
-function OrderDetailModal({ order, sellerId, isOffline, onClose, colors }) {
+function OrderDetailModal({ order, sellerId, isOffline, onClose, onOrderUpdated, colors }) {
   const [localOrder, setLocalOrder] = useState(null);
   const [validating, setValidating] = useState(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -818,23 +818,23 @@ function OrderDetailModal({ order, sellerId, isOffline, onClose, colors }) {
 
   if (!order || !localOrder) return null;
 
-  const isAnnule  = (localOrder.statusLivraison === 'annulé') || (localOrder.etatTraitement || '').toLowerCase().includes('annul');
-  const isLivre   = localOrder.statusLivraison === 'livré' || localOrder.statusLivraison === 'recu';
+  const isAnnule = (localOrder.statusLivraison === 'annulé') || (localOrder.etatTraitement || '').toLowerCase().includes('annul');
+  const isLivre = localOrder.statusLivraison === 'livré' || localOrder.statusLivraison === 'recu';
   const isEnCours = (localOrder.etatTraitement || '').toLowerCase().includes('livraison');
   const isPrepare = (localOrder.etatTraitement || '').toLowerCase().includes('préparer') || (localOrder.etatTraitement || '').toLowerCase().includes('preparer');
 
-  const statusInfo = isAnnule  ? { label: 'Annulée',      color: '#EF4444', bg: '#FEF2F2', grad: ['#FEF2F2', '#FEE2E2'], icon: 'close-circle' }
-                   : isLivre   ? { label: 'Livrée',        color: '#10B981', bg: '#ECFDF5', grad: ['#ECFDF5', '#D1FAE5'], icon: 'checkmark-circle' }
-                   : isEnCours ? { label: 'En livraison',  color: '#0EA5E9', bg: '#E0F2FE', grad: ['#E0F2FE', '#BAE6FD'], icon: 'car' }
-                   : isPrepare ? { label: 'Préparée',       color: '#8B5CF6', bg: '#F5F3FF', grad: ['#F5F3FF', '#EDE9FE'], icon: 'cube' }
-                   :             { label: 'En attente',     color: '#F59E0B', bg: '#FFFBEB', grad: ['#FFFBEB', '#FEF3C7'], icon: 'time' };
+  const statusInfo = isAnnule ? { label: 'Annulée', color: '#EF4444', bg: '#FEF2F2', grad: ['#FEF2F2', '#FEE2E2'], icon: 'close-circle' }
+    : isLivre ? { label: 'Livrée', color: '#10B981', bg: '#ECFDF5', grad: ['#ECFDF5', '#D1FAE5'], icon: 'checkmark-circle' }
+      : isEnCours ? { label: 'En livraison', color: '#0EA5E9', bg: '#E0F2FE', grad: ['#E0F2FE', '#BAE6FD'], icon: 'car' }
+        : isPrepare ? { label: 'Préparée', color: '#8B5CF6', bg: '#F5F3FF', grad: ['#F5F3FF', '#EDE9FE'], icon: 'cube' }
+          : { label: 'En attente', color: '#F59E0B', bg: '#FFFBEB', grad: ['#FFFBEB', '#FEF3C7'], icon: 'time' };
 
-  const paymentOk     = isLivre || localOrder.statusPayment === 'payé' || localOrder.statusPayment === 'reçu';
-  const allValidated  = localOrder.sellerProducts?.every(p => p.isValideSeller);
+  const paymentOk = isLivre || localOrder.statusPayment === 'payé' || localOrder.statusPayment === 'reçu';
+  const allValidated = localOrder.sellerProducts?.every(p => p.isValideSeller);
   const noneValidated = localOrder.sellerProducts?.every(p => !p.isValideSeller);
   const validatedCount = localOrder.sellerProducts?.filter(p => p.isValideSeller).length ?? 0;
-  const totalCount     = localOrder.sellerProducts?.length ?? 0;
-  const needsAction    = !isLivre && !isAnnule && !allValidated;
+  const totalCount = localOrder.sellerProducts?.length ?? 0;
+  const needsAction = !isLivre && !isAnnule && !allValidated;
 
   const toggleProduct = async (produitId, idx) => {
     if (isOffline) { Toast.show({ type: 'error', text1: 'Hors ligne', text2: 'Validation impossible sans connexion' }); return; }
@@ -842,12 +842,16 @@ function OrderDetailModal({ order, sellerId, isOffline, onClose, colors }) {
     try {
       const res = await apiClient.put(`/seller-orders/${localOrder._id}/toggle-product/${sellerId}/${produitId}/${idx}`);
       if (res.data?.success) {
-        setLocalOrder(prev => ({
-          ...prev,
-          sellerProducts: prev.sellerProducts.map((p, i) =>
-            i === idx ? { ...p, isValideSeller: res.data.data?.isValideSeller ?? !p.isValideSeller } : p
-          ),
-        }));
+        setLocalOrder(prev => {
+          const updated = {
+            ...prev,
+            sellerProducts: prev.sellerProducts.map((p, i) =>
+              i === idx ? { ...p, isValideSeller: res.data.data?.isValideSeller ?? !p.isValideSeller } : p
+            ),
+          };
+          onOrderUpdated?.(updated);
+          return updated;
+        });
       }
     } catch (e) {
       Toast.show({ type: 'error', text1: 'Erreur de validation', text2: e.message });
@@ -866,10 +870,18 @@ function OrderDetailModal({ order, sellerId, isOffline, onClose, colors }) {
             apiClient.put(`/seller-orders/${localOrder._id}/validate-product/${sellerId}/${p.produitId}`, { isValid: false })
           )
         );
-        setLocalOrder(prev => ({ ...prev, sellerProducts: prev.sellerProducts.map(p => ({ ...p, isValideSeller: false })) }));
+        setLocalOrder(prev => {
+          const updated = { ...prev, sellerProducts: prev.sellerProducts.map(p => ({ ...p, isValideSeller: false })) };
+          onOrderUpdated?.(updated);
+          return updated;
+        });
       } else {
         await apiClient.put(`/seller-orders/${localOrder._id}/validate/${sellerId}`);
-        setLocalOrder(prev => ({ ...prev, sellerProducts: prev.sellerProducts.map(p => ({ ...p, isValideSeller: true })) }));
+        setLocalOrder(prev => {
+          const updated = { ...prev, sellerProducts: prev.sellerProducts.map(p => ({ ...p, isValideSeller: true })) };
+          onOrderUpdated?.(updated);
+          return updated;
+        });
         Toast.show({ type: 'success', text1: '✅ Articles validés !', text2: 'Le client sera notifié.' });
       }
     } catch (e) {
@@ -966,8 +978,8 @@ function OrderDetailModal({ order, sellerId, isOffline, onClose, colors }) {
             <View style={{ gap: 10, marginBottom: 16 }}>
               {localOrder.sellerProducts.map((p, idx) => {
                 const prixEffectif = p.prixPromo > 0 ? p.prixPromo : p.prix;
-                const sousTotal    = prixEffectif * (p.quantite || 1);
-                const isVal        = p.isValideSeller;
+                const sousTotal = prixEffectif * (p.quantite || 1);
+                const isVal = p.isValideSeller;
                 return (
                   <View key={p.produitId || idx} style={{ borderRadius: 14, borderWidth: 1.5, borderColor: isVal ? '#10B98140' : colors.border, backgroundColor: colors.bgCard, overflow: 'hidden' }}>
                     {/* Bande de couleur statut */}
@@ -991,9 +1003,9 @@ function OrderDetailModal({ order, sellerId, isOffline, onClose, colors }) {
                             <Text style={{ fontSize: 11, color: colors.textMuted }}>🎨 {p.couleurs.join(', ')}</Text>
                           )}
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                            <Text style={{ fontSize: 12, color: colors.textMuted }}>{fmtShort(prixEffectif)} ₣ × {p.quantite || 1}</Text>
+                            <Text style={{ fontSize: 12, color: colors.textMuted }}>{fmtShort(prixEffectif)} FCFA × {p.quantite || 1}</Text>
                             <Text style={{ fontSize: 12, color: colors.textMuted }}>=</Text>
-                            <Text style={{ fontSize: 13, fontWeight: '900', color: colors.primary }}>{fmtShort(sousTotal)} ₣</Text>
+                            <Text style={{ fontSize: 13, fontWeight: '900', color: colors.primary }}>{fmtShort(sousTotal)} FCFA</Text>
                           </View>
                         </View>
                       </View>
@@ -1004,10 +1016,12 @@ function OrderDetailModal({ order, sellerId, isOffline, onClose, colors }) {
                           onPress={() => toggleProduct(p.produitId, idx)}
                           disabled={validating !== null}
                           activeOpacity={0.8}
-                          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+                          style={{
+                            flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
                             paddingVertical: 9, borderRadius: 10, opacity: validating !== null ? 0.5 : 1,
                             backgroundColor: isVal ? '#FEF2F2' : '#ECFDF5',
-                            borderWidth: 1, borderColor: isVal ? '#FCA5A5' : '#6EE7B7' }}>
+                            borderWidth: 1, borderColor: isVal ? '#FCA5A5' : '#6EE7B7'
+                          }}>
                           {validating === p.produitId
                             ? <ActivityIndicator size="small" color={isVal ? '#EF4444' : '#10B981'} />
                             : <Ionicons name={isVal ? 'close-circle-outline' : 'checkmark-circle-outline'} size={16} color={isVal ? '#EF4444' : '#10B981'} />
@@ -1060,10 +1074,14 @@ function OrderDetailModal({ order, sellerId, isOffline, onClose, colors }) {
                     onPress={() => validateAll(false)}
                     disabled={validating !== null}
                     activeOpacity={0.8}
-                    style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-                      paddingVertical: 10, borderRadius: 12, backgroundColor: colors.bgHover, opacity: validating !== null ? 0.5 : 1 }}>
-                    <Ionicons name="close-circle-outline" size={15} color={colors.textMuted} />
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textMuted }}>Tout invalider</Text>
+                    style={{
+                      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      paddingVertical: 10, borderRadius: 12,
+                      backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FECACA',
+                      opacity: validating !== null ? 0.5 : 1
+                    }}>
+                    <Ionicons name="close-circle-outline" size={15} color="#EF4444" />
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#EF4444' }}>Tout invalider</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -1077,6 +1095,20 @@ function OrderDetailModal({ order, sellerId, isOffline, onClose, colors }) {
                 </Text>
               </View>
             )}
+
+            {/* ── Fermer ── */}
+            <TouchableOpacity
+              onPress={onClose}
+              activeOpacity={0.7}
+              style={{
+                flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+                paddingVertical: 12, borderRadius: 12,
+                borderWidth: 1, borderColor: colors.border,
+                marginBottom: 8
+              }}>
+              <Ionicons name="close" size={16} color={colors.textMuted} />
+              <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textMuted }}>Fermer</Text>
+            </TouchableOpacity>
           </>
         )}
       </ScrollView>
@@ -1138,16 +1170,16 @@ function PosRow({ vente, colors, onPress }) {
 // ─── WithdrawModal ────────────────────────────────────────────────────────────
 function WithdrawModal({ visible, soldeDisponible, onClose, onConfirm, sending, colors }) {
   const insets = useSafeAreaInsets();
-  const [montant,       setMontant]       = useState('');
-  const [methode,       setMethode]       = useState('MOBILE_MONEY');
-  const [operateur,     setOperateur]     = useState('My Nita');
-  const [countryCode,   setCountryCode]   = useState(COUNTRY_CODES[0]); // Niger +227
-  const [showCCPicker,  setShowCCPicker]  = useState(false);
-  const [telephone,     setTelephone]     = useState('');
-  const [nomBenef,      setNomBenef]      = useState('');
-  const [banque,        setBanque]        = useState('');
-  const [numCompte,     setNumCompte]     = useState('');
-  const [nomTitulaire,  setNomTitulaire]  = useState('');
+  const [montant, setMontant] = useState('');
+  const [methode, setMethode] = useState('MOBILE_MONEY');
+  const [operateur, setOperateur] = useState('My Nita');
+  const [countryCode, setCountryCode] = useState(COUNTRY_CODES[0]); // Niger +227
+  const [showCCPicker, setShowCCPicker] = useState(false);
+  const [telephone, setTelephone] = useState('');
+  const [nomBenef, setNomBenef] = useState('');
+  const [banque, setBanque] = useState('');
+  const [numCompte, setNumCompte] = useState('');
+  const [nomTitulaire, setNomTitulaire] = useState('');
 
   useEffect(() => {
     if (visible) {
@@ -1158,11 +1190,11 @@ function WithdrawModal({ visible, soldeDisponible, onClose, onConfirm, sending, 
   }, [visible]);
 
   const montantNum = Number(montant) || 0;
-  const phoneDigits   = telephone.replace(/\D/g, '');
+  const phoneDigits = telephone.replace(/\D/g, '');
   const accountDigits = numCompte.replace(/\s/g, '');
   const canConfirm = montantNum >= 5000 && montantNum <= soldeDisponible
     && (methode === 'ESPECES'
-      || (methode === 'MOBILE_MONEY'      && phoneDigits.length === countryCode.digits && nomBenef.trim())
+      || (methode === 'MOBILE_MONEY' && phoneDigits.length === countryCode.digits && nomBenef.trim())
       || (methode === 'VIREMENT_BANCAIRE' && banque.trim() && accountDigits.length >= 10 && nomTitulaire.trim()));
 
   const handleConfirm = () => {
@@ -1176,204 +1208,219 @@ function WithdrawModal({ visible, soldeDisponible, onClose, onConfirm, sending, 
 
   return (
     <Modal visible={visible} transparent animationType="slide" statusBarTranslucent onRequestClose={onClose}>
-      <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-        <TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={onClose} activeOpacity={1} />
-        <View style={[styles.modalSheet, { backgroundColor: colors.bgCard, paddingBottom: insets.bottom + 16 }]}>
-          <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 4 }}>
-            <View style={[styles.handle, { backgroundColor: colors.border }]} />
-          </View>
-          <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Demande de retrait</Text>
-            <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={22} color={colors.textMuted} />
-            </TouchableOpacity>
-          </View>
-          <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <View style={[styles.infoBox, { backgroundColor: '#ECFDF5' }]}>
-              <Text style={{ fontSize: 12, color: '#059669' }}>Solde disponible pour retrait</Text>
-              <Text style={{ fontSize: 18, fontWeight: '800', color: '#059669' }}>{fmt(soldeDisponible)}</Text>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+      >
+        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={onClose} activeOpacity={1} />
+          <View style={[styles.modalSheet, { backgroundColor: colors.bgCard, paddingBottom: insets.bottom + 16 }]}>
+            <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 4 }}>
+              <View style={[styles.handle, { backgroundColor: colors.border }]} />
             </View>
-            <View style={{ gap: 6 }}>
-              <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>MONTANT (min. 5 000 ₣)</Text>
-              <TextInput
-                style={[styles.input, { borderColor: colors.border, backgroundColor: colors.bgHover, color: colors.text }]}
-                value={montant} onChangeText={setMontant} keyboardType="numeric"
-                placeholder="Ex: 25000" placeholderTextColor={colors.textMuted}
-              />
-              {montantNum > soldeDisponible && (
-                <Text style={{ fontSize: 11, color: '#EF4444' }}>Dépasse votre solde disponible</Text>
-              )}
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Demande de retrait</Text>
+              <TouchableOpacity onPress={onClose}>
+                <Ionicons name="close" size={22} color={colors.textMuted} />
+              </TouchableOpacity>
             </View>
-            <View style={{ gap: 8 }}>
-              <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>MÉTHODE DE RETRAIT</Text>
-              {[
-                { key: 'MOBILE_MONEY',      label: 'Mobile Money',     icon: 'phone-portrait-outline', sub: 'My Nita / Amanata' },
-                { key: 'VIREMENT_BANCAIRE', label: 'Virement bancaire', icon: 'business-outline',       sub: 'Virement sur compte bancaire' },
-                { key: 'ESPECES',           label: 'Espèces',           icon: 'cash-outline',           sub: 'Points de collecte' },
-              ].map(m => (
-                <TouchableOpacity key={m.key} onPress={() => setMethode(m.key)}
-                  style={[styles.methodeBtn, { borderColor: methode === m.key ? colors.primary : colors.border }, methode === m.key && { backgroundColor: colors.primaryLight }]}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name={m.icon} size={18} color={methode === m.key ? colors.primary : colors.textMuted} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: methode === m.key ? colors.primary : colors.text }}>{m.label}</Text>
-                    <Text style={{ fontSize: 10, color: colors.textMuted }}>{m.sub}</Text>
+            <ScrollView
+              style={{ flexShrink: 1 }}
+              contentContainerStyle={{ padding: 16, paddingBottom: 28, gap: 16 }}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              showsVerticalScrollIndicator={false}
+              automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+            >
+              <View style={[styles.infoBox, { backgroundColor: '#ECFDF5' }]}>
+                <Text style={{ fontSize: 12, color: '#059669' }}>Solde disponible pour retrait</Text>
+                <Text style={{ fontSize: 18, fontWeight: '800', color: '#059669' }}>{fmt(soldeDisponible)} FCFA</Text>
+              </View>
+              <View style={{ gap: 6 }}>
+                <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>MONTANT (min. 5 000 FCFA)</Text>
+                <TextInput
+                  style={[styles.input, { borderColor: colors.border, backgroundColor: colors.bgHover, color: colors.text }]}
+                  value={montant} onChangeText={setMontant} keyboardType="numeric"
+                  placeholder="Ex: 25000" placeholderTextColor={colors.textMuted}
+                />
+                {montantNum > soldeDisponible && (
+                  <Text style={{ fontSize: 11, color: '#EF4444' }}>Dépasse votre solde disponible</Text>
+                )}
+              </View>
+              <View style={{ gap: 8 }}>
+                <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>MÉTHODE DE RETRAIT</Text>
+                {[
+                  { key: 'MOBILE_MONEY', label: 'Mobile Money', icon: 'phone-portrait-outline', sub: 'My Nita / Amanata' },
+                  { key: 'VIREMENT_BANCAIRE', label: 'Virement bancaire', icon: 'business-outline', sub: 'Virement sur compte bancaire' },
+                  { key: 'ESPECES', label: 'Espèces', icon: 'cash-outline', sub: 'Points de collecte' },
+                ].map(m => (
+                  <TouchableOpacity key={m.key} onPress={() => setMethode(m.key)}
+                    style={[styles.methodeBtn, { borderColor: methode === m.key ? colors.primary : colors.border }, methode === m.key && { backgroundColor: colors.primaryLight }]}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name={m.icon} size={18} color={methode === m.key ? colors.primary : colors.textMuted} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '600', color: methode === m.key ? colors.primary : colors.text }}>{m.label}</Text>
+                      <Text style={{ fontSize: 10, color: colors.textMuted }}>{m.sub}</Text>
+                    </View>
+                    {methode === m.key && <Ionicons name="checkmark-circle" size={18} color={colors.primary} />}
+                  </TouchableOpacity>
+                ))}
+              </View>
+              {methode === 'MOBILE_MONEY' && (
+                <View style={{ gap: 12 }}>
+                  <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>DÉTAILS MOBILE MONEY</Text>
+                  {/* Opérateur */}
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    {['My Nita', 'Amanata'].map(op => (
+                      <TouchableOpacity key={op} onPress={() => setOperateur(op)}
+                        style={[styles.chip, { borderColor: operateur === op ? colors.primary : colors.border }, operateur === op && { backgroundColor: colors.primaryLight }]}>
+                        <Text style={{ fontSize: 12, fontWeight: '600', color: operateur === op ? colors.primary : colors.textSub }}>{op}</Text>
+                      </TouchableOpacity>
+                    ))}
                   </View>
-                  {methode === m.key && <Ionicons name="checkmark-circle" size={18} color={colors.primary} />}
-                </TouchableOpacity>
-              ))}
-            </View>
-            {methode === 'MOBILE_MONEY' && (
-              <View style={{ gap: 12 }}>
-                <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>DÉTAILS MOBILE MONEY</Text>
-                {/* Opérateur */}
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  {['My Nita', 'Amanata'].map(op => (
-                    <TouchableOpacity key={op} onPress={() => setOperateur(op)}
-                      style={[styles.chip, { borderColor: operateur === op ? colors.primary : colors.border }, operateur === op && { backgroundColor: colors.primaryLight }]}>
-                      <Text style={{ fontSize: 12, fontWeight: '600', color: operateur === op ? colors.primary : colors.textSub }}>{op}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                {/* Numéro de téléphone */}
-                <View style={{ gap: 4 }}>
-                  <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textMuted, letterSpacing: 0.5 }}>NUMÉRO DE TÉLÉPHONE</Text>
-                  <View style={[styles.inputRow, { borderColor: phoneDigits.length === countryCode.digits ? colors.primary : colors.border, backgroundColor: colors.bgHover, gap: 0 }]}>
-                    {/* Sélecteur indicatif */}
-                    <TouchableOpacity
-                      onPress={() => setShowCCPicker(v => !v)}
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingRight: 10, borderRightWidth: 1, borderRightColor: colors.border, marginRight: 10 }}
-                    >
-                      <Text style={{ fontSize: 16 }}>{countryCode.flag}</Text>
-                      <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>{countryCode.code}</Text>
-                      <Ionicons name={showCCPicker ? 'chevron-up' : 'chevron-down'} size={12} color={colors.textMuted} />
-                    </TouchableOpacity>
-                    <TextInput
-                      style={[styles.inputInner, { color: colors.text, letterSpacing: 1.5, fontWeight: '600', fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace' }]}
-                      value={fmtPhone(telephone, countryCode.digits)}
-                      onChangeText={t => setTelephone(parsePhone(t))}
-                      keyboardType="phone-pad"
-                      placeholder={countryCode.placeholder}
-                      placeholderTextColor={colors.textMuted}
-                      maxLength={countryCode.digits + Math.floor(countryCode.digits / 2)}
-                    />
-                    {phoneDigits.length > 0 && (
-                      <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: phoneDigits.length === countryCode.digits ? '#10B981' : colors.border, justifyContent: 'center', alignItems: 'center' }}>
-                        <Ionicons name={phoneDigits.length === countryCode.digits ? 'checkmark' : 'ellipsis-horizontal'} size={11} color="#fff" />
+                  {/* Numéro de téléphone */}
+                  <View style={{ gap: 4 }}>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textMuted, letterSpacing: 0.5 }}>NUMÉRO DE TÉLÉPHONE</Text>
+                    <View style={[styles.inputRow, { borderColor: phoneDigits.length === countryCode.digits ? colors.primary : colors.border, backgroundColor: colors.bgHover, gap: 0 }]}>
+                      {/* Sélecteur indicatif */}
+                      <TouchableOpacity
+                        onPress={() => setShowCCPicker(v => !v)}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingRight: 10, borderRightWidth: 1, borderRightColor: colors.border, marginRight: 10 }}
+                      >
+                        <Text style={{ fontSize: 16 }}>{countryCode.flag}</Text>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>{countryCode.code}</Text>
+                        <Ionicons name={showCCPicker ? 'chevron-up' : 'chevron-down'} size={12} color={colors.textMuted} />
+                      </TouchableOpacity>
+                      <TextInput
+                        style={[styles.inputInner, { color: colors.text, letterSpacing: 1.5, fontWeight: '600', fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace' }]}
+                        value={fmtPhone(telephone, countryCode.digits)}
+                        onChangeText={t => setTelephone(parsePhone(t))}
+                        keyboardType="phone-pad"
+                        placeholder={countryCode.placeholder}
+                        placeholderTextColor={colors.textMuted}
+                        maxLength={countryCode.digits + Math.floor(countryCode.digits / 2)}
+                      />
+                      {phoneDigits.length > 0 && (
+                        <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: phoneDigits.length === countryCode.digits ? '#10B981' : colors.border, justifyContent: 'center', alignItems: 'center' }}>
+                          <Ionicons name={phoneDigits.length === countryCode.digits ? 'checkmark' : 'ellipsis-horizontal'} size={11} color="#fff" />
+                        </View>
+                      )}
+                    </View>
+                    {/* Dropdown indicatifs */}
+                    {showCCPicker && (
+                      <View style={{ borderWidth: 1.5, borderColor: colors.border, borderRadius: 12, backgroundColor: colors.bgCard, overflow: 'hidden', marginTop: 2 }}>
+                        {COUNTRY_CODES.map(cc => (
+                          <TouchableOpacity
+                            key={cc.code}
+                            onPress={() => { setCountryCode(cc); setTelephone(''); setShowCCPicker(false); }}
+                            style={{
+                              flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 10,
+                              backgroundColor: countryCode.code === cc.code ? colors.primaryLight : 'transparent',
+                              borderBottomWidth: 1, borderBottomColor: colors.border
+                            }}
+                          >
+                            <Text style={{ fontSize: 18 }}>{cc.flag}</Text>
+                            <Text style={{ fontSize: 13, fontWeight: countryCode.code === cc.code ? '700' : '500', color: countryCode.code === cc.code ? colors.primary : colors.text, flex: 1 }}>{cc.name}</Text>
+                            <Text style={{ fontSize: 12, fontWeight: '700', color: countryCode.code === cc.code ? colors.primary : colors.textMuted }}>{cc.code}</Text>
+                            {countryCode.code === cc.code && <Ionicons name="checkmark-circle" size={16} color={colors.primary} />}
+                          </TouchableOpacity>
+                        ))}
                       </View>
                     )}
                   </View>
-                  {/* Dropdown indicatifs */}
-                  {showCCPicker && (
-                    <View style={{ borderWidth: 1.5, borderColor: colors.border, borderRadius: 12, backgroundColor: colors.bgCard, overflow: 'hidden', marginTop: 2 }}>
-                      {COUNTRY_CODES.map(cc => (
-                        <TouchableOpacity
-                          key={cc.code}
-                          onPress={() => { setCountryCode(cc); setTelephone(''); setShowCCPicker(false); }}
-                          style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 10,
-                            backgroundColor: countryCode.code === cc.code ? colors.primaryLight : 'transparent',
-                            borderBottomWidth: 1, borderBottomColor: colors.border }}
-                        >
-                          <Text style={{ fontSize: 18 }}>{cc.flag}</Text>
-                          <Text style={{ fontSize: 13, fontWeight: countryCode.code === cc.code ? '700' : '500', color: countryCode.code === cc.code ? colors.primary : colors.text, flex: 1 }}>{cc.name}</Text>
-                          <Text style={{ fontSize: 12, fontWeight: '700', color: countryCode.code === cc.code ? colors.primary : colors.textMuted }}>{cc.code}</Text>
-                          {countryCode.code === cc.code && <Ionicons name="checkmark-circle" size={16} color={colors.primary} />}
-                        </TouchableOpacity>
-                      ))}
+                  {/* Nom bénéficiaire */}
+                  <View style={{ gap: 4 }}>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textMuted, letterSpacing: 0.5 }}>NOM DU BÉNÉFICIAIRE</Text>
+                    <View style={[styles.inputRow, { borderColor: nomBenef ? colors.primary : colors.border, backgroundColor: colors.bgHover }]}>
+                      <Ionicons name="person-outline" size={15} color={colors.textMuted} style={{ marginRight: 8 }} />
+                      <TextInput
+                        style={[styles.inputInner, { color: colors.text }]}
+                        value={nomBenef} onChangeText={setNomBenef}
+                        placeholder="Prénom et nom" placeholderTextColor={colors.textMuted}
+                        autoCapitalize="words"
+                      />
                     </View>
-                  )}
-                </View>
-                {/* Nom bénéficiaire */}
-                <View style={{ gap: 4 }}>
-                  <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textMuted, letterSpacing: 0.5 }}>NOM DU BÉNÉFICIAIRE</Text>
-                  <View style={[styles.inputRow, { borderColor: nomBenef ? colors.primary : colors.border, backgroundColor: colors.bgHover }]}>
-                    <Ionicons name="person-outline" size={15} color={colors.textMuted} style={{ marginRight: 8 }} />
-                    <TextInput
-                      style={[styles.inputInner, { color: colors.text }]}
-                      value={nomBenef} onChangeText={setNomBenef}
-                      placeholder="Prénom et nom" placeholderTextColor={colors.textMuted}
-                      autoCapitalize="words"
-                    />
                   </View>
                 </View>
-              </View>
-            )}
-            {methode === 'VIREMENT_BANCAIRE' && (
-              <View style={{ gap: 12 }}>
-                <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>DÉTAILS BANCAIRES</Text>
-                {/* Nom de la banque */}
-                <View style={{ gap: 4 }}>
-                  <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textMuted, letterSpacing: 0.5 }}>NOM DE LA BANQUE</Text>
-                  <View style={[styles.inputRow, { borderColor: banque ? colors.primary : colors.border, backgroundColor: colors.bgHover }]}>
-                    <Ionicons name="business-outline" size={15} color={colors.textMuted} style={{ marginRight: 8 }} />
-                    <TextInput
-                      style={[styles.inputInner, { color: colors.text }]}
-                      value={banque} onChangeText={setBanque}
-                      placeholder="Ex: Afriland First Bank" placeholderTextColor={colors.textMuted}
-                      autoCapitalize="words"
-                    />
+              )}
+              {methode === 'VIREMENT_BANCAIRE' && (
+                <View style={{ gap: 12 }}>
+                  <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>DÉTAILS BANCAIRES</Text>
+                  {/* Nom de la banque */}
+                  <View style={{ gap: 4 }}>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textMuted, letterSpacing: 0.5 }}>NOM DE LA BANQUE</Text>
+                    <View style={[styles.inputRow, { borderColor: banque ? colors.primary : colors.border, backgroundColor: colors.bgHover }]}>
+                      <Ionicons name="business-outline" size={15} color={colors.textMuted} style={{ marginRight: 8 }} />
+                      <TextInput
+                        style={[styles.inputInner, { color: colors.text }]}
+                        value={banque} onChangeText={setBanque}
+                        placeholder="Ex: Afriland First Bank" placeholderTextColor={colors.textMuted}
+                        autoCapitalize="words"
+                      />
+                    </View>
+                  </View>
+                  {/* Numéro de compte */}
+                  <View style={{ gap: 4 }}>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textMuted, letterSpacing: 0.5 }}>NUMÉRO DE COMPTE</Text>
+                    <View style={[styles.inputRow, { borderColor: parseAccount(numCompte).length >= 10 ? colors.primary : colors.border, backgroundColor: colors.bgHover }]}>
+                      <Ionicons name="card-outline" size={15} color={colors.textMuted} style={{ marginRight: 8 }} />
+                      <TextInput
+                        style={[styles.inputInner, { color: colors.text, letterSpacing: 2, fontWeight: '600', fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace' }]}
+                        value={fmtAccountNumber(numCompte)}
+                        onChangeText={t => setNumCompte(parseAccount(fmtAccountNumber(t)))}
+                        keyboardType="numeric"
+                        placeholder="XXXX XXXX XXXX XXXX"
+                        placeholderTextColor={colors.textMuted}
+                        maxLength={24}
+                      />
+                    </View>
+                    <Text style={{ fontSize: 10, color: colors.textMuted }}>Saisissez les chiffres, les espaces s'ajoutent automatiquement</Text>
+                  </View>
+                  {/* Nom du titulaire */}
+                  <View style={{ gap: 4 }}>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textMuted, letterSpacing: 0.5 }}>NOM DU TITULAIRE</Text>
+                    <View style={[styles.inputRow, { borderColor: nomTitulaire ? colors.primary : colors.border, backgroundColor: colors.bgHover }]}>
+                      <Ionicons name="person-outline" size={15} color={colors.textMuted} style={{ marginRight: 8 }} />
+                      <TextInput
+                        style={[styles.inputInner, { color: colors.text }]}
+                        value={nomTitulaire} onChangeText={setNomTitulaire}
+                        placeholder="Nom tel qu'il figure sur le compte"
+                        placeholderTextColor={colors.textMuted}
+                        autoCapitalize="words"
+                      />
+                    </View>
                   </View>
                 </View>
-                {/* Numéro de compte */}
-                <View style={{ gap: 4 }}>
-                  <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textMuted, letterSpacing: 0.5 }}>NUMÉRO DE COMPTE</Text>
-                  <View style={[styles.inputRow, { borderColor: parseAccount(numCompte).length >= 10 ? colors.primary : colors.border, backgroundColor: colors.bgHover }]}>
-                    <Ionicons name="card-outline" size={15} color={colors.textMuted} style={{ marginRight: 8 }} />
-                    <TextInput
-                      style={[styles.inputInner, { color: colors.text, letterSpacing: 2, fontWeight: '600', fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace' }]}
-                      value={fmtAccountNumber(numCompte)}
-                      onChangeText={t => setNumCompte(parseAccount(fmtAccountNumber(t)))}
-                      keyboardType="numeric"
-                      placeholder="XXXX XXXX XXXX XXXX"
-                      placeholderTextColor={colors.textMuted}
-                      maxLength={24}
-                    />
-                  </View>
-                  <Text style={{ fontSize: 10, color: colors.textMuted }}>Saisissez les chiffres, les espaces s'ajoutent automatiquement</Text>
-                </View>
-                {/* Nom du titulaire */}
-                <View style={{ gap: 4 }}>
-                  <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textMuted, letterSpacing: 0.5 }}>NOM DU TITULAIRE</Text>
-                  <View style={[styles.inputRow, { borderColor: nomTitulaire ? colors.primary : colors.border, backgroundColor: colors.bgHover }]}>
-                    <Ionicons name="person-outline" size={15} color={colors.textMuted} style={{ marginRight: 8 }} />
-                    <TextInput
-                      style={[styles.inputInner, { color: colors.text }]}
-                      value={nomTitulaire} onChangeText={setNomTitulaire}
-                      placeholder="Nom tel qu'il figure sur le compte"
-                      placeholderTextColor={colors.textMuted}
-                      autoCapitalize="words"
-                    />
+              )}
+              {montantNum >= 5000 && (
+                <View style={[styles.infoBox, { backgroundColor: colors.bgHover }]}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>Vous recevrez</Text>
+                    <Text style={{ fontSize: 15, fontWeight: '800', color: '#10B981' }}>{fmt(montantNum)}</Text>
                   </View>
                 </View>
-              </View>
-            )}
-            {montantNum >= 5000 && (
-              <View style={[styles.infoBox, { backgroundColor: colors.bgHover }]}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>Vous recevrez</Text>
-                  <Text style={{ fontSize: 15, fontWeight: '800', color: '#10B981' }}>{fmt(montantNum)}</Text>
-                </View>
-              </View>
-            )}
-          </ScrollView>
-          <View style={{ paddingHorizontal: 16 }}>
-            <TouchableOpacity
-              onPress={handleConfirm} disabled={!canConfirm || sending}
-              style={[styles.confirmBtn, { backgroundColor: canConfirm ? colors.primary : colors.bgHover, opacity: sending ? 0.7 : 1 }]}
-              activeOpacity={0.85}
-            >
-              {sending
-                ? <ActivityIndicator size="small" color="#fff" />
-                : <Ionicons name="arrow-up-outline" size={18} color={canConfirm ? '#fff' : colors.textMuted} />
-              }
-              <Text style={[styles.confirmBtnText, { color: canConfirm ? '#fff' : colors.textMuted }]}>
-                {sending ? 'Envoi...' : 'Confirmer le retrait'}
-              </Text>
-            </TouchableOpacity>
+              )}
+            </ScrollView>
+            <View style={{ paddingHorizontal: 16 }}>
+              <TouchableOpacity
+                onPress={handleConfirm} disabled={!canConfirm || sending}
+                style={[styles.confirmBtn, { backgroundColor: canConfirm ? colors.primary : colors.bgHover, opacity: sending ? 0.7 : 1 }]}
+                activeOpacity={0.85}
+              >
+                {sending
+                  ? <ActivityIndicator size="small" color="#fff" />
+                  : <Ionicons name="arrow-up-outline" size={18} color={canConfirm ? '#fff' : colors.textMuted} />
+                }
+                <Text style={[styles.confirmBtnText, { color: canConfirm ? '#fff' : colors.textMuted }]}>
+                  {sending ? 'Envoi...' : 'Confirmer le retrait'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -1383,17 +1430,17 @@ export default function PortefeuilleScreen() {
   const { seller, subscription } = useAuthStore();
   const { isOffline } = useSync();
   const portfolioUpdatedAt = useSyncStore((s) => s.portfolioUpdatedAt);
-  const ordersUpdatedAt    = useSyncStore((s) => s.ordersUpdatedAt);
-  const { colors }    = useTheme();
-  const route         = useRoute();
-  const sellerId      = seller?._id || seller?.id;
-  const storeName     = seller?.storeName || seller?.name || 'Ma Boutique';
+  const ordersUpdatedAt = useSyncStore((s) => s.ordersUpdatedAt);
+  const { colors } = useTheme();
+  const route = useRoute();
+  const sellerId = seller?._id || seller?.id;
+  const storeName = seller?.storeName || seller?.name || 'Ma Boutique';
 
-  const planName   = subscription?.planName || 'Starter';
-  const hasPosAccess         = SUBSCRIPTION_CONFIG.hasPosAccess(planName);
+  const planName = subscription?.planName || 'Starter';
+  const hasPosAccess = SUBSCRIPTION_CONFIG.hasPosAccess(planName);
   const hasMarketplaceAccess = SUBSCRIPTION_CONFIG.hasMarketplaceAccess(planName);
   const visibleViews = VIEWS.filter(v => {
-    if (v.key === 'pos')         return hasPosAccess;
+    if (v.key === 'pos') return hasPosAccess;
     if (v.key === 'marketplace') return hasMarketplaceAccess;
     return true;
   });
@@ -1401,9 +1448,9 @@ export default function PortefeuilleScreen() {
   // ── Vue active — démarre sur POS si disponible, sinon première vue visible ──
   const defaultView = hasPosAccess ? 'pos' : (visibleViews[0]?.key || 'pos');
   const [activeView, setActiveView] = useState(defaultView);
-  const pageScrollRef   = useRef(null);
-  const activeViewRef   = useRef(defaultView);
-  const userInteracted  = useRef(false);
+  const pageScrollRef = useRef(null);
+  const activeViewRef = useRef(defaultView);
+  const userInteracted = useRef(false);
   const didInitialScroll = useRef(false);
 
   const switchView = useCallback((key) => {
@@ -1425,7 +1472,7 @@ export default function PortefeuilleScreen() {
       activeViewRef.current = 'pos';
       pageScrollRef.current?.scrollTo({ x: 0, animated: false });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subscription?.planName]);
 
   // Sync position initiale du ScrollView : si switchView est appelé avant que
@@ -1440,65 +1487,65 @@ export default function PortefeuilleScreen() {
   }, [visibleViews]);
 
   // ── État ───────────────────────────────────────────────────────────────────
-  const [periode,        setPeriode]        = useState(30);
+  const [periode, setPeriode] = useState(30);
   const [balanceVisible, setBalanceVisible] = useState(true);
-  const [currentTime,    setCurrentTime]    = useState(new Date());
-  const [portfolio,      setPortfolio]      = useState(null);
-  const [transactions,   setTransactions]   = useState([]);
-  const [orders,         setOrders]         = useState([]);
-  const [posVentes,      setPosVentes]      = useState([]);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [portfolio, setPortfolio] = useState(null);
+  const [transactions, setTransactions] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [posVentes, setPosVentes] = useState([]);
 
-  const [loading,       setLoading]       = useState(true);
-  const [statsLoading,  setStatsLoading]  = useState(false);
-  const [refreshing,    setRefreshing]    = useState(false);
-  const [txLoading,     setTxLoading]     = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [txLoading, setTxLoading] = useState(false);
   const [ordersLoading, setOrdersLoading] = useState(false);
-  const [posLoading,    setPosLoading]    = useState(false);
-  const [annulLoading,  setAnnulLoading]  = useState(false);
+  const [posLoading, setPosLoading] = useState(false);
+  const [annulLoading, setAnnulLoading] = useState(false);
 
-  const [txPage,        setTxPage]        = useState(1);
-  const [txTotalPages,  setTxTotalPages]  = useState(1);
-  const [ordPage,       setOrdPage]       = useState(1);
+  const [txPage, setTxPage] = useState(1);
+  const [txTotalPages, setTxTotalPages] = useState(1);
+  const [ordPage, setOrdPage] = useState(1);
   const [ordTotalPages, setOrdTotalPages] = useState(1);
-  const [posPage,        setPosPage]        = useState(1);
-  const [posTotalPages,  setPosTotalPages]  = useState(1);
+  const [posPage, setPosPage] = useState(1);
+  const [posTotalPages, setPosTotalPages] = useState(1);
   const [posStatsLive, setPosStatsLive] = useState(null);
 
-  const [mkTab,           setMkTab]           = useState('commandes');
-  const [selectedTx,      setSelectedTx]      = useState(null);
-  const [selectedOrder,   setSelectedOrder]   = useState(null);
-  const [retraits,        setRetraits]        = useState([]);
+  const [mkTab, setMkTab] = useState('commandes');
+  const [selectedTx, setSelectedTx] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [retraits, setRetraits] = useState([]);
   const [retraitsLoading, setRetraitsLoading] = useState(false);
-  const [retraitsPage,    setRetraitsPage]    = useState(1);
+  const [retraitsPage, setRetraitsPage] = useState(1);
   const [retraitsTotalPages, setRetraitsTotalPages] = useState(1);
-  const [txType,          setTxType]          = useState('');
-  const [txStatut,        setTxStatut]        = useState('');
-  const [posStatut,       setPosStatut]       = useState('');
-  const [posMode,         setPosMode]         = useState('');
-  const [posPeriode,      setPosPeriode]      = useState(30);
+  const [txType, setTxType] = useState('');
+  const [txStatut, setTxStatut] = useState('');
+  const [posStatut, setPosStatut] = useState('');
+  const [posMode, setPosMode] = useState('');
+  const [posPeriode, setPosPeriode] = useState(30);
 
-  const [selectedVente,   setSelectedVente]   = useState(null);
-  const [showWithdraw,    setShowWithdraw]    = useState(false);
-  const [sendingRetrait,  setSendingRetrait]  = useState(false);
+  const [selectedVente, setSelectedVente] = useState(null);
+  const [showWithdraw, setShowWithdraw] = useState(false);
+  const [sendingRetrait, setSendingRetrait] = useState(false);
 
   const dashboardLoadedRef = useRef(false);
-  const periodeInitRef     = useRef(false); // true après le montage initial, pour éviter le double-fetch
-const posOpacity         = useRef(new Animated.Value(1)).current;
+  const periodeInitRef = useRef(false); // true après le montage initial, pour éviter le double-fetch
+  const posOpacity = useRef(new Animated.Value(1)).current;
   // Cache portfolio par période (hero cards)
-  const periodeCache       = useRef({});
+  const periodeCache = useRef({});
   // Caches multi-pages par section — clé `${periode}_${page}`
-  const txCache   = useRef({});
-  const ordCache  = useRef({});
-  const retCache  = useRef({});
-  const posCache  = useRef({});  // clé `${posPeriode}_${page}`
+  const txCache = useRef({});
+  const ordCache = useRef({});
+  const retCache = useRef({});
+  const posCache = useRef({});  // clé `${posPeriode}_${page}`
   const MAX_CACHE_PAGES = 3;
   // Refs valeurs courantes (lisibles dans callbacks sans dépendances)
-  const isOfflineRef   = useRef(isOffline);
-  const periodeRef     = useRef(periode);
-  const posPeriodeRef  = useRef(posPeriode);
-  useEffect(() => { isOfflineRef.current  = isOffline;   }, [isOffline]);
-  useEffect(() => { periodeRef.current    = periode;     }, [periode]);
-  useEffect(() => { posPeriodeRef.current = posPeriode;  }, [posPeriode]);
+  const isOfflineRef = useRef(isOffline);
+  const periodeRef = useRef(periode);
+  const posPeriodeRef = useRef(posPeriode);
+  useEffect(() => { isOfflineRef.current = isOffline; }, [isOffline]);
+  useEffect(() => { periodeRef.current = periode; }, [periode]);
+  useEffect(() => { posPeriodeRef.current = posPeriode; }, [posPeriode]);
 
   // Timer pour le décompte "Prochaine Disponibilité"
   useEffect(() => {
@@ -1506,7 +1553,7 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
     return () => clearInterval(timer);
   }, []);
   // Ref portfolio — pour lire la valeur courante dans fetchDashboard sans dépendance
-  const portfolioRef  = useRef(null);
+  const portfolioRef = useRef(null);
   useEffect(() => { portfolioRef.current = portfolio; }, [portfolio]);
 
   // Floutement lors du rechargement POS (filtre période/statut)
@@ -1550,8 +1597,8 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
         const res = await apiClient.get(`/api/financial/seller/${sellerId}/dashboard?periode=${p}`);
         const data = res.data?.data || res.data;
         periodeCache.current[p] = data;
-        setMeta(`portfolio_${sellerId}_${p}`, data).catch(() => {});
-      } catch (_) {}
+        setMeta(`portfolio_${sellerId}_${p}`, data).catch(() => { });
+      } catch (_) { }
       return;
     }
 
@@ -1575,7 +1622,7 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
       if (launchPeriode !== periodeRef.current) return;
       periodeCache.current[p] = data;
       setPortfolio(data);
-      setMeta(`portfolio_${sellerId}_${p}`, data).catch(() => {});
+      setMeta(`portfolio_${sellerId}_${p}`, data).catch(() => { });
     } catch (e) {
       if (!silent) Toast.show({ type: 'error', text1: 'Erreur', text2: 'Impossible de charger le portefeuille' });
     } finally {
@@ -1590,7 +1637,7 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
 
   const fetchTransactions = useCallback(async (page = 1) => {
     if (!sellerId || !hasMarketplaceAccess) return;
-    const p   = periodeRef.current;
+    const p = periodeRef.current;
     const key = `${p}_${page}`;
 
     // Cache mémoire — affichage instantané (online et offline)
@@ -1615,15 +1662,15 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
 
     setTxLoading(true);
     try {
-      const end   = new Date();
+      const end = new Date();
       const start = new Date();
       start.setDate(start.getDate() - (p - 1));
       start.setHours(0, 0, 0, 0);
       const params = new URLSearchParams({ page, limit: 20, dateStart: start.toISOString(), dateEnd: end.toISOString() });
-      if (txType)   params.append('type',   txType);
+      if (txType) params.append('type', txType);
       if (txStatut) params.append('statut', txStatut);
       const res = await apiClient.get(`/api/financial/seller/${sellerId}/transactions?${params}`);
-      const d   = res.data?.data || res.data;
+      const d = res.data?.data || res.data;
       const entry = { transactions: d?.transactions || [], totalPages: d?.pagination?.pages ?? 1 };
       setTransactions(entry.transactions);
       setTxPage(page);
@@ -1631,7 +1678,7 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
       // Cache mémoire + SQLite (sans filtre actif)
       if (!txType && !txStatut) {
         txCache.current[key] = entry;
-        setMeta(`txs_${sellerId}_${p}_${page}`, entry).catch(() => {});
+        setMeta(`txs_${sellerId}_${p}_${page}`, entry).catch(() => { });
       }
     } catch (_) {
       Toast.show({ type: 'error', text1: 'Erreur transactions' });
@@ -1640,7 +1687,7 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
 
   const fetchOrders = useCallback(async (page = 1) => {
     if (!sellerId || !hasMarketplaceAccess) return;
-    const p   = periodeRef.current;
+    const p = periodeRef.current;
     const key = `${p}_${page}`;
 
     if (ordCache.current[key]) {
@@ -1663,18 +1710,18 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
 
     setOrdersLoading(true);
     try {
-      const end   = new Date();
+      const end = new Date();
       const start = new Date();
       start.setDate(start.getDate() - (p - 1));
       start.setHours(0, 0, 0, 0);
       const res = await apiClient.get(`/api/financial/seller/${sellerId}/orders-financial?page=${page}&limit=20&dateStart=${start.toISOString()}&dateEnd=${end.toISOString()}`);
-      const d   = res.data?.data || res.data;
+      const d = res.data?.data || res.data;
       const entry = { orders: d?.orders || [], totalPages: d?.pagination?.totalPages ?? 1 };
       setOrders(entry.orders);
       setOrdPage(page);
       setOrdTotalPages(entry.totalPages);
       ordCache.current[key] = entry;
-      setMeta(`orders_fin_${sellerId}_${p}_${page}`, entry).catch(() => {});
+      setMeta(`orders_fin_${sellerId}_${p}_${page}`, entry).catch(() => { });
     } catch (_) {
       Toast.show({ type: 'error', text1: 'Erreur commandes' });
     } finally { setOrdersLoading(false); }
@@ -1682,7 +1729,7 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
 
   const fetchPos = useCallback(async (page = 1) => {
     if (!sellerId || !hasPosAccess) return;
-    const pp  = posPeriodeRef.current;
+    const pp = posPeriodeRef.current;
     const key = `${pp}_${page}`;
 
     // Toujours restaurer les stats depuis page 1 du cache (hero card + top articles)
@@ -1730,16 +1777,16 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
     setPosLoading(true);
     try {
       const params = new URLSearchParams({ page, limit: 20 });
-      if (posStatut) params.append('statut',      posStatut);
-      if (posMode)   params.append('modePaiement', posMode);
-      const end   = new Date();
+      if (posStatut) params.append('statut', posStatut);
+      if (posMode) params.append('modePaiement', posMode);
+      const end = new Date();
       const start = new Date();
       start.setDate(start.getDate() - (pp - 1));
       start.setHours(0, 0, 0, 0);
       params.append('dateStart', start.toISOString());
-      params.append('dateEnd',   end.toISOString());
+      params.append('dateEnd', end.toISOString());
       const res = await apiClient.get(`/api/pos/historique/${sellerId}?${params}`);
-      const d   = res.data?.data || res.data;
+      const d = res.data?.data || res.data;
       const pag = d?.pagination || {};
       const totalPages = pag.pages ?? (Math.ceil((pag.total ?? 0) / 20) || 1);
       // Stats retournées uniquement en page 1 — les conserver pour les pages suivantes
@@ -1753,7 +1800,7 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
       // Cache uniquement sans filtre actif
       if (!posStatut && !posMode) {
         posCache.current[key] = entry;
-        setMeta(`pos_hist_${sellerId}_${pp}_${page}`, entry).catch(() => {});
+        setMeta(`pos_hist_${sellerId}_${pp}_${page}`, entry).catch(() => { });
       }
     } catch (_) {
       Toast.show({ type: 'error', text1: 'Erreur historique POS' });
@@ -1766,7 +1813,10 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
       await apiClient.post(`/api/financial/seller/${sellerId}/retrait`, { montantDemande, methodeRetrait, detailsRetrait });
       Toast.show({ type: 'success', text1: 'Demande envoyée', text2: 'Votre retrait est en cours de traitement' });
       setShowWithdraw(false);
+      periodeCache.current = {};
+      retCache.current = {};
       fetchDashboard(true);
+      fetchRetraits(1);
     } catch (e) {
       Toast.show({ type: 'error', text1: 'Erreur retrait', text2: e.response?.data?.message || e.message });
     } finally { setSendingRetrait(false); }
@@ -1792,7 +1842,7 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
 
   const fetchRetraits = useCallback(async (page = 1) => {
     if (!sellerId || !hasMarketplaceAccess) return;
-    const p   = periodeRef.current;
+    const p = periodeRef.current;
     const key = `${p}_${page}`;
 
     if (retCache.current[key]) {
@@ -1815,18 +1865,18 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
 
     setRetraitsLoading(true);
     try {
-      const end   = new Date();
+      const end = new Date();
       const start = new Date();
       start.setDate(start.getDate() - (p - 1));
       start.setHours(0, 0, 0, 0);
       const res = await apiClient.get(`/api/financial/seller/${sellerId}/retraits?page=${page}&limit=20&dateStart=${start.toISOString()}&dateEnd=${end.toISOString()}`);
-      const d   = res.data;
+      const d = res.data;
       const entry = { retraits: d?.data || [], totalPages: d?.pagination?.pages ?? 1 };
       setRetraits(entry.retraits);
       setRetraitsPage(page);
       setRetraitsTotalPages(entry.totalPages);
       retCache.current[key] = entry;
-      setMeta(`retraits_${sellerId}_${p}_${page}`, entry).catch(() => {});
+      setMeta(`retraits_${sellerId}_${p}_${page}`, entry).catch(() => { });
     } catch (_) {
       Toast.show({ type: 'error', text1: 'Erreur retraits' });
     } finally { setRetraitsLoading(false); }
@@ -1851,14 +1901,14 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     if (!periodeInitRef.current) return; // ignorer l'exécution au montage
     fetchDashboard(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [periode]);
 
   // Les sections réagissent au changement de période via les refs
   useEffect(() => { fetchTransactions(1); }, [fetchTransactions, periode]);
-  useEffect(() => { fetchOrders(1); },       [fetchOrders, periode]);
-  useEffect(() => { fetchRetraits(1); },     [fetchRetraits, periode]);
-  useEffect(() => { fetchPos(1); },          [fetchPos, posPeriode]);
+  useEffect(() => { fetchOrders(1); }, [fetchOrders, periode]);
+  useEffect(() => { fetchRetraits(1); }, [fetchRetraits, periode]);
+  useEffect(() => { fetchPos(1); }, [fetchPos, posPeriode]);
 
   // Ouverture automatique depuis une notification push (openOrderId dans les params)
   // Stratégie : on n'attend pas un délai fixe — on essaie immédiatement, puis on
@@ -1872,7 +1922,7 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
     // Basculer immédiatement sur l'onglet marketplace pour que fetchOrders se déclenche
     switchView('marketplace');
     setMkTab('commandes');
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route?.params?.openOrderId]);
 
   // Chaque fois que ordersLoading devient false, on tente d'ouvrir le modal en attente
@@ -1906,11 +1956,11 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
           pendingOpenOrderId.current = null;
           setSelectedOrder(order);
         }
-      } catch (_) {}
+      } catch (_) { }
     };
 
     tryOpen();
-  // ordersLoading en dépendance — se re-déclenche quand fetchOrders termine
+    // ordersLoading en dépendance — se re-déclenche quand fetchOrders termine
   }, [ordersLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Hydratation SQLite → mémoire (toutes les périodes, toutes les pages) ──────
@@ -1964,7 +2014,7 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
       if (statsFromCache) setPosStatsLive(statsFromCache);
     };
     hydrate();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sellerId]);
 
   // ── Préchargement réseau via bundle endpoint ──────────────────────────────────
@@ -1989,7 +2039,7 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
           // Dashboard / hero card
           if (item.dashboard && !periodeCache.current[p]) {
             periodeCache.current[p] = item.dashboard;
-            setMeta(`portfolio_${sellerId}_${p}`, item.dashboard).catch(() => {});
+            setMeta(`portfolio_${sellerId}_${p}`, item.dashboard).catch(() => { });
           }
 
           // Transactions page 1
@@ -1998,11 +2048,11 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
             const entry = { transactions: item.transactions.transactions || [], totalPages: txPages };
             if (!txCache.current[`${p}_1`]) {
               txCache.current[`${p}_1`] = entry;
-              setMeta(`txs_${sellerId}_${p}_1`, entry).catch(() => {});
+              setMeta(`txs_${sellerId}_${p}_1`, entry).catch(() => { });
             }
             // Pages 2 et 3 si elles existent
             if (txPages > 1) {
-              const end   = new Date();
+              const end = new Date();
               const start = new Date();
               start.setDate(start.getDate() - (p - 1));
               start.setHours(0, 0, 0, 0);
@@ -2016,8 +2066,8 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
                       const d = r.data?.data || r.data;
                       const e = { transactions: d?.transactions || [], totalPages: txPages };
                       txCache.current[`${p}_${pg}`] = e;
-                      setMeta(`txs_${sellerId}_${p}_${pg}`, e).catch(() => {});
-                    } catch (_) {}
+                      setMeta(`txs_${sellerId}_${p}_${pg}`, e).catch(() => { });
+                    } catch (_) { }
                   })
               );
             }
@@ -2029,10 +2079,10 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
             const entry = { orders: item.orders.orders || [], totalPages: ordPages };
             if (!ordCache.current[`${p}_1`]) {
               ordCache.current[`${p}_1`] = entry;
-              setMeta(`orders_fin_${sellerId}_${p}_1`, entry).catch(() => {});
+              setMeta(`orders_fin_${sellerId}_${p}_1`, entry).catch(() => { });
             }
             if (ordPages > 1) {
-              const end   = new Date();
+              const end = new Date();
               const start = new Date();
               start.setDate(start.getDate() - (p - 1));
               start.setHours(0, 0, 0, 0);
@@ -2046,8 +2096,8 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
                       const d = r.data?.data || r.data;
                       const e = { orders: d?.orders || [], totalPages: ordPages };
                       ordCache.current[`${p}_${pg}`] = e;
-                      setMeta(`orders_fin_${sellerId}_${p}_${pg}`, e).catch(() => {});
-                    } catch (_) {}
+                      setMeta(`orders_fin_${sellerId}_${p}_${pg}`, e).catch(() => { });
+                    } catch (_) { }
                   })
               );
             }
@@ -2059,10 +2109,10 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
             const entry = { retraits: item.retraits.retraits || [], totalPages: retPages };
             if (!retCache.current[`${p}_1`]) {
               retCache.current[`${p}_1`] = entry;
-              setMeta(`retraits_${sellerId}_${p}_1`, entry).catch(() => {});
+              setMeta(`retraits_${sellerId}_${p}_1`, entry).catch(() => { });
             }
             if (retPages > 1) {
-              const end   = new Date();
+              const end = new Date();
               const start = new Date();
               start.setDate(start.getDate() - (p - 1));
               start.setHours(0, 0, 0, 0);
@@ -2076,31 +2126,31 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
                       const d = r.data;
                       const e = { retraits: d?.data || [], totalPages: retPages };
                       retCache.current[`${p}_${pg}`] = e;
-                      setMeta(`retraits_${sellerId}_${p}_${pg}`, e).catch(() => {});
-                    } catch (_) {}
+                      setMeta(`retraits_${sellerId}_${p}_${pg}`, e).catch(() => { });
+                    } catch (_) { }
                   })
               );
             }
           }
         }
-      } catch (_) {}
+      } catch (_) { }
 
       // ── 2. POS : une requête par période (pas de bundle dédié) ───────────────
       await Promise.allSettled(POS_PERIODES.map(async ({ value: p }) => {
         if (posCache.current[`${p}_1`]) return;
         try {
-          const end   = new Date();
+          const end = new Date();
           const start = new Date();
           start.setDate(start.getDate() - (p - 1));
           start.setHours(0, 0, 0, 0);
           const dateParams = `dateStart=${start.toISOString()}&dateEnd=${end.toISOString()}`;
           const res = await apiClient.get(`/api/pos/historique/${sellerId}?page=1&limit=20&${dateParams}`);
-          const d   = res.data?.data || res.data;
+          const d = res.data?.data || res.data;
           const pag = d?.pagination || {};
           const totalPages = pag.pages ?? (Math.ceil((pag.total ?? 0) / 20) || 1);
           const entry = { ventes: d?.ventes || [], totalPages, stats: d?.stats || null };
           posCache.current[`${p}_1`] = entry;
-          setMeta(`pos_hist_${sellerId}_${p}_1`, entry).catch(() => {});
+          setMeta(`pos_hist_${sellerId}_${p}_1`, entry).catch(() => { });
           // Si c'est la période active, mettre à jour posStatsLive immédiatement
           if (p === posPeriodeRef.current && d?.stats) setPosStatsLive(d.stats);
           // Pages supplémentaires
@@ -2109,22 +2159,22 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
               Array.from({ length: Math.min(totalPages, MAX_CACHE_PAGES) - 1 }, (_, i) => i + 2).map(async (pg) => {
                 if (posCache.current[`${p}_${pg}`]) return;
                 try {
-                  const r  = await apiClient.get(`/api/pos/historique/${sellerId}?page=${pg}&limit=20&${dateParams}`);
+                  const r = await apiClient.get(`/api/pos/historique/${sellerId}?page=${pg}&limit=20&${dateParams}`);
                   const rd = r.data?.data || r.data;
-                  const e  = { ventes: rd?.ventes || [], totalPages, stats: null };
+                  const e = { ventes: rd?.ventes || [], totalPages, stats: null };
                   posCache.current[`${p}_${pg}`] = e;
-                  setMeta(`pos_hist_${sellerId}_${p}_${pg}`, e).catch(() => {});
-                } catch (_) {}
+                  setMeta(`pos_hist_${sellerId}_${p}_${pg}`, e).catch(() => { });
+                } catch (_) { }
               })
             );
           }
-        } catch (_) {}
+        } catch (_) { }
       }));
     };
 
     const t = setTimeout(run, 1500);
     return () => clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sellerId, isOffline]);
 
   // Reconnexion : déverouiller les spinners bloqués + recharger toutes les sections
@@ -2136,7 +2186,7 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
       return;
     }
     // Connexion rétablie — vider les caches mémoire pour forcer des données fraîches
-    txCache.current  = {};
+    txCache.current = {};
     ordCache.current = {};
     retCache.current = {};
     posCache.current = {};
@@ -2150,15 +2200,33 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
 
   // Suivi du focus — nécessaire pour le signal socket ci-dessous
   const isFocusedRef = useRef(false);
+  const pendingUpdateRef = useRef(false);
   useFocusEffect(useCallback(() => {
     isFocusedRef.current = true;
+    // Si un update socket est arrivé pendant qu'on était hors-focus, le rattraper
+    if (pendingUpdateRef.current && !isOffline) {
+      pendingUpdateRef.current = false;
+      periodeCache.current = {};
+      retCache.current = {};
+      fetchDashboard(true);
+      fetchRetraits(1);
+    }
     return () => { isFocusedRef.current = false; };
-  }, []));
+  }, [])); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Mise à jour immédiate déclenchée par socket bilan_updated (via syncStore)
   useEffect(() => {
-    if (!portfolioUpdatedAt || !isFocusedRef.current || isOffline) return;
+    if (!portfolioUpdatedAt) return;
+    if (!isFocusedRef.current || isOffline) {
+      // Écran pas visible → marquer comme en attente pour le prochain focus
+      pendingUpdateRef.current = true;
+      return;
+    }
+    // Vider les caches pour refléter le nouveau statut (ex: retrait approuvé/traité)
+    periodeCache.current = {};
+    retCache.current = {};
     fetchDashboard(true);
+    fetchRetraits(1);
   }, [portfolioUpdatedAt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Mise à jour de la liste des commandes déclenchée par order_status_updated
@@ -2174,7 +2242,7 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
       return;
     }
     // Pull-to-refresh : vider les caches pour repartir de zéro
-    txCache.current  = {};
+    txCache.current = {};
     ordCache.current = {};
     retCache.current = {};
     posCache.current = {};
@@ -2192,34 +2260,35 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
     if (!dateDisponibilite) return null;
     const diff = new Date(dateDisponibilite) - currentTime;
     if (diff <= 0) return 'Disponible maintenant';
-    const jours   = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const heures  = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const jours = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const heures = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    if (jours > 0)   return `${jours}j ${heures}h ${minutes}min`;
-    if (heures > 0)  return `${heures}h ${minutes}min`;
+    if (jours > 0) return `${jours}j ${heures}h ${minutes}min`;
+    if (heures > 0) return `${heures}h ${minutes}min`;
     return `${minutes}min`;
   };
 
   const portefeuille = portfolio?.portefeuille || {};
-  const stats        = portfolio?.statistiques || {};
-  const txRecentes   = portfolio?.transactionsRecentes || [];
-  const retraitsRec  = portfolio?.retraitsRecents      || [];
-  const soldeDisponible = portefeuille.soldeDisponible           ?? 0;
+  const stats = portfolio?.statistiques || {};
+  const txRecentes = portfolio?.transactionsRecentes || [];
+  const retraitsRec = portfolio?.retraitsRecents || [];
+  const soldeDisponible = portefeuille.soldeDisponible ?? 0;
   const soldeBloqueTemp = portefeuille.soldeBloqueTemporairement ?? 0;
-  const soldeEnAttente  = portefeuille.soldeEnAttente            ?? 0;
-  const soldeTotal      = portefeuille.soldeTotal                ?? 0;
-  const soldeReserve    = portefeuille.soldeReserveRetrait       ?? 0;
-  const canWithdraw     = soldeDisponible >= 5000 && !isOffline;
+  const soldeEnAttente = portefeuille.soldeEnAttente ?? 0;
+  const soldeTotal = portefeuille.soldeTotal ?? 0;
+  const soldeReserve = portefeuille.soldeReserveRetrait ?? 0;
+  const hasPendingRetrait = retraitsRec.some(r => ['EN_ATTENTE', 'APPROUVE'].includes(r.statut));
+  const canWithdraw = soldeDisponible >= 5000 && !isOffline && !hasPendingRetrait;
 
   // Stats POS live ou depuis le cache page 1 de la période active (offline-proof)
   const effectivePosStats = posStatsLive || posCache.current[`${posPeriode}_1`]?.stats || null;
-  const liveStats       = effectivePosStats || {};
-  const posCACompletees = liveStats.totalCA            ?? 0;
-  const posCAEspeces    = liveStats.totalEspeces        ?? 0;
-  const posCAMobile     = liveStats.totalMobile         ?? 0;
-  const posNbAnnulees   = liveStats.nombreAnnulations   ?? 0;
-  const posPanierMoyen  = liveStats.panierMoyen         ?? 0;
-  const topArticles     = liveStats.topArticles         ?? [];
+  const liveStats = effectivePosStats || {};
+  const posCACompletees = liveStats.totalCA ?? 0;
+  const posCAEspeces = liveStats.totalEspeces ?? 0;
+  const posCAMobile = liveStats.totalMobile ?? 0;
+  const posNbAnnulees = liveStats.nombreAnnulations ?? 0;
+  const posPanierMoyen = liveStats.panierMoyen ?? 0;
+  const topArticles = liveStats.topArticles ?? [];
   const hasActivePosFilter = posStatut || posMode;
 
   // ─── Loading ───────────────────────────────────────────────────────────────
@@ -2290,43 +2359,236 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
 
         {/* ════════ PAGE POS ════════════════════════════════════════════════ */}
         {hasPosAccess && (
-        <View style={styles.page}>
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            nestedScrollEnabled
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#30A08B" />}
-            contentContainerStyle={styles.pageContent}
-            scrollEventThrottle={200}
-          >
-            {/* Filtre temporel POS */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 14, gap: 8, paddingTop: 4 }}>
-              {POS_PERIODES.map(p => {
-                const isActive = posPeriode === p.value;
-                return (
-                  <TouchableOpacity
-                    key={p.value}
-                    onPress={() => setPosPeriode(p.value)}
-                    style={[styles.chip, { borderColor: isActive ? colors.primary : colors.border }, isActive && { backgroundColor: colors.primaryLight }]}
-                    activeOpacity={0.75}
-                  >
-                    <Text style={{ fontSize: 13, fontWeight: isActive ? '800' : '500', color: isActive ? colors.primary : colors.textSub }}>
-                      {p.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
+          <View style={styles.page}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#30A08B" />}
+              contentContainerStyle={styles.pageContent}
+              scrollEventThrottle={200}
+            >
+              {/* Filtre temporel POS */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 14, gap: 8, paddingTop: 4 }}>
+                {POS_PERIODES.map(p => {
+                  const isActive = posPeriode === p.value;
+                  return (
+                    <TouchableOpacity
+                      key={p.value}
+                      onPress={() => setPosPeriode(p.value)}
+                      style={[styles.chip, { borderColor: isActive ? colors.primary : colors.border }, isActive && { backgroundColor: colors.primaryLight }]}
+                      activeOpacity={0.75}
+                    >
+                      <Text style={{ fontSize: 13, fontWeight: isActive ? '800' : '500', color: isActive ? colors.primary : colors.textSub }}>
+                        {p.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
 
-            <PulseWrap active={posLoading && posVentes.length > 0}>
-            {/* Hero CA POS */}
-            {posStatsLive ? (
-              <LinearGradient colors={['#30A08B', '#1e7a6b']} start={{x:0,y:0}} end={{x:1,y:1}} style={styles.heroCard}>
+              <PulseWrap active={posLoading && posVentes.length > 0}>
+                {/* Hero CA POS */}
+                {posStatsLive ? (
+                  <LinearGradient colors={['#30A08B', '#1e7a6b']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroCard}>
+                    <View style={styles.heroCardTop}>
+                      <View>
+                        <Text style={styles.heroCaption}>CA Caisse POS</Text>
+                        <Text style={styles.heroTotal}>
+                          {balanceVisible ? fmt(posCACompletees) : '•••••• FCFA'}
+                        </Text>
+                      </View>
+                      <TouchableOpacity onPress={() => setBalanceVisible(v => !v)} style={styles.heroBtn}>
+                        <Ionicons name={balanceVisible ? 'eye-outline' : 'eye-off-outline'} size={18} color="#fff" />
+                      </TouchableOpacity>
+                    </View>
+                    {isOffline && (
+                      <View style={styles.offlinePill}>
+                        <Ionicons name="cloud-offline-outline" size={11} color="#fff" />
+                        <Text style={{ fontSize: 10, color: '#fff', fontWeight: '700' }}>Hors ligne — données en cache</Text>
+                      </View>
+                    )}
+                    <View style={styles.heroDivider} />
+                    <View style={styles.heroStatRow}>
+                      {[
+                        { val: String(liveStats.nombreVentes ?? 0), label: 'Ventes' },
+                        { val: balanceVisible ? `${fmtShort(posPanierMoyen)} FCFA` : '••••', label: 'Panier moy.' },
+                        { val: String(posNbAnnulees), label: 'Annulées' },
+                      ].map((s, i, arr) => (
+                        <React.Fragment key={s.label}>
+                          <View style={styles.heroStat}>
+                            <Text style={styles.heroStatVal}>{s.val}</Text>
+                            <Text style={styles.heroStatLabel}>{s.label}</Text>
+                          </View>
+                          {i < arr.length - 1 && <View style={styles.heroStatSep} />}
+                        </React.Fragment>
+                      ))}
+                    </View>
+                  </LinearGradient>
+                ) : null}
+
+                {/* KPI cards — répartition paiements */}
+                <View style={styles.kpiRow}>
+                  <PosKpiCard val={balanceVisible ? `${fmtShort(posCAEspeces)} FCFA` : '••••'} icon="cash-outline" color="#F59E0B" bg="#FFFBEB" sub="Espèces" colors={colors} />
+                  <PosKpiCard val={balanceVisible ? `${fmtShort(posCAMobile)} FCFA` : '••••'} icon="phone-portrait-outline" color="#30A08B" bg="#E6F7F4" sub="Mobile Money" colors={colors} />
+                </View>
+
+                {/* Top articles vendus */}
+                {topArticles.length > 0 && (
+                  <View style={[styles.card, { backgroundColor: colors.bgCard, borderColor: colors.border, paddingBottom: 6 }]}>
+                    <View style={styles.cardHead}>
+                      <Ionicons name="podium-outline" size={14} color={colors.primary} />
+                      <Text style={[styles.cardTitle, { color: colors.text }]}>Top articles</Text>
+                      <Text style={[styles.cardSub, { color: colors.textMuted }]}>par CA · période sélectionnée</Text>
+                    </View>
+                    {topArticles.map((art, i) => {
+                      const maxCA = topArticles[0].ca || 1;
+                      const pct = art.ca / maxCA;
+                      const rankColors = ['#F59E0B', '#9CA3AF', '#B17236'];
+                      const rankColor = i < 3 ? rankColors[i] : colors.textMuted;
+                      return (
+                        <View key={art.nom} style={{ paddingHorizontal: 14, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                          {art.image ? (
+                            <View style={{ width: 40, height: 40, borderRadius: 10, overflow: 'hidden', backgroundColor: colors.bgHover }}>
+                              <Image source={{ uri: art.image }} style={{ width: 40, height: 40 }} resizeMode="cover" />
+                            </View>
+                          ) : (
+                            <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: colors.bgHover, alignItems: 'center', justifyContent: 'center' }}>
+                              <Ionicons name="cube-outline" size={18} color={colors.textMuted} />
+                            </View>
+                          )}
+                          <View style={{ flex: 1, gap: 4 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                              <Text style={{ fontSize: 11, fontWeight: '800', color: rankColor, width: 20 }}>#{i + 1}</Text>
+                              <Text style={{ flex: 1, fontSize: 13, fontWeight: '600', color: colors.text }} numberOfLines={1}>{art.nom}</Text>
+                            </View>
+                            <View style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: colors.bgHover }}>
+                              <View style={{ width: `${Math.round(pct * 100)}%`, height: 4, borderRadius: 2, backgroundColor: colors.primary, opacity: 0.55 + pct * 0.45 }} />
+                            </View>
+                          </View>
+                          <View style={{ alignItems: 'flex-end', gap: 2 }}>
+                            <Text style={{ fontSize: 12, fontWeight: '700', color: colors.primary }}>{fmtNum(art.ca)} FCFA</Text>
+                            <Text style={{ fontSize: 10, color: colors.textMuted }}>{art.qte} vendu{art.qte > 1 ? 's' : ''}</Text>
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
+              </PulseWrap>
+
+              {/* Filtres POS */}
+              <View style={[styles.card, { backgroundColor: colors.bgCard, borderColor: colors.border, gap: 10 }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Ionicons name="ellipse-outline" size={12} color={colors.textMuted} />
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                    {[{ label: 'Toutes', value: '' }, { label: 'Complétées', value: 'COMPLETEE' }, { label: 'Annulées', value: 'ANNULEE' }].map(f => {
+                      const active = posStatut === f.value;
+                      const dotColor = f.value === 'COMPLETEE' ? '#10B981' : f.value === 'ANNULEE' ? '#EF4444' : colors.textMuted;
+                      return (
+                        <TouchableOpacity key={f.value} onPress={() => setPosStatut(f.value)}
+                          style={[styles.txFilterChip, active && { backgroundColor: dotColor + '18', borderColor: dotColor }]}
+                          activeOpacity={0.75}>
+                          {f.value !== '' && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: dotColor }} />}
+                          <Text style={{ fontSize: 12, fontWeight: '600', color: active ? dotColor : colors.textSub }}>{f.label}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+                <View style={{ height: 1, backgroundColor: colors.border }} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Ionicons name="funnel-outline" size={12} color={colors.textMuted} />
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                    {[
+                      { label: 'Tous', value: '', icon: 'apps-outline' },
+                      { label: 'Espèces', value: 'ESPECES', icon: 'cash-outline' },
+                      { label: 'Mobile Money', value: 'MOBILE_MONEY', icon: 'phone-portrait-outline' },
+                    ].map(f => {
+                      const active = posMode === f.value;
+                      return (
+                        <TouchableOpacity key={f.value} onPress={() => setPosMode(f.value)}
+                          style={[styles.txFilterChip, active && { backgroundColor: colors.primary, borderColor: colors.primary }]}
+                          activeOpacity={0.75}>
+                          <Ionicons name={f.icon} size={11} color={active ? '#fff' : colors.textMuted} />
+                          <Text style={{ fontSize: 12, fontWeight: '600', color: active ? '#fff' : colors.textSub }}>{f.label}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+                {hasActivePosFilter && (
+                  <TouchableOpacity onPress={() => { setPosStatut(''); setPosMode(''); }}>
+                    <Text style={{ fontSize: 11, color: '#EF4444', fontWeight: '700' }}>× Réinitialiser</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Liste ventes */}
+              <PulseWrap active={posLoading && posVentes.length > 0}>
+                <View style={[styles.card, { backgroundColor: colors.bgCard, borderColor: colors.border, padding: 0 }]}>
+                  <View style={[styles.cardHead, { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 4 }]}>
+                    <Ionicons name="receipt-outline" size={14} color={colors.primary} />
+                    <Text style={[styles.cardTitle, { color: colors.text }]}>Historique des ventes</Text>
+                    {isOffline && posVentes.length > 0 && (
+                      <View style={styles.offlineCacheBadge}>
+                        <Ionicons name="cloud-offline-outline" size={9} color="#F59E0B" />
+                        <Text style={styles.offlineCacheText}>cache</Text>
+                      </View>
+                    )}
+                    {posTotalPages > 1 && (
+                      <Text style={[styles.cardSub, { color: colors.textMuted }]}>p.{posPage}/{posTotalPages}</Text>
+                    )}
+                  </View>
+                  {posLoading && posVentes.length === 0 ? (
+                    <View style={styles.emptyBlock}><ActivityIndicator color={colors.primary} /></View>
+                  ) : posVentes.length === 0 ? (
+                    <View style={styles.emptyBlock}>
+                      <Ionicons name="receipt-outline" size={32} color={colors.textMuted} />
+                      <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 8 }}>Aucune vente sur cette période.</Text>
+                    </View>
+                  ) : (
+                    <>
+                      {posVentes.map((v, i) => (
+                        <PosRow key={v._id || i} vente={v} colors={colors} onPress={setSelectedVente} />
+                      ))}
+                      {posTotalPages > 1 && (
+                        <View style={styles.paginationRow}>
+                          <TouchableOpacity onPress={() => fetchPos(posPage - 1)} disabled={posPage <= 1} style={[styles.pageBtn, posPage <= 1 && { opacity: 0.35 }]}>
+                            <Ionicons name="chevron-back" size={16} color={colors.primary} />
+                            <Text style={[styles.pageBtnTxt, { color: colors.primary }]}>Préc.</Text>
+                          </TouchableOpacity>
+                          <Text style={{ fontSize: 12, color: colors.textMuted }}>{posPage} / {posTotalPages}</Text>
+                          <TouchableOpacity onPress={() => fetchPos(posPage + 1)} disabled={posPage >= posTotalPages} style={[styles.pageBtn, posPage >= posTotalPages && { opacity: 0.35 }]}>
+                            <Text style={[styles.pageBtnTxt, { color: colors.primary }]}>Suiv.</Text>
+                            <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </>
+                  )}
+                </View>
+              </PulseWrap>
+
+            </ScrollView>
+          </View>
+        )}
+
+        {/* ════════ PAGE MARKETPLACE — Pro & Business uniquement ════════════ */}
+        {hasMarketplaceAccess && (
+          <View style={styles.page}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#267a6b" />}
+              contentContainerStyle={{ paddingBottom: 40 }}
+              scrollEventThrottle={200}
+            >
+              {/* ── 1. Hero solde — même style que POS ────────────────────── */}
+              <LinearGradient colors={['#30A08B', '#1e7a6b']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.heroCard, { margin: 14, marginBottom: 0 }]}>
                 <View style={styles.heroCardTop}>
-                  <View>
-                    <Text style={styles.heroCaption}>CA Caisse POS</Text>
-                    <Text style={styles.heroTotal}>
-                      {balanceVisible ? fmt(posCACompletees) : '•••••• ₣'}
-                    </Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.heroCaption}>Solde Marketplace</Text>
+                    <Text style={styles.heroTotal}>{balanceVisible ? fmt(soldeTotal) : '•••••• FCFA'}</Text>
                   </View>
                   <TouchableOpacity onPress={() => setBalanceVisible(v => !v)} style={styles.heroBtn}>
                     <Ionicons name={balanceVisible ? 'eye-outline' : 'eye-off-outline'} size={18} color="#fff" />
@@ -2341,9 +2603,9 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
                 <View style={styles.heroDivider} />
                 <View style={styles.heroStatRow}>
                   {[
-                    { val: String(liveStats.nombreVentes ?? 0), label: 'Ventes' },
-                    { val: balanceVisible ? `${fmtShort(posPanierMoyen)} ₣` : '••••', label: 'Panier moy.' },
-                    { val: String(posNbAnnulees), label: 'Annulées' },
+                    { val: balanceVisible ? `${fmtShort(soldeDisponible)} FCFA` : '••••', label: 'Disponible' },
+                    { val: balanceVisible ? `${fmtShort(soldeBloqueTemp)} FCFA` : '••••', label: 'Bloqué 48h' },
+                    { val: balanceVisible ? `${fmtShort(soldeEnAttente)} FCFA` : '••••', label: 'En attente' },
                   ].map((s, i, arr) => (
                     <React.Fragment key={s.label}>
                       <View style={styles.heroStat}>
@@ -2354,557 +2616,378 @@ const posOpacity         = useRef(new Animated.Value(1)).current;
                     </React.Fragment>
                   ))}
                 </View>
+                {soldeReserve > 0 && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 }}>
+                    <Ionicons name="arrow-up-outline" size={12} color="rgba(255,255,255,0.8)" />
+                    <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.85)', fontWeight: '600' }}>
+                      {balanceVisible ? `${fmt(soldeReserve)} réservés pour retrait` : 'Montant réservé pour retrait'}
+                    </Text>
+                  </View>
+                )}
               </LinearGradient>
-            ) : null}
 
-            {/* KPI cards — répartition paiements */}
-            <View style={styles.kpiRow}>
-              <PosKpiCard val={balanceVisible ? `${fmtShort(posCAEspeces)} ₣` : '••••'} icon="cash-outline"           color="#F59E0B" bg="#FFFBEB" sub="Espèces"     colors={colors} />
-              <PosKpiCard val={balanceVisible ? `${fmtShort(posCAMobile)} ₣`  : '••••'} icon="phone-portrait-outline" color="#30A08B" bg="#E6F7F4" sub="Mobile Money" colors={colors} />
-            </View>
-
-            {/* Top articles vendus */}
-            {topArticles.length > 0 && (
-              <View style={[styles.card, { backgroundColor: colors.bgCard, borderColor: colors.border, paddingBottom: 6 }]}>
-                <View style={styles.cardHead}>
-                  <Ionicons name="podium-outline" size={14} color={colors.primary} />
-                  <Text style={[styles.cardTitle, { color: colors.text }]}>Top articles</Text>
-                  <Text style={[styles.cardSub, { color: colors.textMuted }]}>par CA · période sélectionnée</Text>
-                </View>
-                {topArticles.map((art, i) => {
-                  const maxCA      = topArticles[0].ca || 1;
-                  const pct        = art.ca / maxCA;
-                  const rankColors = ['#F59E0B', '#9CA3AF', '#B17236'];
-                  const rankColor  = i < 3 ? rankColors[i] : colors.textMuted;
-                  return (
-                    <View key={art.nom} style={{ paddingHorizontal: 14, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                      {art.image ? (
-                        <View style={{ width: 40, height: 40, borderRadius: 10, overflow: 'hidden', backgroundColor: colors.bgHover }}>
-                          <Image source={{ uri: art.image }} style={{ width: 40, height: 40 }} resizeMode="cover" />
-                        </View>
-                      ) : (
-                        <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: colors.bgHover, alignItems: 'center', justifyContent: 'center' }}>
-                          <Ionicons name="cube-outline" size={18} color={colors.textMuted} />
-                        </View>
-                      )}
-                      <View style={{ flex: 1, gap: 4 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                          <Text style={{ fontSize: 11, fontWeight: '800', color: rankColor, width: 20 }}>#{i + 1}</Text>
-                          <Text style={{ flex: 1, fontSize: 13, fontWeight: '600', color: colors.text }} numberOfLines={1}>{art.nom}</Text>
-                        </View>
-                        <View style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: colors.bgHover }}>
-                          <View style={{ width: `${Math.round(pct * 100)}%`, height: 4, borderRadius: 2, backgroundColor: colors.primary, opacity: 0.55 + pct * 0.45 }} />
-                        </View>
-                      </View>
-                      <View style={{ alignItems: 'flex-end', gap: 2 }}>
-                        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.primary }}>{fmtNum(art.ca)} ₣</Text>
-                        <Text style={{ fontSize: 10, color: colors.textMuted }}>{art.qte} vendu{art.qte > 1 ? 's' : ''}</Text>
-                      </View>
+              {/* ── Prochaine Disponibilité ────────────────────────────────────── */}
+              {stats.prochaineDisponibilite && soldeBloqueTemp > 0 && (
+                <View style={{ marginHorizontal: 14, marginTop: 12, backgroundColor: '#f0faf8', borderWidth: 1, borderColor: '#30A08B33', borderRadius: 16, padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+                    <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: '#30A08B18', alignItems: 'center', justifyContent: 'center' }}>
+                      <Ionicons name="time-outline" size={20} color="#30A08B" />
                     </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: '#267a6b', marginBottom: 2 }}>Prochaine Disponibilité</Text>
+                      <Text style={{ fontSize: 11, color: '#30A08B' }}>
+                        {balanceVisible ? `${fmt(soldeBloqueTemp)} sera bientôt disponible` : 'Montant bloqué bientôt disponible'}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={{ fontSize: 16, fontWeight: '800', color: '#267a6b' }}>
+                      {calculerTempsRestant(stats.prochaineDisponibilite) || '...'}
+                    </Text>
+                    <Text style={{ fontSize: 10, color: '#30A08B', marginTop: 2 }}>
+                      📅 {fmtDateHour(stats.prochaineDisponibilite)}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* ── Filtre période — s'applique aux stats, commandes, transactions ── */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 14, gap: 8, paddingTop: 14, paddingBottom: 2 }}>
+                {PERIODES.map(p => {
+                  const isActive = periode === p.value;
+                  return (
+                    <TouchableOpacity
+                      key={p.value}
+                      onPress={() => setPeriode(p.value)}
+                      style={[styles.chip, { borderColor: isActive ? colors.primary : colors.border }, isActive && { backgroundColor: colors.primaryLight }]}
+                      activeOpacity={0.75}
+                    >
+                      <Text style={{ fontSize: 13, fontWeight: isActive ? '800' : '500', color: isActive ? colors.primary : colors.textSub }}>
+                        {p.label}
+                      </Text>
+                    </TouchableOpacity>
                   );
                 })}
-              </View>
-            )}
-            </PulseWrap>
+              </ScrollView>
 
-            {/* Filtres POS */}
-            <View style={[styles.card, { backgroundColor: colors.bgCard, borderColor: colors.border, gap: 10 }]}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Ionicons name="ellipse-outline" size={12} color={colors.textMuted} />
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-                  {[{ label: 'Toutes', value: '' }, { label: 'Complétées', value: 'COMPLETEE' }, { label: 'Annulées', value: 'ANNULEE' }].map(f => {
-                    const active = posStatut === f.value;
-                    const dotColor = f.value === 'COMPLETEE' ? '#10B981' : f.value === 'ANNULEE' ? '#EF4444' : colors.textMuted;
-                    return (
-                      <TouchableOpacity key={f.value} onPress={() => setPosStatut(f.value)}
-                        style={[styles.txFilterChip, active && { backgroundColor: dotColor + '18', borderColor: dotColor }]}
-                        activeOpacity={0.75}>
-                        {f.value !== '' && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: dotColor }} />}
-                        <Text style={{ fontSize: 12, fontWeight: '600', color: active ? dotColor : colors.textSub }}>{f.label}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-              </View>
-              <View style={{ height: 1, backgroundColor: colors.border }} />
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Ionicons name="funnel-outline" size={12} color={colors.textMuted} />
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-                  {[
-                    { label: 'Tous',         value: '',              icon: 'apps-outline' },
-                    { label: 'Espèces',      value: 'ESPECES',       icon: 'cash-outline' },
-                    { label: 'Mobile Money', value: 'MOBILE_MONEY',  icon: 'phone-portrait-outline' },
-                  ].map(f => {
-                    const active = posMode === f.value;
-                    return (
-                      <TouchableOpacity key={f.value} onPress={() => setPosMode(f.value)}
-                        style={[styles.txFilterChip, active && { backgroundColor: colors.primary, borderColor: colors.primary }]}
-                        activeOpacity={0.75}>
-                        <Ionicons name={f.icon} size={11} color={active ? '#fff' : colors.textMuted} />
-                        <Text style={{ fontSize: 12, fontWeight: '600', color: active ? '#fff' : colors.textSub }}>{f.label}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-              </View>
-              {hasActivePosFilter && (
-                <TouchableOpacity onPress={() => { setPosStatut(''); setPosMode(''); }}>
-                  <Text style={{ fontSize: 11, color: '#EF4444', fontWeight: '700' }}>× Réinitialiser</Text>
+              <View style={{ padding: 14, gap: 14 }}>
+
+                {/* ── 2. Bouton retrait ──────────────────────────────────────── */}
+                <TouchableOpacity
+                  onPress={() => {
+                    if (!canWithdraw) return;
+                    setShowWithdraw(true);
+                  }}
+                  disabled={!canWithdraw}
+                  style={[styles.retraitBtn, { backgroundColor: canWithdraw ? colors.primary : colors.bgHover, opacity: canWithdraw ? 1 : 0.6 }]}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="arrow-up-outline" size={18} color={canWithdraw ? '#fff' : colors.textMuted} />
+                  <Text style={[styles.retraitBtnText, { color: canWithdraw ? '#fff' : colors.textMuted }]}>Demander un retrait</Text>
+                  {!canWithdraw && (
+                    <Text style={{ fontSize: 10, color: colors.textMuted }}>
+                      {hasPendingRetrait ? '(retrait en cours)' : isOffline ? '(hors ligne)' : '(min 5 000 FCFA)'}
+                    </Text>
+                  )}
                 </TouchableOpacity>
-              )}
-            </View>
 
-            {/* Liste ventes */}
-            <PulseWrap active={posLoading && posVentes.length > 0}>
-            <View style={[styles.card, { backgroundColor: colors.bgCard, borderColor: colors.border, padding: 0 }]}>
-              <View style={[styles.cardHead, { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 4 }]}>
-                <Ionicons name="receipt-outline" size={14} color={colors.primary} />
-                <Text style={[styles.cardTitle, { color: colors.text }]}>Historique des ventes</Text>
-                {isOffline && posVentes.length > 0 && (
-                  <View style={styles.offlineCacheBadge}>
-                    <Ionicons name="cloud-offline-outline" size={9} color="#F59E0B" />
-                    <Text style={styles.offlineCacheText}>cache</Text>
+                {/* ── 3. Retraits en attente (alerte si présents) ────────────── */}
+                {retraitsRec.filter(r => r.statut === 'EN_ATTENTE').length > 0 && (
+                  <View style={[styles.card, { backgroundColor: '#FFFBEB', borderColor: '#FDE68A', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 }]}>
+                    <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#FEF3C7', alignItems: 'center', justifyContent: 'center' }}>
+                      <Ionicons name="time-outline" size={18} color="#D97706" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#92400E' }}>
+                        {retraitsRec.filter(r => r.statut === 'EN_ATTENTE').length} retrait{retraitsRec.filter(r => r.statut === 'EN_ATTENTE').length > 1 ? 's' : ''} en attente
+                      </Text>
+                      <Text style={{ fontSize: 11, color: '#B45309', marginTop: 2 }}>
+                        {fmt(retraitsRec.filter(r => r.statut === 'EN_ATTENTE').reduce((s, r) => s + (r.montantDemande || 0), 0))} en cours de traitement
+                      </Text>
+                    </View>
                   </View>
                 )}
-                {posTotalPages > 1 && (
-                  <Text style={[styles.cardSub, { color: colors.textMuted }]}>p.{posPage}/{posTotalPages}</Text>
-                )}
-              </View>
-              {posLoading && posVentes.length === 0 ? (
-                <View style={styles.emptyBlock}><ActivityIndicator color={colors.primary} /></View>
-              ) : posVentes.length === 0 ? (
-                <View style={styles.emptyBlock}>
-                  <Ionicons name="receipt-outline" size={32} color={colors.textMuted} />
-                  <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 8 }}>Aucune vente sur cette période.</Text>
-                </View>
-              ) : (
-                <>
-                  {posVentes.map((v, i) => (
-                    <PosRow key={v._id || i} vente={v} colors={colors} onPress={setSelectedVente} />
-                  ))}
-                  {posTotalPages > 1 && (
-                    <View style={styles.paginationRow}>
-                      <TouchableOpacity onPress={() => fetchPos(posPage - 1)} disabled={posPage <= 1} style={[styles.pageBtn, posPage <= 1 && { opacity: 0.35 }]}>
-                        <Ionicons name="chevron-back" size={16} color={colors.primary} />
-                        <Text style={[styles.pageBtnTxt, { color: colors.primary }]}>Préc.</Text>
-                      </TouchableOpacity>
-                      <Text style={{ fontSize: 12, color: colors.textMuted }}>{posPage} / {posTotalPages}</Text>
-                      <TouchableOpacity onPress={() => fetchPos(posPage + 1)} disabled={posPage >= posTotalPages} style={[styles.pageBtn, posPage >= posTotalPages && { opacity: 0.35 }]}>
-                        <Text style={[styles.pageBtnTxt, { color: colors.primary }]}>Suiv.</Text>
-                        <Ionicons name="chevron-forward" size={16} color={colors.primary} />
-                      </TouchableOpacity>
+
+                {/* ── 4. Statistiques période ────────────────────────────────── */}
+                <PulseWrap active={statsLoading} style={{ gap: 0 }}>
+                  <View style={[styles.card, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
+                    <View style={styles.cardHead}>
+                      <Ionicons name="stats-chart-outline" size={14} color={colors.primary} />
+                      <Text style={[styles.cardTitle, { color: colors.text }]}>Statistiques</Text>
+                      <Text style={[styles.cardSub, { color: colors.textMuted }]}>{periode}j</Text>
                     </View>
-                  )}
-                </>
-              )}
-            </View>
-            </PulseWrap>
-
-          </ScrollView>
-        </View>
-        )}
-
-        {/* ════════ PAGE MARKETPLACE — Pro & Business uniquement ════════════ */}
-        {hasMarketplaceAccess && (
-        <View style={styles.page}>
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            nestedScrollEnabled
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#267a6b" />}
-            contentContainerStyle={{ paddingBottom: 40 }}
-            scrollEventThrottle={200}
-          >
-            {/* ── 1. Hero solde — même style que POS ────────────────────── */}
-            <LinearGradient colors={['#30A08B', '#1e7a6b']} start={{x:0,y:0}} end={{x:1,y:1}} style={[styles.heroCard, { margin: 14, marginBottom: 0 }]}>
-              <View style={styles.heroCardTop}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.heroCaption}>Solde Marketplace</Text>
-                  <Text style={styles.heroTotal}>{balanceVisible ? fmt(soldeTotal) : '•••••• ₣'}</Text>
-                </View>
-                <TouchableOpacity onPress={() => setBalanceVisible(v => !v)} style={styles.heroBtn}>
-                  <Ionicons name={balanceVisible ? 'eye-outline' : 'eye-off-outline'} size={18} color="#fff" />
-                </TouchableOpacity>
-              </View>
-              {isOffline && (
-                <View style={styles.offlinePill}>
-                  <Ionicons name="cloud-offline-outline" size={11} color="#fff" />
-                  <Text style={{ fontSize: 10, color: '#fff', fontWeight: '700' }}>Hors ligne — données en cache</Text>
-                </View>
-              )}
-              <View style={styles.heroDivider} />
-              <View style={styles.heroStatRow}>
-                {[
-                  { val: balanceVisible ? `${fmtShort(soldeDisponible)} ₣` : '••••', label: 'Disponible' },
-                  { val: balanceVisible ? `${fmtShort(soldeBloqueTemp)} ₣`  : '••••', label: 'Bloqué 48h' },
-                  { val: balanceVisible ? `${fmtShort(soldeEnAttente)} ₣`   : '••••', label: 'En attente' },
-                ].map((s, i, arr) => (
-                  <React.Fragment key={s.label}>
-                    <View style={styles.heroStat}>
-                      <Text style={styles.heroStatVal}>{s.val}</Text>
-                      <Text style={styles.heroStatLabel}>{s.label}</Text>
-                    </View>
-                    {i < arr.length - 1 && <View style={styles.heroStatSep} />}
-                  </React.Fragment>
-                ))}
-              </View>
-              {soldeReserve > 0 && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 }}>
-                  <Ionicons name="arrow-up-outline" size={12} color="rgba(255,255,255,0.8)" />
-                  <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.85)', fontWeight: '600' }}>
-                    {balanceVisible ? `${fmt(soldeReserve)} réservés pour retrait` : 'Montant réservé pour retrait'}
-                  </Text>
-                </View>
-              )}
-            </LinearGradient>
-
-            {/* ── Prochaine Disponibilité ────────────────────────────────────── */}
-            {stats.prochaineDisponibilite && soldeBloqueTemp > 0 && (
-              <View style={{ marginHorizontal: 14, marginTop: 12, backgroundColor: '#f0faf8', borderWidth: 1, borderColor: '#30A08B33', borderRadius: 16, padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
-                  <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: '#30A08B18', alignItems: 'center', justifyContent: 'center' }}>
-                    <Ionicons name="time-outline" size={20} color="#30A08B" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#267a6b', marginBottom: 2 }}>Prochaine Disponibilité</Text>
-                    <Text style={{ fontSize: 11, color: '#30A08B' }}>
-                      {balanceVisible ? `${fmt(soldeBloqueTemp)} sera bientôt disponible` : 'Montant bloqué bientôt disponible'}
-                    </Text>
-                  </View>
-                </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={{ fontSize: 16, fontWeight: '800', color: '#267a6b' }}>
-                    {calculerTempsRestant(stats.prochaineDisponibilite) || '...'}
-                  </Text>
-                  <Text style={{ fontSize: 10, color: '#30A08B', marginTop: 2 }}>
-                    📅 {fmtDateHour(stats.prochaineDisponibilite)}
-                  </Text>
-                </View>
-              </View>
-            )}
-
-            {/* ── Filtre période — s'applique aux stats, commandes, transactions ── */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 14, gap: 8, paddingTop: 14, paddingBottom: 2 }}>
-              {PERIODES.map(p => {
-                const isActive = periode === p.value;
-                return (
-                  <TouchableOpacity
-                    key={p.value}
-                    onPress={() => setPeriode(p.value)}
-                    style={[styles.chip, { borderColor: isActive ? colors.primary : colors.border }, isActive && { backgroundColor: colors.primaryLight }]}
-                    activeOpacity={0.75}
-                  >
-                    <Text style={{ fontSize: 13, fontWeight: isActive ? '800' : '500', color: isActive ? colors.primary : colors.textSub }}>
-                      {p.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-
-            <View style={{ padding: 14, gap: 14 }}>
-
-              {/* ── 2. Bouton retrait ──────────────────────────────────────── */}
-              <TouchableOpacity
-                onPress={() => {
-                  if (isOffline) { Toast.show({ type: 'error', text1: 'Hors ligne', text2: 'Un retrait nécessite une connexion' }); return; }
-                  if (soldeDisponible < 5000) { Toast.show({ type: 'error', text1: 'Solde insuffisant', text2: 'Minimum 5 000 ₣ pour un retrait' }); return; }
-                  setShowWithdraw(true);
-                }}
-                style={[styles.retraitBtn, { backgroundColor: canWithdraw ? colors.primary : colors.bgHover }]}
-                activeOpacity={0.85}
-              >
-                <Ionicons name="arrow-up-outline" size={18} color={canWithdraw ? '#fff' : colors.textMuted} />
-                <Text style={[styles.retraitBtnText, { color: canWithdraw ? '#fff' : colors.textMuted }]}>Demander un retrait</Text>
-                {!canWithdraw && <Text style={{ fontSize: 10, color: colors.textMuted }}>(min 5 000 ₣)</Text>}
-              </TouchableOpacity>
-
-              {/* ── 3. Retraits en attente (alerte si présents) ────────────── */}
-              {retraitsRec.filter(r => r.statut === 'EN_ATTENTE').length > 0 && (
-                <View style={[styles.card, { backgroundColor: '#FFFBEB', borderColor: '#FDE68A', padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 }]}>
-                  <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#FEF3C7', alignItems: 'center', justifyContent: 'center' }}>
-                    <Ionicons name="time-outline" size={18} color="#D97706" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#92400E' }}>
-                      {retraitsRec.filter(r => r.statut === 'EN_ATTENTE').length} retrait{retraitsRec.filter(r => r.statut === 'EN_ATTENTE').length > 1 ? 's' : ''} en attente
-                    </Text>
-                    <Text style={{ fontSize: 11, color: '#B45309', marginTop: 2 }}>
-                      {fmt(retraitsRec.filter(r => r.statut === 'EN_ATTENTE').reduce((s, r) => s + (r.montantDemande || 0), 0))} en cours de traitement
-                    </Text>
-                  </View>
-                </View>
-              )}
-
-              {/* ── 4. Statistiques période ────────────────────────────────── */}
-              <PulseWrap active={statsLoading} style={{ gap: 0 }}>
-              <View style={[styles.card, { backgroundColor: colors.bgCard, borderColor: colors.border }]}>
-                <View style={styles.cardHead}>
-                  <Ionicons name="stats-chart-outline" size={14} color={colors.primary} />
-                  <Text style={[styles.cardTitle, { color: colors.text }]}>Statistiques</Text>
-                  <Text style={[styles.cardSub, { color: colors.textMuted }]}>{periode}j</Text>
-                </View>
-                <View style={styles.miniStatGrid}>
-                  <View style={[styles.miniStat, { backgroundColor: '#E6F7F4' }]}>
-                    <View style={[styles.miniStatIcon, { backgroundColor: '#C6EDE8' }]}>
-                      <Ionicons name="bag-handle-outline" size={13} color="#30A08B" />
-                    </View>
-                    <Text style={[styles.miniStatLabel, { color: '#30A08B' }]}>Commandes</Text>
-                    <Text style={[styles.miniStatVal, { color: '#30A08B' }]}>{balanceVisible ? String(stats.nombreVentes ?? 0) : '••••'}</Text>
-                  </View>
-                  <View style={[styles.miniStat, { backgroundColor: '#ECFDF5' }]}>
-                    <View style={[styles.miniStatIcon, { backgroundColor: '#D1FAE5' }]}>
-                      <Ionicons name="trending-up-outline" size={13} color="#10B981" />
-                    </View>
-                    <Text style={[styles.miniStatLabel, { color: '#10B981' }]}>CA Brut</Text>
-                    <Text style={[styles.miniStatVal, { color: '#10B981' }]}>{balanceVisible ? `${fmtShort(stats.ventesTotal ?? stats.caTotale ?? 0)} ₣` : '••••'}</Text>
-                  </View>
-                  <View style={[styles.miniStat, { backgroundColor: '#FEF2F2' }]}>
-                    <View style={[styles.miniStatIcon, { backgroundColor: '#FEE2E2' }]}>
-                      <Ionicons name="remove-circle-outline" size={13} color="#EF4444" />
-                    </View>
-                    <Text style={[styles.miniStatLabel, { color: '#EF4444' }]}>Commissions</Text>
-                    <Text style={[styles.miniStatVal, { color: '#EF4444' }]}>{balanceVisible ? `${fmtShort(stats.commissionsTotal ?? stats.totalCommissions ?? 0)} ₣` : '••••'}</Text>
-                  </View>
-                  <View style={[styles.miniStat, { backgroundColor: '#F5F3FF' }]}>
-                    <View style={[styles.miniStatIcon, { backgroundColor: '#EDE9FE' }]}>
-                      <Ionicons name="cash-outline" size={13} color="#8B5CF6" />
-                    </View>
-                    <Text style={[styles.miniStatLabel, { color: '#8B5CF6' }]}>Net vendeur</Text>
-                    <Text style={[styles.miniStatVal, { color: '#8B5CF6' }]}>{balanceVisible ? `${fmtShort((stats.ventesTotal ?? stats.caTotale ?? 0) - (stats.commissionsTotal ?? stats.totalCommissions ?? 0))} ₣` : '••••'}</Text>
-                  </View>
-                </View>
-              </View>
-              </PulseWrap>
-
-              {/* ── 5 & 6. Commandes / Transactions — carte unifiée swipeable ── */}
-              <View style={[styles.card, { backgroundColor: colors.bgCard, borderColor: colors.border, padding: 0 }]}>
-                {/* Header */}
-                <View style={[styles.cardHead, { paddingHorizontal: 14, paddingTop: 14, paddingBottom: 0 }]}>
-                  <Ionicons name={mkTab === 'commandes' ? 'bag-outline' : 'swap-vertical-outline'} size={14} color={colors.primary} />
-                  <Text style={[styles.cardTitle, { color: colors.text }]}>
-                    {mkTab === 'commandes' ? 'Commandes' : 'Transactions'}
-                  </Text>
-                  {isOffline && (mkTab === 'commandes' ? orders.length > 0 : transactions.length > 0) && (
-                    <View style={styles.offlineCacheBadge}>
-                      <Ionicons name="cloud-offline-outline" size={9} color="#F59E0B" />
-                      <Text style={styles.offlineCacheText}>cache</Text>
-                    </View>
-                  )}
-                  {mkTab === 'commandes' && ordTotalPages > 1 && (
-                    <Text style={[styles.cardSub, { color: colors.textMuted }]}>p.{ordPage}/{ordTotalPages}</Text>
-                  )}
-                  {mkTab === 'transactions' && txTotalPages > 1 && (
-                    <Text style={[styles.cardSub, { color: colors.textMuted }]}>p.{txPage}/{txTotalPages}</Text>
-                  )}
-                </View>
-
-                {/* Tab switch */}
-                <View style={[styles.switchRowFull, { borderBottomColor: colors.border, marginTop: 8 }]}>
-                  <TouchableOpacity
-                    style={[styles.switchBtnFull, mkTab === 'commandes' && { borderBottomColor: colors.primary }]}
-                    onPress={() => switchMkTab('commandes')} activeOpacity={0.75}
-                  >
-                    <Text style={{ fontSize: 13, fontWeight: mkTab === 'commandes' ? '700' : '500', color: mkTab === 'commandes' ? colors.primary : colors.textMuted }}>
-                      Commandes
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.switchBtnFull, mkTab === 'transactions' && { borderBottomColor: colors.primary }]}
-                    onPress={() => switchMkTab('transactions')} activeOpacity={0.75}
-                  >
-                    <Text style={{ fontSize: 13, fontWeight: mkTab === 'transactions' ? '700' : '500', color: mkTab === 'transactions' ? colors.primary : colors.textMuted }}>
-                      Transactions
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Contenu de l'onglet actif — rendu conditionnel pour que la hauteur s'adapte */}
-                {mkTab === 'commandes' ? (
-                  <PulseWrap active={ordersLoading && orders.length > 0} style={{ gap: 0 }}>
-                    {ordersLoading && orders.length === 0 ? (
-                      <View style={styles.emptyBlock}><ActivityIndicator color={colors.primary} /></View>
-                    ) : orders.length === 0 ? (
-                      <View style={styles.emptyBlock}>
-                        <Ionicons name="bag-outline" size={32} color={colors.textMuted} />
-                        <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 8 }}>Aucune commande sur cette période.</Text>
-                      </View>
-                    ) : (
-                      <>
-                        {orders.map((o, i) => <OrderFinRow key={o._id || i} order={o} colors={colors} onPress={setSelectedOrder} />)}
-                        {ordTotalPages > 1 && (
-                          <View style={styles.paginationRow}>
-                            <TouchableOpacity onPress={() => fetchOrders(ordPage - 1)} disabled={ordPage <= 1} style={[styles.pageBtn, ordPage <= 1 && { opacity: 0.35 }]}>
-                              <Ionicons name="chevron-back" size={16} color={colors.primary} />
-                              <Text style={[styles.pageBtnTxt, { color: colors.primary }]}>Préc.</Text>
-                            </TouchableOpacity>
-                            <Text style={{ fontSize: 12, color: colors.textMuted }}>{ordPage} / {ordTotalPages}</Text>
-                            <TouchableOpacity onPress={() => fetchOrders(ordPage + 1)} disabled={ordPage >= ordTotalPages} style={[styles.pageBtn, ordPage >= ordTotalPages && { opacity: 0.35 }]}>
-                              <Text style={[styles.pageBtnTxt, { color: colors.primary }]}>Suiv.</Text>
-                              <Ionicons name="chevron-forward" size={16} color={colors.primary} />
-                            </TouchableOpacity>
-                          </View>
-                        )}
-                      </>
-                    )}
-                  </PulseWrap>
-                ) : (
-                  <PulseWrap active={txLoading && transactions.length > 0} style={{ gap: 0 }}>
-                    {/* Barre de filtres */}
-                    <View style={{ paddingHorizontal: 14, paddingTop: 12, paddingBottom: 10, gap: 8 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <Ionicons name="funnel-outline" size={12} color={colors.textMuted} />
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-                          {[
-                            { label: 'Tout',      value: '',                icon: 'apps-outline' },
-                            { label: 'Ventes',    value: 'CREDIT_COMMANDE', icon: 'storefront-outline' },
-                            { label: 'Retraits',  value: 'RETRAIT',         icon: 'arrow-up-circle-outline' },
-                          ].map(f => {
-                            const active = txType === f.value;
-                            return (
-                              <TouchableOpacity
-                                key={f.value}
-                                onPress={() => setTxType(f.value)}
-                                style={[styles.txFilterChip, active && { backgroundColor: colors.primary, borderColor: colors.primary }]}
-                                activeOpacity={0.75}
-                              >
-                                <Ionicons name={f.icon} size={11} color={active ? '#fff' : colors.textMuted} />
-                                <Text style={{ fontSize: 12, fontWeight: '600', color: active ? '#fff' : colors.textSub }}>{f.label}</Text>
-                              </TouchableOpacity>
-                            );
-                          })}
-                        </ScrollView>
-                      </View>
-                      <View style={{ height: 1, backgroundColor: colors.border, marginHorizontal: -14 }} />
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <Ionicons name="ellipse-outline" size={12} color={colors.textMuted} />
-                        <View style={{ flexDirection: 'row', gap: 6 }}>
-                          {[
-                            { label: 'Tous',       value: '',           dot: colors.textMuted },
-                            { label: 'Confirmé',   value: 'CONFIRME',   dot: '#10B981' },
-                            { label: 'En attente', value: 'EN_ATTENTE', dot: '#F59E0B' },
-                            { label: 'Annulé',     value: 'ANNULE',     dot: '#EF4444' },
-                          ].map(f => {
-                            const active = txStatut === f.value;
-                            return (
-                              <TouchableOpacity
-                                key={f.value}
-                                onPress={() => setTxStatut(f.value)}
-                                style={[styles.txFilterChip, active && { backgroundColor: f.dot + '18', borderColor: f.dot }]}
-                                activeOpacity={0.75}
-                              >
-                                {f.value !== '' && (
-                                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: f.dot }} />
-                                )}
-                                <Text style={{ fontSize: 12, fontWeight: '600', color: active ? f.dot : colors.textSub }}>{f.label}</Text>
-                              </TouchableOpacity>
-                            );
-                          })}
+                    <View style={styles.miniStatGrid}>
+                      <View style={[styles.miniStat, { backgroundColor: '#E6F7F4' }]}>
+                        <View style={[styles.miniStatIcon, { backgroundColor: '#C6EDE8' }]}>
+                          <Ionicons name="bag-handle-outline" size={13} color="#30A08B" />
                         </View>
+                        <Text style={[styles.miniStatLabel, { color: '#30A08B' }]}>Commandes</Text>
+                        <Text style={[styles.miniStatVal, { color: '#30A08B' }]}>{balanceVisible ? String(stats.nombreVentes ?? 0) : '••••'}</Text>
+                      </View>
+                      <View style={[styles.miniStat, { backgroundColor: '#ECFDF5' }]}>
+                        <View style={[styles.miniStatIcon, { backgroundColor: '#D1FAE5' }]}>
+                          <Ionicons name="trending-up-outline" size={13} color="#10B981" />
+                        </View>
+                        <Text style={[styles.miniStatLabel, { color: '#10B981' }]}>CA Brut</Text>
+                        <Text style={[styles.miniStatVal, { color: '#10B981' }]}>{balanceVisible ? `${fmtShort(stats.ventesTotal ?? stats.caTotale ?? 0)} FCFA` : '••••'}</Text>
+                      </View>
+                      <View style={[styles.miniStat, { backgroundColor: '#FEF2F2' }]}>
+                        <View style={[styles.miniStatIcon, { backgroundColor: '#FEE2E2' }]}>
+                          <Ionicons name="remove-circle-outline" size={13} color="#EF4444" />
+                        </View>
+                        <Text style={[styles.miniStatLabel, { color: '#EF4444' }]}>Commissions</Text>
+                        <Text style={[styles.miniStatVal, { color: '#EF4444' }]}>{balanceVisible ? `${fmtShort(stats.commissionsTotal ?? stats.totalCommissions ?? 0)} FCFA` : '••••'}</Text>
+                      </View>
+                      <View style={[styles.miniStat, { backgroundColor: '#F5F3FF' }]}>
+                        <View style={[styles.miniStatIcon, { backgroundColor: '#EDE9FE' }]}>
+                          <Ionicons name="cash-outline" size={13} color="#8B5CF6" />
+                        </View>
+                        <Text style={[styles.miniStatLabel, { color: '#8B5CF6' }]}>Net vendeur</Text>
+                        <Text style={[styles.miniStatVal, { color: '#8B5CF6' }]}>{balanceVisible ? `${fmtShort((stats.ventesTotal ?? stats.caTotale ?? 0) - (stats.commissionsTotal ?? stats.totalCommissions ?? 0))} FCFA` : '••••'}</Text>
                       </View>
                     </View>
-                    {txLoading && transactions.length === 0 ? (
-                      <View style={styles.emptyBlock}><ActivityIndicator color={colors.primary} /></View>
-                    ) : transactions.length === 0 ? (
-                      <View style={styles.emptyBlock}>
-                        <Ionicons name="list-outline" size={32} color={colors.textMuted} />
-                        <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 8 }}>Aucune transaction sur cette période.</Text>
-                      </View>
-                    ) : (
-                      <>
-                        {transactions.map((tx, i) => <TxRow key={tx._id || i} tx={tx} colors={colors} onPress={setSelectedTx} />)}
-                        {txTotalPages > 1 && (
-                          <View style={styles.paginationRow}>
-                            <TouchableOpacity onPress={() => fetchTransactions(txPage - 1)} disabled={txPage <= 1} style={[styles.pageBtn, txPage <= 1 && { opacity: 0.35 }]}>
-                              <Ionicons name="chevron-back" size={16} color={colors.primary} />
-                              <Text style={[styles.pageBtnTxt, { color: colors.primary }]}>Préc.</Text>
-                            </TouchableOpacity>
-                            <Text style={{ fontSize: 12, color: colors.textMuted }}>{txPage} / {txTotalPages}</Text>
-                            <TouchableOpacity onPress={() => fetchTransactions(txPage + 1)} disabled={txPage >= txTotalPages} style={[styles.pageBtn, txPage >= txTotalPages && { opacity: 0.35 }]}>
-                              <Text style={[styles.pageBtnTxt, { color: colors.primary }]}>Suiv.</Text>
-                              <Ionicons name="chevron-forward" size={16} color={colors.primary} />
-                            </TouchableOpacity>
-                          </View>
-                        )}
-                      </>
-                    )}
-                  </PulseWrap>
-                )}
-              </View>
-
-              {/* ── 7. Retraits ────────────────────────────────────────────── */}
-              <PulseWrap active={retraitsLoading && retraits.length > 0} style={{ gap: 0 }}>
-              <View style={[styles.card, { backgroundColor: colors.bgCard, borderColor: colors.border, padding: 0 }]}>
-                <View style={[styles.cardHead, { paddingHorizontal: 14, paddingTop: 14, paddingBottom: 4 }]}>
-                  <Ionicons name="arrow-up-circle-outline" size={14} color="#8B5CF6" />
-                  <Text style={[styles.cardTitle, { color: colors.text }]}>Retraits</Text>
-                  {isOffline && retraits.length > 0 && (
-                    <View style={styles.offlineCacheBadge}>
-                      <Ionicons name="cloud-offline-outline" size={9} color="#F59E0B" />
-                      <Text style={styles.offlineCacheText}>cache</Text>
-                    </View>
-                  )}
-                  {retraitsTotalPages > 1 && (
-                    <Text style={[styles.cardSub, { color: colors.textMuted }]}>p.{retraitsPage}/{retraitsTotalPages}</Text>
-                  )}
-                </View>
-                {retraitsLoading && retraits.length === 0 ? (
-                  <View style={styles.emptyBlock}><ActivityIndicator color="#8B5CF6" /></View>
-                ) : retraits.length === 0 ? (
-                  <View style={styles.emptyBlock}>
-                    <Ionicons name="arrow-up-circle-outline" size={32} color={colors.textMuted} />
-                    <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 8 }}>Aucun retrait sur cette période.</Text>
                   </View>
-                ) : (
-                  <>
-                    {retraits.map((r, i) => {
-                      const sCfg = STATUT_CONFIG[r.statut] || { label: r.statut, color: '#6B7280', bg: '#F3F4F6' };
-                      const methodeLabel = { MOBILE_MONEY: 'Mobile Money', VIREMENT_BANCAIRE: 'Virement', ESPECES: 'Espèces' }[r.methodeRetrait] || r.methodeRetrait;
-                      return (
-                        <View key={r._id || i} style={[styles.row, { borderBottomColor: colors.border }]}>
-                          <View style={[styles.rowIcon, { backgroundColor: '#F5F3FF' }]}>
-                            <Ionicons name="arrow-up-outline" size={16} color="#8B5CF6" />
-                          </View>
-                          <View style={{ flex: 1 }}>
-                            <Text style={[styles.rowLabel, { color: colors.text }]}>{methodeLabel}</Text>
-                            <Text style={[styles.rowSub, { color: colors.textMuted }]}>{fmtDate(r.datedemande || r.createdAt)}</Text>
-                          </View>
-                          <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                            <Text style={[styles.rowAmount, { color: '#8B5CF6' }]}>−{fmtShort(r.montantDemande)} ₣</Text>
-                            <View style={[styles.badge, { backgroundColor: sCfg.bg }]}>
-                              <Text style={[styles.badgeText, { color: sCfg.color }]}>{sCfg.label}</Text>
+                </PulseWrap>
+
+                {/* ── 5 & 6. Commandes / Transactions — carte unifiée swipeable ── */}
+                <View style={[styles.card, { backgroundColor: colors.bgCard, borderColor: colors.border, padding: 0 }]}>
+                  {/* Header */}
+                  <View style={[styles.cardHead, { paddingHorizontal: 14, paddingTop: 14, paddingBottom: 0 }]}>
+                    <Ionicons name={mkTab === 'commandes' ? 'bag-outline' : 'swap-vertical-outline'} size={14} color={colors.primary} />
+                    <Text style={[styles.cardTitle, { color: colors.text }]}>
+                      {mkTab === 'commandes' ? 'Commandes' : 'Transactions'}
+                    </Text>
+                    {isOffline && (mkTab === 'commandes' ? orders.length > 0 : transactions.length > 0) && (
+                      <View style={styles.offlineCacheBadge}>
+                        <Ionicons name="cloud-offline-outline" size={9} color="#F59E0B" />
+                        <Text style={styles.offlineCacheText}>cache</Text>
+                      </View>
+                    )}
+                    {mkTab === 'commandes' && ordTotalPages > 1 && (
+                      <Text style={[styles.cardSub, { color: colors.textMuted }]}>p.{ordPage}/{ordTotalPages}</Text>
+                    )}
+                    {mkTab === 'transactions' && txTotalPages > 1 && (
+                      <Text style={[styles.cardSub, { color: colors.textMuted }]}>p.{txPage}/{txTotalPages}</Text>
+                    )}
+                  </View>
+
+                  {/* Tab switch */}
+                  <View style={[styles.switchRowFull, { borderBottomColor: colors.border, marginTop: 8 }]}>
+                    <TouchableOpacity
+                      style={[styles.switchBtnFull, mkTab === 'commandes' && { borderBottomColor: colors.primary }]}
+                      onPress={() => switchMkTab('commandes')} activeOpacity={0.75}
+                    >
+                      <Text style={{ fontSize: 13, fontWeight: mkTab === 'commandes' ? '700' : '500', color: mkTab === 'commandes' ? colors.primary : colors.textMuted }}>
+                        Commandes
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.switchBtnFull, mkTab === 'transactions' && { borderBottomColor: colors.primary }]}
+                      onPress={() => switchMkTab('transactions')} activeOpacity={0.75}
+                    >
+                      <Text style={{ fontSize: 13, fontWeight: mkTab === 'transactions' ? '700' : '500', color: mkTab === 'transactions' ? colors.primary : colors.textMuted }}>
+                        Transactions
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Contenu de l'onglet actif — rendu conditionnel pour que la hauteur s'adapte */}
+                  {mkTab === 'commandes' ? (
+                    <PulseWrap active={ordersLoading && orders.length > 0} style={{ gap: 0 }}>
+                      {ordersLoading && orders.length === 0 ? (
+                        <View style={styles.emptyBlock}><ActivityIndicator color={colors.primary} /></View>
+                      ) : orders.length === 0 ? (
+                        <View style={styles.emptyBlock}>
+                          <Ionicons name="bag-outline" size={32} color={colors.textMuted} />
+                          <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 8 }}>Aucune commande sur cette période.</Text>
+                        </View>
+                      ) : (
+                        <>
+                          {orders.map((o, i) => <OrderFinRow key={o._id || i} order={o} colors={colors} onPress={setSelectedOrder} />)}
+                          {ordTotalPages > 1 && (
+                            <View style={styles.paginationRow}>
+                              <TouchableOpacity onPress={() => fetchOrders(ordPage - 1)} disabled={ordPage <= 1} style={[styles.pageBtn, ordPage <= 1 && { opacity: 0.35 }]}>
+                                <Ionicons name="chevron-back" size={16} color={colors.primary} />
+                                <Text style={[styles.pageBtnTxt, { color: colors.primary }]}>Préc.</Text>
+                              </TouchableOpacity>
+                              <Text style={{ fontSize: 12, color: colors.textMuted }}>{ordPage} / {ordTotalPages}</Text>
+                              <TouchableOpacity onPress={() => fetchOrders(ordPage + 1)} disabled={ordPage >= ordTotalPages} style={[styles.pageBtn, ordPage >= ordTotalPages && { opacity: 0.35 }]}>
+                                <Text style={[styles.pageBtnTxt, { color: colors.primary }]}>Suiv.</Text>
+                                <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+                              </TouchableOpacity>
                             </View>
+                          )}
+                        </>
+                      )}
+                    </PulseWrap>
+                  ) : (
+                    <PulseWrap active={txLoading && transactions.length > 0} style={{ gap: 0 }}>
+                      {/* Barre de filtres */}
+                      <View style={{ paddingHorizontal: 14, paddingTop: 12, paddingBottom: 10, gap: 8 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Ionicons name="funnel-outline" size={12} color={colors.textMuted} />
+                          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                            {[
+                              { label: 'Tout', value: '', icon: 'apps-outline' },
+                              { label: 'Ventes', value: 'CREDIT_COMMANDE', icon: 'storefront-outline' },
+                              { label: 'Retraits', value: 'RETRAIT', icon: 'arrow-up-circle-outline' },
+                            ].map(f => {
+                              const active = txType === f.value;
+                              return (
+                                <TouchableOpacity
+                                  key={f.value}
+                                  onPress={() => setTxType(f.value)}
+                                  style={[styles.txFilterChip, active && { backgroundColor: colors.primary, borderColor: colors.primary }]}
+                                  activeOpacity={0.75}
+                                >
+                                  <Ionicons name={f.icon} size={11} color={active ? '#fff' : colors.textMuted} />
+                                  <Text style={{ fontSize: 12, fontWeight: '600', color: active ? '#fff' : colors.textSub }}>{f.label}</Text>
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </ScrollView>
+                        </View>
+                        <View style={{ height: 1, backgroundColor: colors.border, marginHorizontal: -14 }} />
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Ionicons name="ellipse-outline" size={12} color={colors.textMuted} />
+                          <View style={{ flexDirection: 'row', gap: 6 }}>
+                            {[
+                              { label: 'Tous', value: '', dot: colors.textMuted },
+                              { label: 'Confirmé', value: 'CONFIRME', dot: '#10B981' },
+                              { label: 'En attente', value: 'EN_ATTENTE', dot: '#F59E0B' },
+                              { label: 'Annulé', value: 'ANNULE', dot: '#EF4444' },
+                            ].map(f => {
+                              const active = txStatut === f.value;
+                              return (
+                                <TouchableOpacity
+                                  key={f.value}
+                                  onPress={() => setTxStatut(f.value)}
+                                  style={[styles.txFilterChip, active && { backgroundColor: f.dot + '18', borderColor: f.dot }]}
+                                  activeOpacity={0.75}
+                                >
+                                  {f.value !== '' && (
+                                    <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: f.dot }} />
+                                  )}
+                                  <Text style={{ fontSize: 12, fontWeight: '600', color: active ? f.dot : colors.textSub }}>{f.label}</Text>
+                                </TouchableOpacity>
+                              );
+                            })}
                           </View>
                         </View>
-                      );
-                    })}
-                    {retraitsTotalPages > 1 && (
-                      <View style={styles.paginationRow}>
-                        <TouchableOpacity onPress={() => fetchRetraits(retraitsPage - 1)} disabled={retraitsPage <= 1} style={[styles.pageBtn, retraitsPage <= 1 && { opacity: 0.35 }]}>
-                          <Ionicons name="chevron-back" size={16} color="#8B5CF6" />
-                          <Text style={[styles.pageBtnTxt, { color: '#8B5CF6' }]}>Préc.</Text>
-                        </TouchableOpacity>
-                        <Text style={{ fontSize: 12, color: colors.textMuted }}>{retraitsPage} / {retraitsTotalPages}</Text>
-                        <TouchableOpacity onPress={() => fetchRetraits(retraitsPage + 1)} disabled={retraitsPage >= retraitsTotalPages} style={[styles.pageBtn, retraitsPage >= retraitsTotalPages && { opacity: 0.35 }]}>
-                          <Text style={[styles.pageBtnTxt, { color: '#8B5CF6' }]}>Suiv.</Text>
-                          <Ionicons name="chevron-forward" size={16} color="#8B5CF6" />
-                        </TouchableOpacity>
                       </View>
-                    )}
-                  </>
-                )}
-              </View>
-              </PulseWrap>
+                      {txLoading && transactions.length === 0 ? (
+                        <View style={styles.emptyBlock}><ActivityIndicator color={colors.primary} /></View>
+                      ) : transactions.length === 0 ? (
+                        <View style={styles.emptyBlock}>
+                          <Ionicons name="list-outline" size={32} color={colors.textMuted} />
+                          <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 8 }}>Aucune transaction sur cette période.</Text>
+                        </View>
+                      ) : (
+                        <>
+                          {transactions.map((tx, i) => <TxRow key={tx._id || i} tx={tx} colors={colors} onPress={setSelectedTx} />)}
+                          {txTotalPages > 1 && (
+                            <View style={styles.paginationRow}>
+                              <TouchableOpacity onPress={() => fetchTransactions(txPage - 1)} disabled={txPage <= 1} style={[styles.pageBtn, txPage <= 1 && { opacity: 0.35 }]}>
+                                <Ionicons name="chevron-back" size={16} color={colors.primary} />
+                                <Text style={[styles.pageBtnTxt, { color: colors.primary }]}>Préc.</Text>
+                              </TouchableOpacity>
+                              <Text style={{ fontSize: 12, color: colors.textMuted }}>{txPage} / {txTotalPages}</Text>
+                              <TouchableOpacity onPress={() => fetchTransactions(txPage + 1)} disabled={txPage >= txTotalPages} style={[styles.pageBtn, txPage >= txTotalPages && { opacity: 0.35 }]}>
+                                <Text style={[styles.pageBtnTxt, { color: colors.primary }]}>Suiv.</Text>
+                                <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+                              </TouchableOpacity>
+                            </View>
+                          )}
+                        </>
+                      )}
+                    </PulseWrap>
+                  )}
+                </View>
 
-            </View>
-          </ScrollView>
-        </View>
+                {/* ── 7. Retraits ────────────────────────────────────────────── */}
+                <PulseWrap active={retraitsLoading && retraits.length > 0} style={{ gap: 0 }}>
+                  <View style={[styles.card, { backgroundColor: colors.bgCard, borderColor: colors.border, padding: 0 }]}>
+                    <View style={[styles.cardHead, { paddingHorizontal: 14, paddingTop: 14, paddingBottom: 4 }]}>
+                      <Ionicons name="arrow-up-circle-outline" size={14} color="#8B5CF6" />
+                      <Text style={[styles.cardTitle, { color: colors.text }]}>Retraits</Text>
+                      {isOffline && retraits.length > 0 && (
+                        <View style={styles.offlineCacheBadge}>
+                          <Ionicons name="cloud-offline-outline" size={9} color="#F59E0B" />
+                          <Text style={styles.offlineCacheText}>cache</Text>
+                        </View>
+                      )}
+                      {retraitsTotalPages > 1 && (
+                        <Text style={[styles.cardSub, { color: colors.textMuted }]}>p.{retraitsPage}/{retraitsTotalPages}</Text>
+                      )}
+                    </View>
+                    {retraitsLoading && retraits.length === 0 ? (
+                      <View style={styles.emptyBlock}><ActivityIndicator color="#8B5CF6" /></View>
+                    ) : retraits.length === 0 ? (
+                      <View style={styles.emptyBlock}>
+                        <Ionicons name="arrow-up-circle-outline" size={32} color={colors.textMuted} />
+                        <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 8 }}>Aucun retrait sur cette période.</Text>
+                      </View>
+                    ) : (
+                      <>
+                        {retraits.map((r, i) => {
+                          const sCfg = STATUT_CONFIG[r.statut] || { label: r.statut, color: '#6B7280', bg: '#F3F4F6' };
+                          const methodeLabel = { MOBILE_MONEY: 'Mobile Money', VIREMENT_BANCAIRE: 'Virement', ESPECES: 'Espèces' }[r.methodeRetrait] || r.methodeRetrait;
+                          return (
+                            <View key={r._id || i} style={[styles.row, { borderBottomColor: colors.border }]}>
+                              <View style={[styles.rowIcon, { backgroundColor: '#F5F3FF' }]}>
+                                <Ionicons name="arrow-up-outline" size={16} color="#8B5CF6" />
+                              </View>
+                              <View style={{ flex: 1 }}>
+                                <Text style={[styles.rowLabel, { color: colors.text }]}>{methodeLabel}</Text>
+                                <Text style={[styles.rowSub, { color: colors.textMuted }]}>{fmtDate(r.datedemande || r.createdAt)}</Text>
+                              </View>
+                              <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                                <Text style={[styles.rowAmount, { color: '#8B5CF6' }]}>−{fmtShort(r.montantDemande)} FCFA</Text>
+                                <View style={[styles.badge, { backgroundColor: sCfg.bg }]}>
+                                  <Text style={[styles.badgeText, { color: sCfg.color }]}>{sCfg.label}</Text>
+                                </View>
+                              </View>
+                            </View>
+                          );
+                        })}
+                        {retraitsTotalPages > 1 && (
+                          <View style={styles.paginationRow}>
+                            <TouchableOpacity onPress={() => fetchRetraits(retraitsPage - 1)} disabled={retraitsPage <= 1} style={[styles.pageBtn, retraitsPage <= 1 && { opacity: 0.35 }]}>
+                              <Ionicons name="chevron-back" size={16} color="#8B5CF6" />
+                              <Text style={[styles.pageBtnTxt, { color: '#8B5CF6' }]}>Préc.</Text>
+                            </TouchableOpacity>
+                            <Text style={{ fontSize: 12, color: colors.textMuted }}>{retraitsPage} / {retraitsTotalPages}</Text>
+                            <TouchableOpacity onPress={() => fetchRetraits(retraitsPage + 1)} disabled={retraitsPage >= retraitsTotalPages} style={[styles.pageBtn, retraitsPage >= retraitsTotalPages && { opacity: 0.35 }]}>
+                              <Text style={[styles.pageBtnTxt, { color: '#8B5CF6' }]}>Suiv.</Text>
+                              <Ionicons name="chevron-forward" size={16} color="#8B5CF6" />
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                      </>
+                    )}
+                  </View>
+                </PulseWrap>
+
+              </View>
+            </ScrollView>
+          </View>
         )}
 
       </ScrollView>
 
       {/* Modals */}
       <TxDetailModal tx={selectedTx} onClose={() => setSelectedTx(null)} colors={colors} />
-      <OrderDetailModal order={selectedOrder} sellerId={sellerId} isOffline={isOffline} onClose={() => setSelectedOrder(null)} colors={colors} />
+      <OrderDetailModal
+        order={selectedOrder}
+        sellerId={sellerId}
+        isOffline={isOffline}
+        onClose={() => setSelectedOrder(null)}
+        onOrderUpdated={updated => {
+          setSelectedOrder(updated);
+          setOrders(prev => prev.map(o => o._id === updated._id ? updated : o));
+        }}
+        colors={colors}
+      />
       {selectedVente && (
         <VenteDetailModal
           vente={selectedVente}
@@ -2933,123 +3016,123 @@ const styles = StyleSheet.create({
 
   // View selector
   viewSelectorWrap: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 10, borderBottomWidth: 1 },
-  viewSelector:     { flexDirection: 'row', borderRadius: 12, borderWidth: 1, padding: 4, gap: 4 },
-  viewTab:          { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, borderRadius: 9, position: 'relative' },
-  viewTabText:      { fontSize: 13 },
-  viewTabDot:       { position: 'absolute', bottom: 3, width: 4, height: 4, borderRadius: 2 },
+  viewSelector: { flexDirection: 'row', borderRadius: 12, borderWidth: 1, padding: 4, gap: 4 },
+  viewTab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, borderRadius: 9, position: 'relative' },
+  viewTabText: { fontSize: 13 },
+  viewTabDot: { position: 'absolute', bottom: 3, width: 4, height: 4, borderRadius: 2 },
 
   // Pages
-  page:        { width: W, flex: 1 },
+  page: { width: W, flex: 1 },
   pageContent: { padding: 14, paddingBottom: 40, gap: 14 },
 
   // Hero POS
-  heroCard:      { borderRadius: 18, padding: 18, gap: 14 },
-  heroCardTop:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  heroCaption:   { fontSize: 11, color: 'rgba(255,255,255,0.75)', fontWeight: '600', marginBottom: 4 },
-  heroTotal:     { fontSize: 26, fontWeight: '800', color: '#fff' },
-  heroBtn:       { width: 34, height: 34, borderRadius: 10, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)' },
-  heroDivider:   { height: 1, backgroundColor: 'rgba(255,255,255,0.2)' },
-  heroStatRow:   { flexDirection: 'row', alignItems: 'center' },
-  heroStat:      { flex: 1, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 10, paddingVertical: 8 },
-  heroStatSep:   { width: 6 },
-  heroStatVal:   { fontSize: 13, fontWeight: '800', color: '#fff' },
+  heroCard: { borderRadius: 18, padding: 18, gap: 14 },
+  heroCardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  heroCaption: { fontSize: 11, color: 'rgba(255,255,255,0.75)', fontWeight: '600', marginBottom: 4 },
+  heroTotal: { fontSize: 26, fontWeight: '800', color: '#fff' },
+  heroBtn: { width: 34, height: 34, borderRadius: 10, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)' },
+  heroDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.2)' },
+  heroStatRow: { flexDirection: 'row', alignItems: 'center' },
+  heroStat: { flex: 1, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 10, paddingVertical: 8 },
+  heroStatSep: { width: 6 },
+  heroStatVal: { fontSize: 13, fontWeight: '800', color: '#fff' },
   heroStatLabel: { fontSize: 9, color: 'rgba(255,255,255,0.7)', fontWeight: '600', marginTop: 2 },
 
   // KPI cards POS
-  kpiRow:  { flexDirection: 'row', gap: 6 },
+  kpiRow: { flexDirection: 'row', gap: 6 },
   kpiCard: { flex: 1, borderRadius: 12, borderWidth: 1, padding: 9, gap: 3 },
   kpiIcon: { width: 26, height: 26, borderRadius: 7, justifyContent: 'center', alignItems: 'center', marginBottom: 2 },
-  kpiVal:  { fontSize: 12, fontWeight: '900' },
-  kpiSub:  { fontSize: 8, fontWeight: '500' },
+  kpiVal: { fontSize: 12, fontWeight: '900' },
+  kpiSub: { fontSize: 8, fontWeight: '500' },
 
   // Info banner
   infoBanner: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, borderRadius: 12, borderWidth: 1, padding: 12 },
 
   // Search / filter
-  searchBar:    { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 12, borderWidth: 1.5, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 8 },
-  searchInput:  { flex: 1, fontSize: 13, padding: 0 },
+  searchBar: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 12, borderWidth: 1.5, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 8 },
+  searchInput: { flex: 1, fontSize: 13, padding: 0 },
   filterToggle: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 10, borderWidth: 1.5, paddingHorizontal: 12, paddingVertical: 8, alignSelf: 'flex-start' },
 
   // Hero Marketplace
   offlinePill: { flexDirection: 'row', alignItems: 'center', gap: 4, marginHorizontal: 16, marginBottom: 8, backgroundColor: 'rgba(0,0,0,0.25)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, alignSelf: 'flex-start' },
   // Badge "cache" affiché dans les en-têtes de cartes quand offline
   offlineCacheBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 8, backgroundColor: '#FFFBEB', borderWidth: 1, borderColor: '#FDE68A' },
-  offlineCacheText:  { fontSize: 9, fontWeight: '700', color: '#F59E0B' },
+  offlineCacheText: { fontSize: 9, fontWeight: '700', color: '#F59E0B' },
 
   // SoldeCard
-  soldeCard:    { width: 130, borderRadius: 12, padding: 12, gap: 4, backgroundColor: '#fff' },
-  soldeIcon:    { width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginBottom: 2 },
-  soldeLabel:   { fontSize: 10, fontWeight: '600', color: '#6B7280' },
+  soldeCard: { width: 130, borderRadius: 12, padding: 12, gap: 4, backgroundColor: '#fff' },
+  soldeIcon: { width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginBottom: 2 },
+  soldeLabel: { fontSize: 10, fontWeight: '600', color: '#6B7280' },
   soldeMontant: { fontSize: 12, fontWeight: '800' },
 
   // Cards
-  card:      { borderRadius: 14, borderWidth: 1, padding: 14, overflow: 'hidden' },
-  cardHead:      { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
-  cardSub:       { fontSize: 11, fontWeight: '500', marginLeft: 'auto' },
-  paginationRow:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#F0F0F0' },
-  pageBtn:        { flexDirection: 'row', alignItems: 'center', gap: 2, paddingVertical: 4, paddingHorizontal: 8 },
-  pageBtnTxt:     { fontSize: 13, fontWeight: '600' },
-  switchRowFull:  { flexDirection: 'row', borderBottomWidth: 1 },
-  switchBtnFull:  { flex: 1, alignItems: 'center', paddingVertical: 10, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  card: { borderRadius: 14, borderWidth: 1, padding: 14, overflow: 'hidden' },
+  cardHead: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
+  cardSub: { fontSize: 11, fontWeight: '500', marginLeft: 'auto' },
+  paginationRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#F0F0F0' },
+  pageBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingVertical: 4, paddingHorizontal: 8 },
+  pageBtnTxt: { fontSize: 13, fontWeight: '600' },
+  switchRowFull: { flexDirection: 'row', borderBottomWidth: 1 },
+  switchBtnFull: { flex: 1, alignItems: 'center', paddingVertical: 10, borderBottomWidth: 2, borderBottomColor: 'transparent' },
   txModalOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
-  txModalSheet:   { position: 'absolute', bottom: 0, left: 0, right: 0, borderTopLeftRadius: 24, borderTopRightRadius: 24, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.12, shadowRadius: 16, elevation: 20 },
-  txModalIcon:    { width: 56, height: 56, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
-  txModalRow:     { flexDirection: 'row', alignItems: 'center', paddingVertical: 11, gap: 12 },
+  txModalSheet: { position: 'absolute', bottom: 0, left: 0, right: 0, borderTopLeftRadius: 24, borderTopRightRadius: 24, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.12, shadowRadius: 16, elevation: 20 },
+  txModalIcon: { width: 56, height: 56, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+  txModalRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 11, gap: 12 },
   cardTitle: { fontSize: 13, fontWeight: '700', flex: 1 },
 
   // MiniStat grid 2×2
-  miniStatGrid:  { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 4 },
-  miniStat:      { width: '47%', flexGrow: 1, borderRadius: 12, padding: 10, gap: 4, backgroundColor: 'transparent' },
-  miniStatIcon:  { width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginBottom: 2 },
+  miniStatGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 4 },
+  miniStat: { width: '47%', flexGrow: 1, borderRadius: 12, padding: 10, gap: 4, backgroundColor: 'transparent' },
+  miniStatIcon: { width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginBottom: 2 },
   miniStatLabel: { fontSize: 11, fontWeight: '500' },
-  miniStatVal:   { fontSize: 14, fontWeight: '800' },
+  miniStatVal: { fontSize: 14, fontWeight: '800' },
 
   // Rows
-  row:    { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 14, borderBottomWidth: 1, gap: 10 },
+  row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 14, borderBottomWidth: 1, gap: 10 },
   posRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 14, borderBottomWidth: 1, gap: 10 },
-  rowIcon:   { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  rowLabel:  { fontSize: 13, fontWeight: '600' },
-  rowSub:    { fontSize: 11, marginTop: 1 },
+  rowIcon: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  rowLabel: { fontSize: 13, fontWeight: '600' },
+  rowSub: { fontSize: 11, marginTop: 1 },
   rowAmount: { fontSize: 13, fontWeight: '800' },
 
   // Badge
-  badge:     { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 },
+  badge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 },
   badgeText: { fontSize: 9, fontWeight: '700' },
 
   // Bouton retrait
-  retraitBtn:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 14, paddingVertical: 15 },
+  retraitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 14, paddingVertical: 15 },
   retraitBtnText: { fontSize: 15, fontWeight: '800' },
 
   // Chip
-  chip:         { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1.5 },
+  chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1.5 },
   txFilterChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 16, borderWidth: 1.5, borderColor: '#E5E7EB', backgroundColor: 'transparent' },
 
   // Load more / empty
   loadMoreBtn: { alignItems: 'center', paddingVertical: 14, borderTopWidth: 1 },
-  emptyBlock:  { padding: 32, alignItems: 'center', justifyContent: 'center' },
+  emptyBlock: { padding: 32, alignItems: 'center', justifyContent: 'center' },
 
   // VenteDetailModal
-  detailSheet:  { borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '92%', shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.15, elevation: 24 },
+  detailSheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '92%', shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.15, elevation: 24 },
   detailHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingVertical: 14 },
-  closeBtn:     { width: 32, height: 32, borderRadius: 8, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)' },
+  closeBtn: { width: 32, height: 32, borderRadius: 8, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)' },
 
   // Tableau articles
-  lignesTable:  { borderRadius: 12, borderWidth: 1, overflow: 'hidden' },
+  lignesTable: { borderRadius: 12, borderWidth: 1, overflow: 'hidden' },
   lignesHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 8 },
-  ligneRow:     { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 10, borderTopWidth: 1 },
-  colLabel:     { fontSize: 9, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
-  colArticle:   { flex: 2 },
-  colPu:        { width: 60, textAlign: 'right' },
-  colQte:       { width: 32, textAlign: 'center' },
-  colTotal:     { width: 64, textAlign: 'right' },
+  ligneRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 10, borderTopWidth: 1 },
+  colLabel: { fontSize: 9, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
+  colArticle: { flex: 2 },
+  colPu: { width: 60, textAlign: 'right' },
+  colQte: { width: 32, textAlign: 'center' },
+  colTotal: { width: 64, textAlign: 'right' },
 
   // Totaux
-  totauxBox:  { borderRadius: 12, padding: 14, borderWidth: 1 },
-  totauxRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  totauxBox: { borderRadius: 12, padding: 14, borderWidth: 1 },
+  totauxRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 
   // Reçu thermique — ticket blanc (aligné VenteScreen)
-  recuSection:      { borderRadius: 14, borderWidth: 1, overflow: 'hidden' },
-  recuToggle:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, gap: 6 },
+  recuSection: { borderRadius: 14, borderWidth: 1, overflow: 'hidden' },
+  recuToggle: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, gap: 6 },
   receiptTicket: {
     backgroundColor: '#fff',
     borderRadius: 8,
@@ -3059,46 +3142,46 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     elevation: 4,
   },
-  receiptBrand:     { textAlign: 'center', fontSize: 10, fontWeight: '500', letterSpacing: 3, fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace', color: '#9ca3af', textTransform: 'uppercase', marginBottom: 2 },
+  receiptBrand: { textAlign: 'center', fontSize: 10, fontWeight: '500', letterSpacing: 3, fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace', color: '#9ca3af', textTransform: 'uppercase', marginBottom: 2 },
   receiptStoreName: { textAlign: 'center', fontSize: 18, fontWeight: '900', letterSpacing: 2, fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace', color: '#111', textTransform: 'uppercase' },
-  receiptSubTitle:  { textAlign: 'center', fontSize: 9, color: '#6B7280', fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace', marginTop: 2 },
-  receiptDate:      { textAlign: 'center', fontSize: 9, color: '#6B7280', fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace', marginTop: 1 },
-  receiptRef:       { textAlign: 'center', fontSize: 8, color: '#9CA3AF', fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace', letterSpacing: 0.5, marginTop: 1 },
-  receiptDivider:   { borderTopWidth: 1, borderStyle: 'dashed', borderColor: '#D1D5DB', marginVertical: 8 },
+  receiptSubTitle: { textAlign: 'center', fontSize: 9, color: '#6B7280', fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace', marginTop: 2 },
+  receiptDate: { textAlign: 'center', fontSize: 9, color: '#6B7280', fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace', marginTop: 1 },
+  receiptRef: { textAlign: 'center', fontSize: 8, color: '#9CA3AF', fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace', letterSpacing: 0.5, marginTop: 1 },
+  receiptDivider: { borderTopWidth: 1, borderStyle: 'dashed', borderColor: '#D1D5DB', marginVertical: 8 },
   receiptColHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  receiptColText:   { fontSize: 9, color: '#6B7280', fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace', fontWeight: '700' },
-  receiptItemWrap:  { marginBottom: 6 },
-  receiptItemRow:   { flexDirection: 'row', alignItems: 'center' },
-  receiptItemNom:   { fontSize: 11, fontWeight: '700', fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace', color: '#111', flexShrink: 1 },
+  receiptColText: { fontSize: 9, color: '#6B7280', fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace', fontWeight: '700' },
+  receiptItemWrap: { marginBottom: 6 },
+  receiptItemRow: { flexDirection: 'row', alignItems: 'center' },
+  receiptItemNom: { fontSize: 11, fontWeight: '700', fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace', color: '#111', flexShrink: 1 },
   receiptItemVariante: { fontSize: 9, fontWeight: '400', color: '#6B7280', fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace' },
-  receiptItemCell:  { fontSize: 10, color: '#374151', fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace' },
+  receiptItemCell: { fontSize: 10, color: '#374151', fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace' },
   receiptItemCellBold: { fontSize: 10, fontWeight: '700', color: '#111', fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace' },
-  receiptTotalRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 },
+  receiptTotalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 },
   receiptGrandTotal: { borderTopWidth: 1, borderTopColor: '#111', paddingTop: 5, marginTop: 2, marginBottom: 4 },
   receiptGrandTotalText: { fontSize: 14, fontWeight: '900', fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace', color: '#111' },
-  receiptFooter:    { textAlign: 'center', fontSize: 9, color: '#9CA3AF', fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace', lineHeight: 14 },
-  recuActions:      { flexDirection: 'row', gap: 8, padding: 10, borderTopWidth: 1 },
-  whatsappBtn:      { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#22C55E', borderRadius: 12, paddingVertical: 12 },
-  printBtn:         { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 12, paddingVertical: 12 },
-  recuBtnText:      { fontSize: 13, fontWeight: '800', color: '#fff' },
+  receiptFooter: { textAlign: 'center', fontSize: 9, color: '#9CA3AF', fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace', lineHeight: 14 },
+  recuActions: { flexDirection: 'row', gap: 8, padding: 10, borderTopWidth: 1 },
+  whatsappBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#22C55E', borderRadius: 12, paddingVertical: 12 },
+  printBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 12, paddingVertical: 12 },
+  recuBtnText: { fontSize: 13, fontWeight: '800', color: '#fff' },
 
   // Annulation
-  annulTrigger:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 2, borderRadius: 14, paddingVertical: 14 },
-  annulBox:      { borderWidth: 2, borderRadius: 14, padding: 14 },
-  annulBtn:      { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 12, paddingVertical: 12 },
+  annulTrigger: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 2, borderRadius: 14, paddingVertical: 14 },
+  annulBox: { borderWidth: 2, borderRadius: 14, padding: 14 },
+  annulBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 12, paddingVertical: 12 },
   annuledBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 12, padding: 12 },
 
   // Withdraw modal
-  modalSheet:     { borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '92%', shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.15, elevation: 24 },
-  handle:         { width: 40, height: 4, borderRadius: 2 },
-  modalHeader:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1 },
-  modalTitle:     { fontSize: 17, fontWeight: '800' },
-  fieldLabel:     { fontSize: 10, fontWeight: '800', letterSpacing: 0.8 },
-  input:          { borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14 },
-  inputRow:       { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11 },
-  inputInner:     { flex: 1, fontSize: 14, padding: 0 },
-  confirmBtn:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 14, paddingVertical: 15, marginTop: 4 },
+  modalSheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '92%', flexShrink: 1, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.15, elevation: 24 },
+  handle: { width: 40, height: 4, borderRadius: 2 },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1 },
+  modalTitle: { fontSize: 17, fontWeight: '800' },
+  fieldLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 0.8 },
+  input: { borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14 },
+  inputRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11 },
+  inputInner: { flex: 1, fontSize: 14, padding: 0 },
+  confirmBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 14, paddingVertical: 15, marginTop: 4 },
   confirmBtnText: { fontSize: 15, fontWeight: '800' },
-  infoBox:        { borderRadius: 10, padding: 12, gap: 4 },
-  methodeBtn:     { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 12, borderWidth: 1.5, padding: 12 },
+  infoBox: { borderRadius: 10, padding: 12, gap: 4 },
+  methodeBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 12, borderWidth: 1.5, padding: 12 },
 });

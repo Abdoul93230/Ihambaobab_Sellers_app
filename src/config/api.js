@@ -83,6 +83,32 @@ apiClient.interceptors.response.use(
       return apiClient(req);
     }
 
+    // Bloc admin (403 sans token + message "inactif") — déconnexion + écran bloqué
+    const errBody = error.response?.data;
+    const isAdminBlock = error.response?.status === 403
+      && !errBody?.token
+      && (errBody?.code === 'ACCOUNT_BLOCKED'
+          || errBody?.isAdminBlock === true
+          || errBody?.message === 'Compte vendeur inactif'
+          || (errBody?.success === false && errBody?.error?.includes('actif')));
+
+    if (isAdminBlock && !_loggingOut) {
+      _loggingOut = true;
+      const reason = errBody?.error || errBody?.reason || null;
+      try {
+        const { useAuthStore } = require('../stores/authStore');
+        await useAuthStore.getState().markBlockedByAdmin(reason);
+      } catch (_) {}
+      _loggingOut = false;
+      Toast.show({
+        type: 'error',
+        text1: 'Compte désactivé',
+        text2: reason || "Votre compte a été bloqué. Contactez l'administration.",
+        visibilityTime: 6000,
+      });
+      return Promise.reject(error);
+    }
+
     // Logout automatique sur 401 (token expiré) — une seule fois même si plusieurs requêtes parallèles
     if (error.response?.status === 401 && req?.headers?.Authorization && !_loggingOut) {
       // Extrait le token de la requête qui a échoué

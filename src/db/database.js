@@ -113,17 +113,45 @@ export function getDB() {
   return _db;
 }
 
+// ─── Mutex transaction — sérialise tous les withTransactionAsync ─────────────
+// SQLite ne supporte qu'une seule transaction active par connexion.
+// Ce mutex empêche deux transactions de se chevaucher.
+let _txQueue = Promise.resolve();
+
+export function runInTransaction(task) {
+  const p = _txQueue.then(async () => {
+    const db = getDB();
+    await db.withTransactionAsync(task);
+  }).catch(err => {
+    if (__DEV__) console.warn('[db] Transaction error:', err.message);
+    throw err;
+  });
+  // Chaîne même en cas d'erreur pour ne pas bloquer la queue
+  _txQueue = p.catch(() => {});
+  return p;
+}
+
 // ─── Helpers génériques ───────────────────────────────────────────────────────
 
 // Sauvegarde un array d'objets dans une table (upsert)
+// Sanitize un timestamp : retourne Date.now() si invalide
+function safeTs(val) {
+  const t = new Date(val || Date.now()).getTime();
+  return isNaN(t) ? Date.now() : t;
+}
+function safeNum(val, fallback = 0) {
+  const n = Number(val);
+  return isNaN(n) ? fallback : n;
+}
+
 export async function upsertMany(table, rows, getId) {
   if (!rows?.length) return;
   const db = getDB();
-  await db.withTransactionAsync(async () => {
+  await runInTransaction(async () => {
     for (const row of rows) {
       const id = getId(row);
       const data = JSON.stringify(row);
-      const updatedAt = new Date(row.updatedAt || row.date || Date.now()).getTime();
+      const updatedAt = safeTs(row.updatedAt || row.date);
 
       if (table === 'produits') {
         await db.runAsync(
@@ -132,7 +160,7 @@ export async function upsertMany(table, rows, getId) {
            ON CONFLICT(id) DO UPDATE SET
              data=excluded.data, isPublished=excluded.isPublished,
              quantite=excluded.quantite, updatedAt=excluded.updatedAt`,
-          [id, data, row.isPublished || 'UnPublished', row.quantite ?? 0, updatedAt]
+          [id, data, row.isPublished || 'UnPublished', safeNum(row.quantite), updatedAt]
         );
       } else if (table === 'commandes') {
         const status = row.etatTraitement || row.statusLivraison || 'pending';
@@ -142,7 +170,7 @@ export async function upsertMany(table, rows, getId) {
            ON CONFLICT(id) DO UPDATE SET
              data=excluded.data, status=excluded.status,
              date=excluded.date, updatedAt=excluded.updatedAt`,
-          [id, data, status, new Date(row.date || Date.now()).getTime(), updatedAt]
+          [id, data, status, safeTs(row.date), updatedAt]
         );
       } else if (table === 'creances') {
         await db.runAsync(
@@ -305,7 +333,7 @@ export async function deleteImageDraftDB(key) {
 export async function cleanupImageDraftsDB(keys) {
   if (!keys?.length) return;
   const db = getDB();
-  await db.withTransactionAsync(async () => {
+  await runInTransaction(async () => {
     for (const key of keys) {
       await db.runAsync(`DELETE FROM image_drafts WHERE key = ?`, [key]);
     }
@@ -510,7 +538,7 @@ export async function updateBilanCache(delta) {
 export async function upsertNotifications(notifs) {
   if (!notifs?.length) return;
   const db = getDB();
-  await db.withTransactionAsync(async () => {
+  await runInTransaction(async () => {
     for (const n of notifs) {
       await db.runAsync(
         `INSERT INTO notifications(id, type, title, body, data, read_at, received_at)
@@ -523,8 +551,8 @@ export async function upsertNotifications(notifs) {
           n.title || '',
           n.body || '',
           JSON.stringify(n.data || {}),
-          n.readAt ? new Date(n.readAt).getTime() : null,
-          n.receivedAt ? new Date(n.receivedAt).getTime() : Date.now(),
+          n.readAt ? safeTs(n.readAt) : null,
+          n.receivedAt ? safeTs(n.receivedAt) : Date.now(),
         ]
       );
     }
@@ -562,7 +590,7 @@ export async function markNotificationReadDB(id) {
 export async function upsertAgentVentes(ventes) {
   if (!ventes?.length) return;
   const db = getDB();
-  await db.withTransactionAsync(async () => {
+  await runInTransaction(async () => {
     for (const v of ventes) {
       await db.runAsync(
         `INSERT INTO agent_ventes(id, data, statut, created_at)
@@ -573,7 +601,7 @@ export async function upsertAgentVentes(ventes) {
           String(v._id),
           JSON.stringify(v),
           v.statut || 'COMPLETEE',
-          new Date(v.createdAt || Date.now()).getTime(),
+          safeTs(v.createdAt),
         ]
       );
     }
@@ -655,7 +683,7 @@ export async function deleteNotificationsDB() {
 // ─── Reset complet (logout) ───────────────────────────────────────────────────
 export async function clearDB() {
   const db = getDB();
-  await db.withTransactionAsync(async () => {
+  await runInTransaction(async () => {
     await db.execAsync(`
       DELETE FROM produits;
       DELETE FROM commandes;

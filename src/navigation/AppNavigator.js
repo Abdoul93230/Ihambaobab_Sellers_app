@@ -25,6 +25,7 @@ import AgentLoginScreen from '../screens/AgentLoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import AbonnementScreen, { AbonnementWallScreen } from '../screens/AbonnementScreen';
+import AccountBlockedScreen from '../screens/AccountBlockedScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import VenteScreen from '../screens/VenteScreen';
 import ProduitsScreen from '../screens/ProduitsScreen';
@@ -506,7 +507,7 @@ function TabNavigator() {
 
 // ─── Root Navigator ───────────────────────────────────────────────────────────
 export default function AppNavigator() {
-  const { isAuthenticated, authChecked, subscription, seller, updateSubscription } = useAuthStore();
+  const { isAuthenticated, authChecked, subscription, seller, updateSubscription, blockedByAdmin, adminBlockReason, markBlockedByAdmin } = useAuthStore();
   const { isAuthenticated: isAgentAuth, authChecked: agentAuthChecked } = useAgentStore();
   const { colors, isDark } = useTheme();
 
@@ -546,14 +547,20 @@ export default function AppNavigator() {
       useSyncStore.getState().notifyOrdersUpdate();
     });
 
-    const offSuspended = socketService.on('account_suspended', ({ suspensionReason }) => {
-      updateSubscription({ status: 'suspended' });
-      Toast.show({
-        type: 'error',
-        text1: 'Compte suspendu',
-        text2: suspensionReason || 'Contactez le support.',
-        visibilityTime: 4000,
-      });
+    const offSuspended = socketService.on('account_suspended', ({ suspensionReason, isAdminBlock }) => {
+      if (isAdminBlock !== false) {
+        // Bloc manuel par admin : déconnecte + affiche l'écran dédié
+        markBlockedByAdmin(suspensionReason || null);
+      } else {
+        // Suspension automatique (abonnement expiré) → mur abonnement
+        updateSubscription({ status: 'suspended' });
+        Toast.show({
+          type: 'error',
+          text1: 'Abonnement expiré',
+          text2: suspensionReason || 'Renouvelez votre abonnement pour continuer.',
+          visibilityTime: 5000,
+        });
+      }
     });
 
     const offReconnect = socketService.on('reconnect', () => {
@@ -632,6 +639,9 @@ export default function AppNavigator() {
         {isAgentAuth ? (
           /* ─ Session agent : accès restreint caisse seulement ─ */
           <Stack.Screen name="AgentMain" component={AgentTabNavigator} />
+        ) : blockedByAdmin ? (
+          /* ─ Compte bloqué manuellement par un admin ─ */
+          <Stack.Screen name="AccountBlocked" component={AccountBlockedScreen} />
         ) : !isAuthenticated ? (
           <>
             <Stack.Screen name="Login" component={LoginScreen} options={{ contentStyle: { backgroundColor: '#0D2218' } }} />

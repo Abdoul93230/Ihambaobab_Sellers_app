@@ -28,23 +28,23 @@ import apiClient from '../config/api';
 import { setAgentStatsCache, getAgentStatsCache } from '../db/database';
 
 // ─── Constantes couleurs ──────────────────────────────────────────────────────
-const PRIMARY   = '#30A08B';
+const PRIMARY = '#30A08B';
 const SECONDARY = '#B17236';
-const DANGER    = '#EF4444';
-const SUCCESS   = '#10B981';
-const WARN      = '#F59E0B';
+const DANGER = '#EF4444';
+const SUCCESS = '#10B981';
+const WARN = '#F59E0B';
 
 // ─── Périodes ─────────────────────────────────────────────────────────────────
 const PERIODES = [
-  { label: 'Auj.', value: 1  },
-  { label: '7j',   value: 7  },
-  { label: '30j',  value: 30 },
-  { label: '90j',  value: 90 },
+  { label: 'Auj.', value: 1 },
+  { label: '7j', value: 7 },
+  { label: '30j', value: 30 },
+  { label: '90j', value: 90 },
 ];
 
 // ─── Helpers formatage ────────────────────────────────────────────────────────
 function fmtMoney(n) {
-  return new Intl.NumberFormat('fr-FR').format(n ?? 0) + ' ₣';
+  return new Intl.NumberFormat('fr-FR').format(n ?? 0) + ' FCFA';
 }
 
 function fmtDate(iso) {
@@ -98,7 +98,7 @@ const statStyles = StyleSheet.create({
 
 // ─── AgentCard ────────────────────────────────────────────────────────────────
 function AgentCard({ agent, globalCA, colors }) {
-  const ratio    = globalCA > 0 ? Math.min(1, agent.totalCA / globalCA) : 0;
+  const ratio = globalCA > 0 ? Math.min(1, agent.totalCA / globalCA) : 0;
   const isActive = agent.isActive;
 
   return (
@@ -210,16 +210,16 @@ function AgentCard({ agent, globalCA, colors }) {
 
 // ─── Composant principal ──────────────────────────────────────────────────────
 export default function AgentsPerformanceScreen({ navigation }) {
-  const { colors }    = useTheme();
-  const { seller }    = useAuthStore();
+  const { colors } = useTheme();
+  const { seller } = useAuthStore();
   const { isOffline } = useSync(); // utilisé pour le rechargement auto à la reconnexion
-  const sellerId      = seller?._id || seller?.id;
-  const storeName     = seller?.storeName || seller?.name || 'Ma boutique';
-  const insets        = useSafeAreaInsets();
+  const sellerId = seller?._id || seller?.id;
+  const storeName = seller?.storeName || seller?.name || 'Ma boutique';
+  const insets = useSafeAreaInsets();
 
-  const [periode,    setPeriode]    = useState(7);
-  const [data,       setData]       = useState(null);
-  const [loading,    setLoading]    = useState(false);
+  const [periode, setPeriode] = useState(7);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   // Cache mémoire { [nbJours]: { global, agents } }
@@ -314,8 +314,8 @@ export default function AgentsPerformanceScreen({ navigation }) {
   }, [fetchData]);
 
   // ─── Données extraites ─────────────────────────────────────────────────────
-  const global  = data?.global;
-  const agents  = data?.agents || [];
+  const global = data?.global;
+  const agents = data?.agents || [];
   const topArts = global?.topArticles?.slice(0, 5) || [];
 
   // ─── Render ────────────────────────────────────────────────────────────────
@@ -336,7 +336,7 @@ export default function AgentsPerformanceScreen({ navigation }) {
                   styles.periodeBtn,
                   {
                     backgroundColor: isActive ? PRIMARY : colors.bgHover,
-                    borderColor:     isActive ? PRIMARY : colors.border,
+                    borderColor: isActive ? PRIMARY : colors.border,
                   },
                 ]}
               >
@@ -462,7 +462,7 @@ export default function AgentsPerformanceScreen({ navigation }) {
             >
               {topArts.map((a, i) => {
                 const rankColors = [WARN, '#9CA3AF', SECONDARY, colors.textMuted, colors.textMuted];
-                const rankColor  = rankColors[i] || colors.textMuted;
+                const rankColor = rankColors[i] || colors.textMuted;
                 return (
                   <View
                     key={i}

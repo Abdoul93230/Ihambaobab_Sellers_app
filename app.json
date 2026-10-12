@@ -2,7 +2,7 @@
   "expo": {
     "name": "Ihambaobab Pro",
     "slug": "ihambaobab-seller",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -12,6 +12,7 @@
       "bundleIdentifier": "com.ihambaobab.seller",
       "infoPlist": {
         "UIBackgroundModes": [
+          "remote-notification",
           "remote-notification"
         ]
       }
@@ -22,7 +23,7 @@
         "backgroundColor": "#000000"
       },
       "package": "com.ihambaobab.seller",
-      "versionCode": 1,
+      "versionCode": 3,
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "INTERNET",
@@ -30,13 +31,19 @@
         "WRITE_EXTERNAL_STORAGE",
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",
-        "USE_EXACT_ALARM",
+        "NOTIFICATIONS",
+        "android.permission.POST_NOTIFICATIONS",
+        "INTERNET",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
         "NOTIFICATIONS",
         "android.permission.POST_NOTIFICATIONS"
       ]
     },
     "updates": {
-      "url": "https://u.expo.dev/ihambaobab-seller",
+      "url": "https://u.expo.dev/2c86e819-5757-41b8-aeb3-667db577edca",
       "enabled": true,
       "fallbackToCacheTimeout": 0,
       "checkAutomatically": "ON_LOAD"

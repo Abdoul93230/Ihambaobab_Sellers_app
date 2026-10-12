@@ -11,7 +11,7 @@
     "build:apk": "eas build --platform android --profile preview",
     "build:prod": "eas build --platform android --profile production",
     "update:preview": "eas update --channel preview --platform android --message \"OTA preview update\"",
-    "update:production": "eas update --channel production --platform android --message \"OTA production update\""
+    "update:production": "eas update --channel production --environment production --platform android --message \"OTA production update\""
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

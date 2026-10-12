@@ -116,7 +116,7 @@ export default function NotificationsScreen() {
       id: fakeId,
       type: 'new_order',
       title: 'Nouvelle commande !',
-      body: `Réf CMD-SIM-${Math.floor(Math.random() * 9000) + 1000} — 15 000 ₣`,
+      body: `Réf CMD-SIM-${Math.floor(Math.random() * 9000) + 1000} — 15 000 FCFA`,
       data: { type: 'new_order', orderId: fakeOrderId, reference: `CMD-SIM-${Math.floor(Math.random() * 9000) + 1000}`, montant: 15000 },
       readAt: null,
       receivedAt: new Date().toISOString(),
