@@ -13,6 +13,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useSync } from '../hooks/useSync';
 import CachedImage from '../components/CachedImage';
 import apiClient from '../config/api';
+import ShippingOriginField from '../components/ShippingOriginField';
 import Toast from 'react-native-toast-message';
 
 const { width: W, height: H } = Dimensions.get('window');
@@ -510,6 +511,7 @@ export default function SellerSettingsScreen() {
   const [paysOpen,         setPaysOpen]         = useState(false);
   const [regionOpen,       setRegionOpen]       = useState(false);
   const [address,          setAddress]          = useState('');
+  const [shippingOriginZoneId, setShippingOriginZoneId] = useState('');
   const [postalCode,       setPostalCode]       = useState('');
   const [facebook,         setFacebook]         = useState('');
   const [instagram,        setInstagram]        = useState('');
@@ -553,6 +555,7 @@ export default function SellerSettingsScreen() {
     setRegion(data.region || '');
     setCity(data.city || '');
     setAddress(data.address || '');
+    setShippingOriginZoneId(data.shippingOriginZoneId ? String(data.shippingOriginZoneId) : '');
     setPostalCode(data.postalCode || '');
     setFacebook(data.facebook || '');
     setInstagram(data.instagram || '');
@@ -649,7 +652,7 @@ export default function SellerSettingsScreen() {
         name, userName2, email, emailp,
         phone:         pd ? `${phoneCountry.dial}${pd}` : '',
         storeName, storeDescription, category, storeType, businessProfile, openingHours,
-        region, city, address, postalCode,
+        region, city, address, postalCode, shippingOriginZoneId,
         businessPhone: bd ? `${bizCountry.dial}${bd}` : '',
         whatsapp:      wd ? `${waCountry.dial}${wd}` : '',
         facebook, instagram, website,
@@ -924,6 +927,21 @@ export default function SellerSettingsScreen() {
         >
           <View style={s.section}>
             <SectionCard title="Localisation" icon="location-outline" colors={colors}>
+              <ShippingOriginField
+                value={shippingOriginZoneId}
+                colors={colors}
+                onChange={(zoneId, zone) => {
+                  setShippingOriginZoneId(zoneId);
+                  // Pays / région gardés cohérents avec la zone choisie
+                  const parts = String(zone?.fullPath || '').split(' > ');
+                  const pays = PAYS_DATA.find((p) => p.name.toLowerCase() === String(parts[0] || '').toLowerCase());
+                  if (pays) {
+                    setCity(pays.name);
+                    const reg = pays.regions.find((r) => r.toLowerCase().startsWith(String(parts[1] || '').toLowerCase()));
+                    if (reg) setRegion(reg);
+                  }
+                }}
+              />
               <View style={s.row2}>
                 {/* Pays — stocké dans `city` côté backend (RegisterScreen: fd.append('city', form.pays)) */}
                 <View style={[s.fieldWrap, { flex: 1 }]}>

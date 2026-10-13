@@ -24,6 +24,14 @@ import * as ImagePicker from 'expo-image-picker';
 import axios from 'axios';
 import Toast from 'react-native-toast-message';
 import { BACKEND_URL } from '../config/constants';
+import ShippingOriginField from '../components/ShippingOriginField';
+
+// Palette fixe de l'inscription (écran hors thème)
+const ORIGIN_COLORS = {
+  text: '#111827', textSub: '#374151', textMuted: '#6B7280', textPlaceholder: '#9CA3AF',
+  border: '#E5E7EB', bgHover: '#F3F4F6', bgInput: '#F9FAFB', bgCard: '#FFFFFF',
+  primary: '#30A08B', primaryLight: '#e6f5f2', dangerText: '#B91C1C',
+};
 
 const { width: W, height: H } = Dimensions.get('window');
 
@@ -819,6 +827,22 @@ function Step3({ form, setField, errors }) {
         <FieldError msg={errors.businessProfile} />
       </View>
 
+      {/* Lieu d'expédition (remplit aussi pays et région) */}
+      <ShippingOriginField
+        value={form.shippingOriginZoneId}
+        colors={ORIGIN_COLORS}
+        onChange={(zoneId, zone) => {
+          setField('shippingOriginZoneId', zoneId);
+          const parts = String(zone?.fullPath || '').split(' > ');
+          const pays = PAYS_DATA.find((p) => p.name.toLowerCase() === String(parts[0] || '').toLowerCase());
+          if (pays) {
+            setField('pays', pays.name);
+            const reg = pays.regions.find((r) => r.toLowerCase().startsWith(String(parts[1] || '').toLowerCase()));
+            if (reg) setField('region', reg);
+          }
+        }}
+      />
+
       {/* Pays */}
       <View>
         <FieldLabel label="Pays" required />
@@ -962,7 +986,7 @@ const INITIAL_FORM = {
   // Boutique
   storeName: '', category: '', categoryCustom: '', storeType: '', businessProfile: '',
   // Localisation
-  pays: '', region: '',
+  pays: '', region: '', shippingOriginZoneId: '',
   // Documents
   ownerIdentity: null, logo: null,
 };

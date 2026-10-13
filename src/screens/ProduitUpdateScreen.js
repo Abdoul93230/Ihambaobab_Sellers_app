@@ -10,6 +10,7 @@ import { checkImageSize } from '../utils/imageUtils';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
+import SizeClassPicker, { defaultWeightFor } from '../components/SizeClassPicker';
 import { useAuthStore } from '../stores/authStore';
 import SUBSCRIPTION_CONFIG from '../config/subscriptionConfig';
 import { useSyncStore } from '../stores/syncStore';
@@ -518,6 +519,7 @@ export default function ProduitUpdateScreen({ route, navigation }) {
   const [prixF, setPrixF]         = useState('0');
   const [showPrixF, setShowPrixF] = useState(false);
   const [weight, setWeight]       = useState('');
+  const [sizeClass, setSizeClass] = useState('');
   const [typeId, setTypeId]       = useState('');
   // origine calculé automatiquement depuis seller.region/city — pas affiché à l'utilisateur
   const origineRef = React.useRef('');
@@ -591,6 +593,7 @@ export default function ProduitUpdateScreen({ route, navigation }) {
     setPrixF(loadedPrixF);
     setShowPrixF(parseFloat(loadedPrixF) > 0);
     setWeight(String(p.shipping?.weight || ''));
+    setSizeClass(p.shipping?.sizeClass || '');
     // origine chargé depuis le produit existant dans la ref (pas affiché)
     if (p.shipping?.origine) origineRef.current = p.shipping.origine;
     const tId = p.ClefType?._id || p.ClefType;
@@ -730,7 +733,8 @@ export default function ProduitUpdateScreen({ route, navigation }) {
       marque: marque || 'inconnu',
       description,
       prixF: Number(prixF) || 0,
-      weight: Number(weight || 0.5),
+      weight: Number(weight || defaultWeightFor(sizeClass) || 0.5),
+      ...(sizeClass ? { sizeClass } : {}),
       origine: origineRef.current || 'Niger',
       shippingZones: [],
       ClefType: typeId || undefined,
@@ -879,7 +883,8 @@ export default function ProduitUpdateScreen({ route, navigation }) {
       form.append('Clefournisseur', typeof initialProduit?.Clefournisseur === 'object' ? initialProduit.Clefournisseur._id || sellerId : (initialProduit?.Clefournisseur || sellerId));
       if (typeId) form.append('ClefType', typeId);
       // Identique au web : Number(form.weight || 0.5) — jamais vide
-      form.append('weight', String(Number(weight || 0.5)));
+      form.append('weight', String(Number(weight || defaultWeightFor(sizeClass) || 0.5)));
+      if (sizeClass) form.append('sizeClass', sizeClass);
       form.append('origine', origineRef.current || 'Niger');
       form.append('shippingZones', JSON.stringify([]));
       if (deletedVariantIds.length) form.append('deletedVariantIds', JSON.stringify(deletedVariantIds));
@@ -1216,8 +1221,17 @@ export default function ProduitUpdateScreen({ route, navigation }) {
           {/* ── Livraison ─────────────────────────────────────────────── */}
           <SectionHeader icon="car-outline" title="Livraison" colors={colors} />
 
-          <Field label="Poids (kg)" colors={colors} hint="Optionnel — 0.5 kg par défaut">
-            <Input value={weight} onChangeText={setWeight} keyboardType="numeric" placeholder="ex: 0.5" colors={colors} />
+          <Field label="Taille du colis" colors={colors} hint="Les frais sont calculés selon la distance et la taille">
+            <SizeClassPicker
+              value={sizeClass}
+              weight={weight}
+              colors={colors}
+              onChange={({ sizeClass: k, weight: w }) => { setSizeClass(k); setWeight(w); }}
+            />
+          </Field>
+
+          <Field label="Poids exact (kg)" colors={colors} hint="Facultatif — prérempli selon la taille">
+            <Input value={weight} onChangeText={setWeight} keyboardType="numeric" placeholder={sizeClass ? String(defaultWeightFor(sizeClass)) : 'ex: 0.5'} colors={colors} />
           </Field>
 
           {/* ── Bouton final ──────────────────────────────────────────── */}
