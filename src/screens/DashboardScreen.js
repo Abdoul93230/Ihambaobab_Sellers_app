@@ -951,6 +951,7 @@ function OrderRow({ order, colors }) {
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={[styles.orderClient, { color: colors.text }]} numberOfLines={1}>{client}</Text>
         <Text style={[styles.orderDate, { color: colors.textMuted }]}>{date}</Text>
+        {order.phoneConfirmation === 'pending' ? <Text style={{ fontSize: 10, fontWeight: '800', color: '#9A3412' }}>📞 En attente de confirmation</Text> : null}
       </View>
       <View style={{ alignItems: 'flex-end', gap: 4 }}>
         <Text style={[styles.orderTotal, { color: colors.text }]}>{fmtShort(order.sellerTotal || 0)} FCFA</Text>

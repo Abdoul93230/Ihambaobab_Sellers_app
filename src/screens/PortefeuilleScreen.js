@@ -769,6 +769,7 @@ function OrderFinRow({ order, colors, onPress }) {
           {order.reference || `#${String(order._id).slice(-8)}`}
         </Text>
         <Text style={[styles.rowSub, { color: colors.textMuted }]}>{fmtDate(order.date)}</Text>
+        {order.phoneConfirmation === 'pending' ? <Text style={{ fontSize: 10, fontWeight: '800', color: '#9A3412' }}>📞 En attente de confirmation</Text> : null}
         {order.sellerProducts?.length > 0 && (
           <Text style={[styles.rowSub, { color: colors.textMuted }]} numberOfLines={1}>
             {order.sellerProducts.length} article{order.sellerProducts.length > 1 ? 's' : ''} — {order.sellerProducts.map(p => p.nom).join(', ')}
@@ -854,7 +855,7 @@ function OrderDetailModal({ order, sellerId, isOffline, onClose, onOrderUpdated,
         });
       }
     } catch (e) {
-      Toast.show({ type: 'error', text1: 'Erreur de validation', text2: e.message });
+      Toast.show({ type: 'error', text1: 'Erreur de validation', text2: e.response?.data?.message || e.message });
     } finally {
       setValidating(null);
     }
@@ -885,7 +886,7 @@ function OrderDetailModal({ order, sellerId, isOffline, onClose, onOrderUpdated,
         Toast.show({ type: 'success', text1: '✅ Articles validés !', text2: 'Le client sera notifié.' });
       }
     } catch (e) {
-      Toast.show({ type: 'error', text1: 'Erreur', text2: e.message });
+      Toast.show({ type: 'error', text1: 'Validation impossible', text2: e.response?.data?.message || e.message });
     } finally {
       setValidating(null);
     }
@@ -921,6 +922,16 @@ function OrderDetailModal({ order, sellerId, isOffline, onClose, onOrderUpdated,
             <Ionicons name="close" size={20} color={colors.textMuted} />
           </TouchableOpacity>
         </View>
+
+        {/* Client sans compte dont le SMS n'est pas arrivé : l'équipe l'appelle avant toute préparation */}
+        {localOrder.phoneConfirmation === 'pending' ? (
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 12, padding: 10, borderRadius: 12, backgroundColor: '#FFF7ED', borderWidth: 1, borderColor: '#FED7AA' }}>
+            <Ionicons name="call" size={16} color="#C2410C" />
+            <Text style={{ flex: 1, fontSize: 12, color: '#7C2D12', lineHeight: 17 }}>
+              En attente de confirmation : l'équipe Ihambaobab appelle le client (son code SMS n'est pas arrivé). Ne préparez pas encore, la validation sera possible après confirmation.
+            </Text>
+          </View>
+        ) : null}
 
         {/* Bandeau d'action urgente — visible seulement si articles non validés */}
         {needsAction && (
