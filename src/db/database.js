@@ -680,8 +680,43 @@ export async function deleteNotificationsDB() {
   await db.runAsync(`DELETE FROM notifications`);
 }
 
+// ─── Session du cache ─────────────────────────────────────────────────────────
+// Incrémenté à chaque vidage : une synchro lancée avant (autre compte) ne doit plus écrire.
+let _cacheEpoch = 0;
+export const getCacheEpoch = () => _cacheEpoch;
+
+const CACHE_TABLES = [
+  'produits', 'commandes', 'creances', 'bilan_cache', 'image_drafts', 'types',
+  'categories', 'meta', 'notifications', 'agent_ventes', 'agent_stats_cache',
+];
+
+/**
+ * Le cache local appartient à UNE boutique. À la connexion (vendeur ou caissier),
+ * s'il contient les données d'une autre boutique, il est vidé avant tout affichage.
+ * Filet de sécurité si le vidage à la déconnexion a échoué ou a été « re-rempli »
+ * par une synchro de l'ancien compte terminée après coup.
+ */
+export async function ensureDbOwner(storeId) {
+  if (!storeId) return false;
+  const id = String(storeId);
+  const owner = await getMeta('dbOwnerStoreId').catch(() => null);
+  if (owner === id) return false;
+  const db = getDB();
+  _cacheEpoch++;
+  await runInTransaction(async () => {
+    for (const t of CACHE_TABLES) await db.runAsync(`DELETE FROM ${t}`);
+    // Actions en attente d'une AUTRE boutique : impossibles à envoyer avec ce compte.
+    // Première ouverture après la mise à jour (propriétaire inconnu) : on les garde.
+    if (owner !== null) await db.runAsync(`DELETE FROM mutations`);
+  });
+  await setMeta('dbOwnerStoreId', id);
+  if (__DEV__) console.log(`[db] cache vidé : boutique ${owner || '(inconnue)'} → ${id}`);
+  return true;
+}
+
 // ─── Reset complet (logout) ───────────────────────────────────────────────────
 export async function clearDB() {
+  _cacheEpoch++;
   const db = getDB();
   await runInTransaction(async () => {
     await db.execAsync(`

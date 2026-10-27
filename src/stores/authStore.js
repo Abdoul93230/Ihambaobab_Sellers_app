@@ -1,10 +1,12 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
-import apiClient, { BACKEND_URL } from '../config/api';
+import apiClient, { BACKEND_URL, abortSessionRequests } from '../config/api';
 import { STORAGE_KEY } from '../config/constants';
 import axios from 'axios';
-import { resetFailedSellerMutations } from '../db/database';
+import { resetFailedSellerMutations, ensureDbOwner } from '../db/database';
+
+const storeIdOf = (seller) => seller?._id || seller?.id || null;
 
 const saveSession = async (data) => {
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -19,6 +21,7 @@ const clearSession = async () => {
 };
 
 const resetSyncStore = async () => {
+  abortSessionRequests(); // d'abord : plus aucune réponse de l'ancien compte ne doit arriver
   try {
     const { useSyncStore } = require('./syncStore');
     useSyncStore.getState().reset();
@@ -78,6 +81,8 @@ export const useAuthStore = create((set) => ({
       if (!stored.token || !stored.seller) return set({ authChecked: true });
 
       const sellerId = stored.seller?.id || stored.seller?._id;
+      // App relancée : le cache doit appartenir à cette boutique
+      await ensureDbOwner(sellerId).catch(() => {});
 
       if (sellerId) {
         try {
@@ -218,6 +223,7 @@ export const useAuthStore = create((set) => ({
       };
 
       await saveSession({ token, seller, subscription });
+      await ensureDbOwner(storeIdOf(seller)).catch(() => {}); // cache d'une autre boutique → vidé
       set({ seller, token, subscription, isAuthenticated: true, loading: false, error: null, isResubscriptionToken: false });
 
       // Rescue les mutations vendeur bloquées sur 'failed' (ex: token expiré)
@@ -297,6 +303,7 @@ export const useAuthStore = create((set) => ({
           commission:    5,
         };
         await saveSession({ token: errData.token, seller, subscription });
+        await ensureDbOwner(storeIdOf(seller)).catch(() => {});
         set({ seller, token: errData.token, subscription, isAuthenticated: true, loading: false, error: null, isResubscriptionToken: true });
         return { success: true };
       }

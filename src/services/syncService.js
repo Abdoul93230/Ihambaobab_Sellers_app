@@ -6,7 +6,7 @@ import { useAuthStore } from '../stores/authStore';
 import {
   getDB, upsertMany, readAll, readWhere, count, getMeta, setMeta,
   getBilanCache, setBilanCache, getBilanCacheOffline, clearDB,
-  setAgentStatsCache, runInTransaction,
+  setAgentStatsCache, runInTransaction, getCacheEpoch,
 } from '../db/database';
 import { prefetchProductImages } from '../utils/imagePrefetch';
 
@@ -44,10 +44,16 @@ const fetchers = {
   produits: async () => {
     try {
       if (__DEV__) console.log('[sync] 🔄 Fetching produits...');
+      const epoch = getCacheEpoch(); // cache vidé pendant la requête (déconnexion) → on n'écrit rien
       const [res, pubRes] = await Promise.allSettled([
         apiClient.get('/Products?limit=50&page=1'),
         apiClient.get('/Products?status=Published&limit=1'),
       ]);
+
+      if (epoch !== getCacheEpoch()) {
+        if (__DEV__) console.log('[sync] réponse produits ignorée : session changée');
+        return;
+      }
 
       if (res.status === 'rejected') {
         console.warn('[sync] ❌ Erreur fetch /Products:', res.reason?.message, res.reason?.response?.status, res.reason?.response?.data);
@@ -65,7 +71,11 @@ const fetchers = {
         // 2. Supprimer de SQLite les produits absents du serveur
         //    → couvre suppression via web, admin, MongoDB direct
         //    → protège les produits _pendingSync (créés offline, pas encore syncs)
-        if (prods.length > 0) {
+        //    Seulement si le serveur a renvoyé la liste COMPLÈTE (une seule page) — y compris vide :
+        //    une boutique sans article doit vider le cache ; et avec plusieurs pages, les articles
+        //    des pages suivantes ne doivent pas être effacés.
+        const isList = Array.isArray(d?.data) || Array.isArray(d?.products); // jamais sur une réponse inattendue
+        if (isList && pages <= 1) {
           const db = getDB();
           const serverIds = prods.map(p => String(p._id));
 

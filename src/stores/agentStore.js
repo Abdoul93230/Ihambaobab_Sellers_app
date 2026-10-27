@@ -8,8 +8,8 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import apiClient from '../config/api';
-import { upsertMany, readAll, refreshAgentTokenInMutations, getDB, clearAgentVentes } from '../db/database';
+import apiClient, { abortSessionRequests } from '../config/api';
+import { upsertMany, readAll, refreshAgentTokenInMutations, getDB, clearAgentVentes, ensureDbOwner } from '../db/database';
 import { AGENT_STORAGE_KEY } from '../config/constants';
 
 const AGENT_SECURE_KEY = 'agentToken';
@@ -76,6 +76,7 @@ export const useAgentStore = create((set) => ({
         }
       } catch (_) {}
 
+      await ensureDbOwner(stored.agent?.storeId).catch(() => {});
       set({
         agent: stored.agent,
         token: stored.token,
@@ -100,6 +101,7 @@ export const useAgentStore = create((set) => ({
       const { token, agent } = res.data.data;
 
       await saveAgentSession({ token, agent });
+      await ensureDbOwner(agent.storeId).catch(() => {}); // caisse d'une autre boutique → cache vidé
       set({ agent, token, isAuthenticated: true, loading: false, error: null });
 
       // Rescue les mutations CREATE_VENTE dont l'ancien token a expiré
@@ -128,6 +130,7 @@ export const useAgentStore = create((set) => ({
 
   // ─── Déconnexion ──────────────────────────────────────────────────────────
   logout: async () => {
+    abortSessionRequests(); // une réponse en cours ne doit plus remplir le cache
     await clearAgentSession();
     // Purge le cache produits SQLite — évite qu'un autre agent voie les données
     // du précédent. Les mutations CREATE_VENTE pending sont gardées (elles seront

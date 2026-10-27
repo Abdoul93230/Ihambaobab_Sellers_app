@@ -18,11 +18,20 @@ export const TIMEOUTS = {
   UPLOAD: 120000, // upload images (réseau mobile peut être lent)
 };
 
+// Requêtes de la session en cours : annulées d'un coup à la déconnexion, pour qu'une
+// réponse de l'ancien compte n'arrive pas après coup dans le cache du suivant.
+let _session = new AbortController();
+export function abortSessionRequests() {
+  _session.abort();
+  _session = new AbortController();
+}
+
 // Injecte le token JWT à chaque requête.
 // Priorité : header déjà positionné > session agent active > session vendeur.
 // L'agent passe en premier : si une session agent existe en mémoire,
 // on est forcément en mode caissier et on ne doit jamais envoyer le token vendeur.
 apiClient.interceptors.request.use(async (config) => {
+  if (!config.signal) config.signal = _session.signal;
   // Si l'appelant a déjà mis un Authorization explicite, on le respecte
   if (config.headers.Authorization) return config;
 
@@ -57,6 +66,8 @@ let _loggingOut = false; // garde pour éviter plusieurs forceLogout en parallè
 apiClient.interceptors.response.use(
   (res) => res,
   async (error) => {
+    // Requête annulée à la déconnexion : ni réessai, ni message d'erreur
+    if (axios.isCancel(error) || error?.code === 'ERR_CANCELED') return Promise.reject(error);
     const req = error.config;
 
     // Retry 502 (serveur qui redémarre)
