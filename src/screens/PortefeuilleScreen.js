@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import SellerOrderTrace from '../components/SellerOrderTrace';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useFocusEffect } from '@react-navigation/native';
@@ -945,6 +946,9 @@ function OrderDetailModal({ order, sellerId, isOffline, onClose, onOrderUpdated,
       </LinearGradient>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 24 }}>
+
+        {/* ── Raison d'annulation, code de retrait, remise au livreur, historique ── */}
+        <SellerOrderTrace trace={localOrder.trace || order?.trace} colors={colors} />
 
         {/* ── Montants ── */}
         <View style={{ marginTop: 16, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: colors.border, marginBottom: 16 }}>

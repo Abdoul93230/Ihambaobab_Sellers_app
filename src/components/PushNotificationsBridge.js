@@ -153,7 +153,8 @@ function handleNotificationResponse(response) {
     receivedAt: new Date().toISOString(),
   });
 
-  if (data.type === 'new_order') {
+  // Nouvelle commande, annulation (avec raison), colis remis au livreur, livraison : ouvrir la commande
+  if (['new_order', 'order_cancelled', 'order_picked_up', 'order_delivered'].includes(data.type)) {
     navigateToOrderDetail(data);
   }
 }
