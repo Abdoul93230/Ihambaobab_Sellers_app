@@ -2622,7 +2622,7 @@ export default function PortefeuilleScreen() {
                 <View style={styles.heroStatRow}>
                   {[
                     { val: balanceVisible ? `${fmtShort(soldeDisponible)} FCFA` : '••••', label: 'Disponible' },
-                    { val: balanceVisible ? `${fmtShort(soldeBloqueTemp)} FCFA` : '••••', label: 'Bloqué 48h' },
+                    { val: balanceVisible ? `${fmtShort(soldeBloqueTemp)} FCFA` : '••••', label: 'Bloqué 2h' },
                     { val: balanceVisible ? `${fmtShort(soldeEnAttente)} FCFA` : '••••', label: 'En attente' },
                   ].map((s, i, arr) => (
                     <React.Fragment key={s.label}>
