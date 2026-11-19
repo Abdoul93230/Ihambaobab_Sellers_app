@@ -837,6 +837,8 @@ function OrderDetailModal({ order, sellerId, isOffline, onClose, onOrderUpdated,
   const validatedCount = localOrder.sellerProducts?.filter(p => p.isValideSeller).length ?? 0;
   const totalCount = localOrder.sellerProducts?.length ?? 0;
   const needsAction = !isLivre && !isAnnule && !allValidated;
+  // Commande remise au livreur, en livraison ou livrée : les articles validés ne peuvent plus être invalidés
+  const isShipped = isLivre || ['reçu par le livreur', 'en cours de livraison', 'livré', 'livraison reçu', 'Traité'].includes(localOrder.etatTraitement) || !!localOrder.trace?.pickedUpAt;
 
   const toggleProduct = async (produitId, idx) => {
     if (isOffline) { Toast.show({ type: 'error', text1: 'Hors ligne', text2: 'Validation impossible sans connexion' }); return; }
@@ -1026,7 +1028,7 @@ function OrderDetailModal({ order, sellerId, isOffline, onClose, onOrderUpdated,
                       </View>
 
                       {/* Bouton validation par article */}
-                      {!isLivre && !isAnnule && (
+                      {!isLivre && !isAnnule && !(isVal && isShipped) && (
                         <TouchableOpacity
                           onPress={() => toggleProduct(p.produitId, idx)}
                           disabled={validating !== null}
@@ -1084,7 +1086,7 @@ function OrderDetailModal({ order, sellerId, isOffline, onClose, onOrderUpdated,
                     </Text>
                   </View>
                 )}
-                {!noneValidated && (
+                {!noneValidated && !isShipped && (
                   <TouchableOpacity
                     onPress={() => validateAll(false)}
                     disabled={validating !== null}
