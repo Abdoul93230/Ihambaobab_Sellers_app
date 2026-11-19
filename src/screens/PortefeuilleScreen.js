@@ -750,8 +750,8 @@ function TxDetailModal({ tx, onClose, colors }) {
 function OrderFinRow({ order, colors, onPress }) {
   const etat = (order.etatTraitement || '').toLowerCase();
   const isAnnule = order.statusLivraison === 'annulé' || etat.includes('annul');
-  const isLivre = order.statusLivraison === 'livré' || order.statusLivraison === 'recu';
-  const isEnCours = etat.includes('livraison');
+  const isLivre = order.statusLivraison === 'livré' || order.statusLivraison === 'recu' || ['livré', 'livraison reçu', 'traité'].includes(etat) || !!order.trace?.deliveredAt;
+  const isEnCours = !isLivre && (etat.includes('livraison') || etat === 'reçu par le livreur' || !!order.trace?.pickedUpAt);
   const isPrepare = etat.includes('préparer') || etat.includes('preparer');
 
   const statusInfo = isAnnule ? { label: 'Annulée', color: '#EF4444', bg: '#FEF2F2' }
@@ -821,8 +821,9 @@ function OrderDetailModal({ order, sellerId, isOffline, onClose, onOrderUpdated,
   if (!order || !localOrder) return null;
 
   const isAnnule = (localOrder.statusLivraison === 'annulé') || (localOrder.etatTraitement || '').toLowerCase().includes('annul');
-  const isLivre = localOrder.statusLivraison === 'livré' || localOrder.statusLivraison === 'recu';
-  const isEnCours = (localOrder.etatTraitement || '').toLowerCase().includes('livraison');
+  const etatLocal = (localOrder.etatTraitement || '').toLowerCase();
+  const isLivre = localOrder.statusLivraison === 'livré' || localOrder.statusLivraison === 'recu' || ['livré', 'livraison reçu', 'traité'].includes(etatLocal) || !!localOrder.trace?.deliveredAt;
+  const isEnCours = !isLivre && (etatLocal.includes('livraison') || etatLocal === 'reçu par le livreur' || !!localOrder.trace?.pickedUpAt);
   const isPrepare = (localOrder.etatTraitement || '').toLowerCase().includes('préparer') || (localOrder.etatTraitement || '').toLowerCase().includes('preparer');
 
   const statusInfo = isAnnule ? { label: 'Annulée', color: '#EF4444', bg: '#FEF2F2', grad: ['#FEF2F2', '#FEE2E2'], icon: 'close-circle' }
