@@ -10,7 +10,7 @@ export default function ScreenHeader({ title, subtitle, rightActions }) {
   const { colors, isDark } = useTheme();
   return (
     <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: colors.bgCard, borderBottomColor: colors.border }]}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.bgCard} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <View style={styles.header}>
         <View style={styles.titleBlock}>
           <Text style={[styles.title, { color: colors.text }]}>{title}</Text>

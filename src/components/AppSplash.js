@@ -14,7 +14,7 @@ export default function AppSplash() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+      <StatusBar barStyle="light-content" />
       <Animated.View style={[styles.content, { transform: [{ scale }], opacity }]}>
         <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
         <View style={styles.badge}>

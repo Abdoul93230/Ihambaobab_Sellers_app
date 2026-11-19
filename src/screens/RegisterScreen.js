@@ -1132,7 +1132,7 @@ export default function RegisterScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: BG }}>
-      <StatusBar barStyle="light-content" backgroundColor={grad[0]} />
+      <StatusBar barStyle="light-content" />
 
       <SuccessModal
         visible={showSuccess}

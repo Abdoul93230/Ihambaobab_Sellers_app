@@ -24,6 +24,7 @@
     "date-fns": "^4.1.0",
     "expo": "~57.0.15",
     "expo-background-task": "~57.0.12",
+    "expo-build-properties": "~57.0.23",
     "expo-constants": "~57.0.13",
     "expo-document-picker": "~57.0.1",
     "expo-file-system": "~57.0.5",

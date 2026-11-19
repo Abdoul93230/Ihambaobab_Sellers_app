@@ -2,7 +2,7 @@
   "expo": {
     "name": "Ihambaobab Pro",
     "slug": "ihambaobab-seller",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -23,7 +23,7 @@
         "backgroundColor": "#000000"
       },
       "package": "com.ihambaobab.seller",
-      "versionCode": 3,
+      "versionCode": 4,
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "INTERNET",
@@ -76,7 +76,16 @@
         }
       ],
       "expo-status-bar",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
+        }
+      ]
     ],
     "web": {
       "favicon": "./assets/favicon.png"

@@ -39,7 +39,7 @@ export default function AccountBlockedScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor="#7f1d1d" />
+      <StatusBar barStyle="light-content" />
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
 
         {/* Icon */}

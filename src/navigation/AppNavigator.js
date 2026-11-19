@@ -128,7 +128,7 @@ function AppHeader({ pageTitle }) {
 
   return (
     <SafeAreaView edges={['top']} style={[styles.headerSafe, { backgroundColor: colors.bgCard, borderBottomColor: colors.border }]}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.bgCard} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <SyncIndicator />
       <View style={styles.headerRow}>
         {/* Gauche : titre + store */}
@@ -262,7 +262,7 @@ function AgentHeader({ pageTitle }) {
 
   return (
     <SafeAreaView edges={['top']} style={[styles.headerSafe, { backgroundColor: colors.bgCard, borderBottomColor: colors.border }]}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.bgCard} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <View style={styles.headerRow}>
         {/* Avatar agent (tap pour changer la photo) */}
         <TouchableOpacity onPress={handlePickPhoto} activeOpacity={0.8} style={styles.agentAvatarWrap}>

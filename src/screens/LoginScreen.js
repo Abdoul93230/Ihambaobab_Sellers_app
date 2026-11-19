@@ -427,7 +427,7 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#0D2218' }}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      <StatusBar barStyle="light-content" />
       <PendingModal visible={showPending} onClose={() => setShowPending(false)} />
 
       {/* ── FOND DÉGRADÉ PLEIN ÉCRAN ── */}

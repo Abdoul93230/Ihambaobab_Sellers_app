@@ -251,7 +251,7 @@ export default function ForgotPasswordScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#0D2218' }}>
-      <StatusBar barStyle="light-content" backgroundColor="#0D2218" />
+      <StatusBar barStyle="light-content" />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}

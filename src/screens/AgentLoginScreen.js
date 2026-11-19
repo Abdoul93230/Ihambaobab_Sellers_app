@@ -300,7 +300,7 @@ export default function AgentLoginScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#0D2218' }}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      <StatusBar barStyle="light-content" />
 
       {/* Fond dégradé */}
       <LinearGradient
